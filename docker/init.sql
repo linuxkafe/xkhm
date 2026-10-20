@@ -228,10 +228,13 @@ CREATE TABLE IF NOT EXISTS `tblknowledgebase` (
 
 -- Insert sample data
 INSERT INTO `tblclients` (`firstname`, `lastname`, `email`, `password`, `status`, `datecreated`) VALUES
-('Test', 'User', 'test@example.com', 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6', 'Active', CURDATE());
+('Test', 'User', 'test@example.com', '5f4dcc3b5aa765d61d8327deb882cf99', 'Active', CURDATE());
 
 INSERT INTO `tbladmins` (`username`, `password`, `fullname`, `email`) VALUES
-('admin', 'admin123', 'Administrator', 'admin@linuxkafe.com');
+('admin', '0192023a7bbd73250516f069df18b500', 'Administrator', 'admin@linuxkafe.com');
+
+-- Sample client (password: "password", md5 hash)
+-- Client login: test@example.com / password
 
 INSERT INTO `tbldomainpricing` (`extension`, `msetupprice`, `renprice`) VALUES
 ('.com', 9.99, 14.99),

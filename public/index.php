@@ -52,7 +52,8 @@ $app->addErrorMiddleware(
 
 // Inject session into request
 $app->add(function (Request $request, RequestHandler $handler): Response {
-    $request = $request->withAttribute('session', $_SESSION);
+    $session = $_SESSION ?? [];
+    $request = $request->withAttribute('session', $session);
     return $handler->handle($request);
 });
 
@@ -201,19 +202,23 @@ $app->get('/affiliates.php', [$affiliateController, 'index']);
 
 // ─── Admin Routes ─────────────────────────────────────────────────────────────
 
-$app->group('/admin', function ($group) use ($adminAuthController) {
-    $group->get('/login.php', [$adminAuthController, 'showLogin']);
-    $group->post('/login.php', [$adminAuthController, 'login']);
-    $group->get('/logout.php', [$adminAuthController, 'logout']);
-    $group->get('', function (Request $request, Response $response) {
-        $html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Admin Panel - LINUXKAFE</title></head>';
-        $html .= '<body><div class="container"><h1>Admin Panel</h1>';
-        $html .= '<p><a href="/admin/login.php">Login</a></p>';
-        $html .= '</div></body></html>';
-        $response->getBody()->write($html);
-        return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
-    });
+// Admin auth routes (no middleware)
+$app->get('/admin/login.php', [$adminAuthController, 'showLogin']);
+$app->post('/admin/login.php', [$adminAuthController, 'login']);
+$app->get('/admin/logout.php', [$adminAuthController, 'logout']);
+$app->get('/admin', function (Request $request, Response $response) {
+    $html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Admin Panel - LINUXKAFE</title></head>';
+    $html .= '<body><div class="container"><h1>Admin Panel</h1>';
+    $html .= '<p><a href="/admin/login.php">Login</a></p>';
+    $html .= '</div></body></html>';
+    $response->getBody()->write($html);
+    return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
 })->add($adminAuthMiddleware);
+
+// Redirect /admin/ to /admin
+$app->get('/admin/', function (Request $request, Response $response) {
+    return $response->withHeader('Location', '/admin')->withStatus(302);
+});
 
 // Default route - show welcome page
 $app->get('/', function (Request $request, Response $response) {

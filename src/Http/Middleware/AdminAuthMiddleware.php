@@ -7,9 +7,10 @@ namespace Xkhm\Http\Middleware;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 
-class AdminAuthMiddleware
+class AdminAuthMiddleware implements MiddlewareInterface
 {
     private ResponseFactoryInterface $responseFactory;
 
