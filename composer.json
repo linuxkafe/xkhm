@@ -1,0 +1,52 @@
+{
+    "name": "xkhm/xkhm",
+    "description": "WHMCS 5.3.x Reimplementation - xkhm",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.4",
+        "slim/slim": "^4.12",
+        "slim/psr7": "^1.7",
+        "nyholm/psr7": "^1.8",
+        "nyholm/psr7-server": "^1.1",
+        "php-di/php-di": "^7.0",
+        "laminas/laminas-diactoros": "^3.6",
+        "psr/container": "^2.0",
+        "psr/log": "^3.0",
+        "monolog/monolog": "^3.5",
+        "vlucas/phpdotenv": "^5.6"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.50",
+        "mikey179/vfsstream": "^1.6",
+        "phpstan/phpstan": "^1.11",
+        "phpstan/phpstan-phpunit": "^1.4",
+        "phpunit/phpunit": "^11.0",
+        "rector/rector": "^1.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Xkhm\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Xkhm\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        },
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "phpunit",
+        "lint": "phpstan analyse --level=5 src tests",
+        "fix": "php-cs-fixer fix --allow-risky=yes",
+        "check": [
+            "@lint",
+            "@test"
+        ]
+    }
+}

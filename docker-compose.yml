@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: linuxkonect
+      MYSQL_USER: linuxkonect
+      MYSQL_PASSWORD: qm9W8amh5XV9A4Dr
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - xkhm-network
+
+  xkhm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - APP_ENV=development
+    volumes:
+      - ./configuration.php:/var/www/html/configuration.php:ro
+      - ./templates_c:/var/www/html/templates_c
+    networks:
+      - xkhm-network
+
+volumes:
+  mysql_data:
+
+networks:
+  xkhm-network:
+    driver: bridge

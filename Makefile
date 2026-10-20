@@ -1,27 +1,40 @@
-.PHONY: setup test lint format check doctor clean index wake sleep
+.PHONY: setup test lint format check doctor clean index wake sleep install dev
 
 PHP=php
 PHP_VERSION=$(shell php -r "echo PHP_VERSION;")
+COMPOSER=composer
 
-setup: ## Initialize project dependencies
-	@echo "xkhm setup — no composer/vendor expected yet"
+setup: install ## Initialize project dependencies
+	@echo "Setup complete"
 
-test: ## Run test suite
-	@echo "No tests yet — T001 phase"
+install: vendor/autoload.php ## Install PHP dependencies
 
-lint: ## Lint source code
-	@echo "No source yet — T001 phase"
+vendor/autoload.php: composer.json composer.lock
+	$(COMPOSER) install --no-interaction
 
-format: ## Format source code
-	@echo "No source yet — T001 phase"
+test: vendor/autoload.php ## Run test suite
+	@echo "Running unit tests..."
+	./vendor/bin/phpunit --configuration phpunit.xml.dist
 
-check: test lint format ## Run all quality gates
-	@echo "All gates passed (T001 placeholder)"
+lint: vendor/autoload.php ## Lint source code
+	@echo "Running PHPStan..."
+	./vendor/bin/phpstan analyse --level=5 src tests
+
+format: vendor/autoload.php ## Format source code
+	@echo "Running PHP-CS-Fixer..."
+	./vendor/bin/php-cs-fixer fix --allow-risky=yes --diff --dry-run
+
+check: test lint ## Run all quality gates
+	@echo "All gates passed"
 
 doctor: ## Check environment health
 	@echo "=== xkhm doctor ==="
 	@echo "PHP version: $(PHP_VERSION)"
-	@php -l CLAUDE.md 2>/dev/null || true
+	@php -l src/Config.php 2>/dev/null && echo "  [OK] src/Config.php" || echo "  [ERROR] src/Config.php"
+	@php -l public/index.php 2>/dev/null && echo "  [OK] public/index.php" || echo "  [ERROR] public/index.php"
+	@test -f composer.json && echo "  [OK] composer.json" || echo "  [MISSING] composer.json"
+	@test -f vendor/autoload.php && echo "  [OK] vendor/autoload.php" || echo "  [MISSING] vendor/autoload.php"
+	@echo ""
 	@echo "AES structure:"
 	@test -f aes/kanban.md && echo "  [OK] kanban.md" || echo "  [MISSING] kanban.md"
 	@test -d aes/tickets && echo "  [OK] aes/tickets/" || echo "  [MISSING] aes/tickets/"
@@ -35,7 +48,8 @@ doctor: ## Check environment health
 	@docker ps --format '{{.Names}}\t{{.Status}}' 2>/dev/null | grep -E "whmcs|mysql" || echo "  No whmcs/mysql containers running"
 
 clean: ## Clean build artifacts
-	@echo "Nothing to clean"
+	rm -rf vendor/
+	rm -f composer.lock
 
 index: ## Generate AES index
 	@echo "Index generation not yet configured"
@@ -45,6 +59,10 @@ wake: ## Pre-phase initialization
 
 sleep: ## Post-phase housekeeping
 	@echo "Sleep: nothing to archive yet"
+
+dev: vendor/autoload.php ## Start development server
+	@echo "Starting dev server on http://localhost:8080"
+	php -S localhost:8080 -t public
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
