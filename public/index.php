@@ -128,6 +128,16 @@ $ticketRepo = new \Xkhm\Repository\TicketRepositoryPDO();
 $ticketService = new \Xkhm\Service\TicketService($ticketRepo);
 $ticketController = new TicketController($ticketService);
 
+// Knowledgebase service setup
+$kbRepo = new \Xkhm\Repository\KnowledgebaseRepositoryPDO();
+$kbService = new \Xkhm\Service\KnowledgebaseService($kbRepo);
+$kbController = new KnowledgebaseController($kbService);
+
+// Announcement service setup
+$announceRepo = new \Xkhm\Repository\AnnouncementRepositoryPDO();
+$announceService = new \Xkhm\Service\AnnouncementService($announceRepo);
+$announceController = new AnnouncementController($announceService);
+
 // Client area dashboard
 $app->get('/clientarea', function (Request $request, Response $response) use ($billingService) {
     $session = $request->getAttribute('session');
@@ -194,11 +204,23 @@ $app->get('/domain.php', [$domainController, 'list']);
 $app->post('/domain.php', [$domainController, 'register']);
 
 // Knowledgebase
-$app->group('/knowledgebase', function ($group) {
-    $group->get('', function (Request $request, Response $response): Response {
-        $response->getBody()->write('Knowledgebase - TODO: implement');
-        return $response;
-    });
+$app->get('/knowledgebase.php', function (Request $request, Response $response) use ($kbController) {
+    $queryParams = $request->getQueryParams();
+    $action = $queryParams['action'] ?? 'search';
+    $search = $queryParams['search'] ?? '';
+    $articleId = (int)($queryParams['id'] ?? 0);
+
+    // If viewing article or searching
+    if ($action === 'article' || ($action === 'search' && strlen($search) >= 2)) {
+        return $kbController->index($request, $response);
+    }
+
+    // If browsing categories
+    if (isset($queryParams['category'])) {
+        return $kbController->index($request, $response);
+    }
+
+    return $kbController->index($request, $response);
 });
 
 // Support tickets
@@ -231,10 +253,7 @@ $app->group('/affiliates', function ($group) {
 });
 
 // Announcements
-$app->get('/announcements', function (Request $request, Response $response): Response {
-    $response->getBody()->write('Announcements - TODO: implement');
-    return $response;
-});
+$app->get('/announcements.php', [$announceController, 'index']);
 
 // Server status
 $app->get('/serverstatus', function (Request $request, Response $response): Response {
