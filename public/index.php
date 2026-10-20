@@ -101,20 +101,70 @@ $authService = new AuthService($clientRepo);
 $loginController = new LoginController($authService);
 $pwResetController = new PasswordResetController($clientRepo);
 
-// Login page
+// Auth routes
 $app->get('/clientarea.php', [$loginController, 'showLogin']);
-
-// Login processor
 $app->post('/dologin.php', [$loginController, 'processLogin']);
-
-// Logout
 $app->get('/logout.php', [$loginController, 'logout']);
-
-// Password reset form
 $app->get('/pwreset.php', [$pwResetController, 'showForm']);
-
-// Password reset processor
 $app->post('/pwreset.php', [$pwResetController, 'process']);
+
+// ─── Client Area ───────────────────────────────────────────────────────────────
+
+// Billing service setup
+$invoiceRepo = new \Xkhm\Repository\InvoiceRepositoryPDO();
+$orderRepo = new \Xkhm\Repository\OrderRepositoryPDO();
+$billingService = new \Xkhm\Service\BillingService($invoiceRepo, $orderRepo, $clientRepo);
+$gatewayService = new \Xkhm\Service\GatewayService($invoiceRepo);
+$invoiceController = new InvoiceController($billingService, $gatewayService);
+$orderController = new OrderController($billingService);
+
+// Client area dashboard
+$app->get('/clientarea', function (Request $request, Response $response) use ($billingService) {
+    $session = $request->getAttribute('session');
+    if (!$session || !isset($session['client_id'])) {
+        return $response->withHeader('Location', '/clientarea.php')->withStatus(302);
+    }
+    $clientId = $session['client_id'];
+    $summary = $billingService->getInvoiceSummary($clientId);
+    $html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Área do Cliente - LINUXKAFE</title></head>';
+    $html .= '<body><div class="container"><h1>Bemvindo, ' . htmlspecialchars($session['client']['firstname'] ?? 'Cliente') . '</h1>';
+    $html .= '<h3>Resumo Financeiro</h3>';
+    $html .= '<p>Crédito: $' . number_format($summary['credit_balance'], 2) . '</p>';
+    $html .= '<p>Total em Aberto: $' . number_format($summary['unpaid_total'], 2) . '</p>';
+    $html .= '<p><a href="/clientarea.php?action=invoices">Ver Faturas</a> | ';
+    $html .= '<a href="/clientarea.php?action=orders">Ver Pedidos</a> | ';
+    $html .= '<a href="/logout.php">Logout</a></p>';
+    $html .= '</div></body></html>';
+    $response->getBody()->write($html);
+    return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+});
+
+// Invoice controller routes
+$app->get('/viewinvoice.php', [$invoiceController, 'view']);
+$app->get('/clientarea.php', function (Request $request, Response $response) use ($invoiceController, $orderController) {
+    $queryParams = $request->getQueryParams();
+    $action = $queryParams['action'] ?? '';
+
+    // Redirect to login if not authenticated
+    $session = $request->getAttribute('session');
+    if (!$session || !isset($session['client_id'])) {
+        return $response->withHeader('Location', '/clientarea.php')->withStatus(302);
+    }
+
+    // Handle invoice listing
+    if ($action === 'invoices') {
+        return $invoiceController->list($request, $response);
+    }
+
+    // Handle order listing
+    if ($action === 'orders') {
+        return $orderController->list($request, $response);
+    }
+
+    // Default: show dashboard
+    // This is handled by /clientarea route above
+    return $response->withHeader('Location', '/clientarea')->withStatus(302);
+});
 
 // ─── Public Routes ─────────────────────────────────────────────────────────────
 
