@@ -147,6 +147,17 @@ $affiliateController = new AffiliateController($affiliateService);
 $adminAuthService = new \Xkhm\Service\AdminAuthService(new \Xkhm\Repository\AdminRepositoryPDO());
 $adminAuthController = new AdminAuthController($adminAuthService);
 
+// Server status service setup
+$serverStatusService = new \Xkhm\Service\ServerStatusService();
+$serverStatusController = new ServerStatusController($serverStatusService);
+
+// SSL service setup
+$sslService = new \Xkhm\Service\SslService();
+$sslController = new SslController($sslService);
+
+// API controller setup
+$apiController = new ApiController($billingService, $ticketService, $domainService);
+
 // Create admin auth middleware
 $adminAuthMiddleware = new AdminAuthMiddleware($app->getResponseFactory());
 
@@ -256,9 +267,14 @@ $app->get('/supporttickets.php', function (Request $request, Response $response)
 });
 $app->post('/supporttickets.php', [$ticketController, 'create']);
 
-// Affiliates
-$app->get('/affiliates.php', [$affiliateController, 'index']);
-$app->post('/affiliates.php', [$affiliateController, 'signup']);
+// SSL Configuration
+$app->get('/ssl.php', [$sslController, 'index']);
+
+// Server Status (public)
+$app->get('/serverstatus.php', [$serverStatusController, 'index']);
+
+// API
+$app->get('/api.php', [$apiController, 'handleApi']);
 
 // ─── Admin Routes ─────────────────────────────────────────────────────────────
 
