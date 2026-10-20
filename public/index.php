@@ -123,6 +123,11 @@ $domainRepo = new \Xkhm\Repository\DomainRepositoryPDO();
 $domainService = new \Xkhm\Service\DomainService($domainRepo);
 $domainController = new DomainController($domainService);
 
+// Ticket service setup
+$ticketRepo = new \Xkhm\Repository\TicketRepositoryPDO();
+$ticketService = new \Xkhm\Service\TicketService($ticketRepo);
+$ticketController = new TicketController($ticketService);
+
 // Client area dashboard
 $app->get('/clientarea', function (Request $request, Response $response) use ($billingService) {
     $session = $request->getAttribute('session');
@@ -197,12 +202,25 @@ $app->group('/knowledgebase', function ($group) {
 });
 
 // Support tickets
-$app->group('/supporttickets', function ($group) {
-    $group->get('', function (Request $request, Response $response): Response {
-        $response->getBody()->write('Support Tickets - TODO: implement');
-        return $response;
-    });
+$app->group('/supporttickets', function ($group) use ($ticketController) {
+    $group->get('', [$ticketController, 'list']);
+    $group->get('/new', [$ticketController, 'new']);
+    $group->post('', [$ticketController, 'create']);
+    $group->post('/reply', [$ticketController, 'reply']);
 });
+$app->get('/supporttickets.php', [$ticketController, 'list']);
+$app->get('/supporttickets.php', function (Request $request, Response $response) use ($ticketController) {
+    $queryParams = $request->getQueryParams();
+    $do = $queryParams['do'] ?? '';
+    if ($do === 'new') {
+        return $ticketController->new($request, $response);
+    }
+    if ($do === 'ticket') {
+        return $ticketController->view($request, $response);
+    }
+    return $ticketController->list($request, $response);
+});
+$app->post('/supporttickets.php', [$ticketController, 'create']);
 
 // Affiliates
 $app->group('/affiliates', function ($group) {
