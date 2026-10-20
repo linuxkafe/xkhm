@@ -10,4 +10,12 @@ interface DomainRepositoryInterface
     public function register(int $userId, string $domain, int $period): int;
     public function findByUserId(int $userId): array;
     public function getPricing(array $tlds): array;
+
+    // Additional methods used by DomainService
+    public function findByName(string $domain): ?array;
+    public function findById(int $id): ?array;
+    public function findByIdWithDns(int $id): ?array;
+    public function create(array $data): int;
+    public function update(int $id, array $data): bool;
+    public function getTLDPrices(): array;
 }

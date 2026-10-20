@@ -118,6 +118,11 @@ $gatewayService = new \Xkhm\Service\GatewayService($invoiceRepo);
 $invoiceController = new InvoiceController($billingService, $gatewayService);
 $orderController = new OrderController($billingService);
 
+// Domain service setup
+$domainRepo = new \Xkhm\Repository\DomainRepositoryPDO();
+$domainService = new \Xkhm\Service\DomainService($domainRepo);
+$domainController = new DomainController($domainService);
+
 // Client area dashboard
 $app->get('/clientarea', function (Request $request, Response $response) use ($billingService) {
     $session = $request->getAttribute('session');
@@ -177,12 +182,11 @@ $app->group('/cart', function ($group) {
 });
 
 // Domain checker
-$app->group('/domainchecker', function ($group) {
-    $group->get('', function (Request $request, Response $response): Response {
-        $response->getBody()->write('Domain Checker - TODO: implement');
-        return $response;
-    });
-});
+$app->get('/domainchecker.php', [$domainController, 'checker']);
+
+// Domain management
+$app->get('/domain.php', [$domainController, 'list']);
+$app->post('/domain.php', [$domainController, 'register']);
 
 // Knowledgebase
 $app->group('/knowledgebase', function ($group) {

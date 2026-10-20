@@ -2,7 +2,7 @@
 project: xkhm
 created: 2026-10-20
 current_sprint: sprint-01
-current_ticket: T008
+current_ticket: T009
 ---
 
 # XKHM — WHMCS Reimplementation
@@ -30,7 +30,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T005 | Core domain model implementation | medium | done |
 | T006 | Client authentication & session management | medium | done |
 | T007 | Billing & invoicing engine | medium | done |
-| T008 | Domain management (checker, registrar modules) | medium | pending |
+| T008 | Domain management (checker, registrar modules) | medium | done |
 | T009 | Support ticketing system | medium | pending |
 | T010 | Knowledgebase module | low | pending |
 | T011 | Affiliates module | low | pending |

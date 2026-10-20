@@ -76,4 +76,58 @@ class DomainRepositoryPDO implements DomainRepositoryInterface
 
         return $pricing;
     }
+
+    public function findByName(string $domain): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM tbldomains WHERE name = ?');
+        $stmt->execute([$domain]);
+        return $stmt->fetch() ?: null;
+    }
+
+    public function findById(int $id): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM tbldomains WHERE id = ?');
+        $stmt->execute([$id]);
+        return $stmt->fetch() ?: null;
+    }
+
+    public function findByIdWithDns(int $id): ?array
+    {
+        $domain = $this->findById($id);
+        if (!$domain) {
+            return null;
+        }
+        // DNS records would come from tbldomainsdns or similar
+        return $domain;
+    }
+
+    public function create(array $data): int
+    {
+        $columns = implode(', ', array_keys($data));
+        $placeholders = ':' . implode(', :', array_keys($data));
+
+        $stmt = $this->pdo->prepare("INSERT INTO tbldomains ($columns) VALUES ($placeholders)");
+        $stmt->execute($data);
+
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    public function update(int $id, array $data): bool
+    {
+        $set = implode(', ', array_map(fn ($k) => "$k = :$k", array_keys($data)));
+        $data['id'] = $id;
+
+        $stmt = $this->pdo->prepare("UPDATE tbldomains SET $set WHERE id = :id");
+        return $stmt->execute($data);
+    }
+
+    public function getTLDPrices(): array
+    {
+        $stmt = $this->pdo->query('SELECT * FROM tbldomainpricing');
+        $prices = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $prices[$row['extension']] = (float)($row['msetupprice'] ?? $row['qsetupprice'] ?? 0);
+        }
+        return $prices;
+    }
 }
