@@ -17,21 +17,11 @@ class AffiliateRepositoryPDO implements AffiliateRepositoryInterface
         $this->pdo = $pdo ?? Connection::get($config->getDbConfig());
     }
 
-    public function findByUserId(int $userId): ?array
+    public function create(array $data): int
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM tblaffiliates WHERE userid = ?');
-        $stmt->execute([$userId]);
-        return $stmt->fetch() ?: null;
-    }
-
-    public function create(int $userId): int
-    {
-        $data = [
-            'userid' => $userId,
-            'percentage' => 0,
-            'balance' => 0,
-            'pending' => 0,
-        ];
+        $data['refcode'] = $this->generateRefCode();
+        $data['balance'] = 0;
+        $data['unpaidbalance'] = 0;
 
         $columns = implode(', ', array_keys($data));
         $placeholders = ':' . implode(', :', array_keys($data));
@@ -42,17 +32,66 @@ class AffiliateRepositoryPDO implements AffiliateRepositoryInterface
         return (int) $this->pdo->lastInsertId();
     }
 
-    public function getCommissions(int $userId): array
+    public function findByUserId(int $userId): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM tblaffiliateshistory WHERE userid = ? ORDER BY date DESC');
+        $stmt = $this->pdo->prepare('SELECT * FROM tblaffiliates WHERE userid = ?');
         $stmt->execute([$userId]);
+        return $stmt->fetch() ?: null;
+    }
+
+    public function findById(int $id): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM tblaffiliates WHERE id = ?');
+        $stmt->execute([$id]);
+        return $stmt->fetch() ?: null;
+    }
+
+    public function findByRefCode(string $code): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM tblaffiliates WHERE refcode = ?');
+        $stmt->execute([$code]);
+        return $stmt->fetch() ?: null;
+    }
+
+    public function addReferral(array $data): int
+    {
+        $columns = implode(', ', array_keys($data));
+        $placeholders = ':' . implode(', :', array_keys($data));
+
+        $stmt = $this->pdo->prepare("INSERT INTO tblaffiliatesclients ($columns) VALUES ($placeholders)");
+        $stmt->execute($data);
+
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    public function getReferralsByAffiliate(int $affiliateId): array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM tblaffiliatesclients WHERE affiliateid = ? ORDER BY date DESC');
+        $stmt->execute([$affiliateId]);
         return $stmt->fetchAll();
     }
 
-    public function getWithdrawals(int $userId): array
+    public function getEarningsByAffiliate(int $affiliateId): float
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM tblaffiliatespending WHERE userid = ? ORDER BY date DESC');
-        $stmt->execute([$userId]);
+        $stmt = $this->pdo->prepare(
+            'SELECT COALESCE(SUM(commission), 0) as total FROM tblaffiliatesclients WHERE affiliateid = ?'
+        );
+        $stmt->execute([$affiliateId]);
+        $result = $stmt->fetch();
+        return (float)($result['total'] ?? 0);
+    }
+
+    public function getPayoutHistory(int $affiliateId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM tblaffiliatespayouts WHERE affiliateid = ? ORDER BY date DESC'
+        );
+        $stmt->execute([$affiliateId]);
         return $stmt->fetchAll();
+    }
+
+    private function generateRefCode(): string
+    {
+        return strtoupper(bin2hex(random_bytes(8))); // 16-char hex
     }
 }

@@ -138,6 +138,11 @@ $announceRepo = new \Xkhm\Repository\AnnouncementRepositoryPDO();
 $announceService = new \Xkhm\Service\AnnouncementService($announceRepo);
 $announceController = new AnnouncementController($announceService);
 
+// Affiliate service setup
+$affiliateRepo = new \Xkhm\Repository\AffiliateRepositoryPDO();
+$affiliateService = new \Xkhm\Service\AffiliateService($affiliateRepo);
+$affiliateController = new AffiliateController($affiliateService);
+
 // Client area dashboard
 $app->get('/clientarea', function (Request $request, Response $response) use ($billingService) {
     $session = $request->getAttribute('session');
@@ -245,12 +250,8 @@ $app->get('/supporttickets.php', function (Request $request, Response $response)
 $app->post('/supporttickets.php', [$ticketController, 'create']);
 
 // Affiliates
-$app->group('/affiliates', function ($group) {
-    $group->get('', function (Request $request, Response $response): Response {
-        $response->getBody()->write('Affiliates - TODO: implement');
-        return $response;
-    });
-});
+$app->get('/affiliates.php', [$affiliateController, 'index']);
+$app->post('/affiliates.php', [$affiliateController, 'signup']);
 
 // Announcements
 $app->get('/announcements.php', [$announceController, 'index']);
