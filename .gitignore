@@ -1,0 +1,10 @@
+config.local.php
+.env
+*.key
+*.pem
+vendor/
+node_modules/
+tmp/
+build/
+dist/
+*.log
