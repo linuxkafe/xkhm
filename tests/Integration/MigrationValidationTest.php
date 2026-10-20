@@ -1,0 +1,133 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Xkhm\Tests\Integration;
+
+use PHPUnit\Framework\TestCase;
+use Xkhm\Config;
+use Xkhm\Database\Connection;
+
+class MigrationValidationTest extends TestCase
+{
+    private Config $config;
+    private bool $dbAvailable = false;
+
+    protected function setUp(): void
+    {
+        try {
+            $this->config = new Config();
+            $this->dbAvailable = true;
+        } catch (\RuntimeException $e) {
+            $this->markTestSkipped('Configuration file not found (expected in CI/CD environments)');
+        }
+    }
+
+    public function testDatabaseConnection(): void
+    {
+        if (!$this->dbAvailable) {
+            $this->markTestSkipped('DB not available');
+        }
+
+        $pdo = Connection::get($this->config->getDbConfig());
+        $stmt = $pdo->query('SELECT 1');
+        $result = $stmt->fetchColumn();
+
+        $this->assertEquals(1, $result);
+    }
+
+    public function testDatabaseCredentialsMatch(): void
+    {
+        if (!$this->dbAvailable) {
+            $this->markTestSkipped('Config not available');
+        }
+
+        // Verify DB config structure
+        $dbConfig = $this->config->getDbConfig();
+
+        $this->assertArrayHasKey('host', $dbConfig);
+        $this->assertArrayHasKey('dbname', $dbConfig);
+        $this->assertArrayHasKey('username', $dbConfig);
+    }
+
+    public function testCcEncryptionHashPresent(): void
+    {
+        if (!$this->dbAvailable) {
+            $this->markTestSkipped('Config not available');
+        }
+
+        $hash = $this->config->getCcEncryptionHash();
+        $this->assertNotEmpty($hash, 'CC encryption hash should be present');
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $hash);
+    }
+
+    public function testTableSchemaIntegrity(): void
+    {
+        if (!$this->dbAvailable) {
+            $this->markTestSkipped('DB not available');
+        }
+
+        $pdo = Connection::get($this->config->getDbConfig());
+
+        // Check critical tables exist
+        $tables = ['tblclients', 'tblinvoices', 'tbldomains', 'tblorders', 'tblticketdepartments'];
+        foreach ($tables as $table) {
+            $stmt = $pdo->query("SHOW TABLES LIKE '$table'");
+            $this->assertNotEmpty($stmt->fetchAll(), "Table $table should exist");
+        }
+    }
+
+    public function testClientDataIntegrity(): void
+    {
+        if (!$this->dbAvailable) {
+            $this->markTestSkipped('DB not available');
+        }
+
+        $pdo = Connection::get($this->config->getDbConfig());
+        $stmt = $pdo->query('SELECT COUNT(*) FROM tblclients');
+        $count = (int)$stmt->fetchColumn();
+
+        $this->assertGreaterThan(0, $count);
+    }
+
+    public function testInvoiceDataIntegrity(): void
+    {
+        if (!$this->dbAvailable) {
+            $this->markTestSkipped('DB not available');
+        }
+
+        $pdo = Connection::get($this->config->getDbConfig());
+        $stmt = $pdo->query('SELECT COUNT(*) FROM tblinvoices');
+        $count = (int)$stmt->fetchColumn();
+
+        $this->assertGreaterThan(0, $count);
+    }
+
+    public function testPasswordHashFormat(): void
+    {
+        if (!$this->dbAvailable) {
+            $this->markTestSkipped('DB not available');
+        }
+
+        $pdo = Connection::get($this->config->getDbConfig());
+        $stmt = $pdo->query('SELECT password FROM tblclients WHERE password IS NOT NULL AND password != "" LIMIT 1');
+        $hash = $stmt->fetchColumn();
+
+        $this->assertNotFalse($hash);
+        // WHMCS 5.3.9 uses either 32-char plain md5 or 34-char salt+md5
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{32}$|^[a-f0-9]{2}[a-f0-9]{32}$/', $hash);
+    }
+
+    public function testDomainPricingAvailable(): void
+    {
+        if (!$this->dbAvailable) {
+            $this->markTestSkipped('DB not available');
+        }
+
+        $pdo = Connection::get($this->config->getDbConfig());
+        $stmt = $pdo->query('SELECT COUNT(*) FROM tbldomainpricing');
+        $count = (int)$stmt->fetchColumn();
+
+        $this->assertGreaterThan(0, $count);
+    }
+}

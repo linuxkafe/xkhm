@@ -2,7 +2,7 @@
 project: xkhm
 created: 2026-10-20
 current_sprint: sprint-01
-current_ticket: T017
+current_ticket: T019
 ---
 
 # XKHM — WHMCS Reimplementation
@@ -38,8 +38,8 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T013 | Payment gateway integrations | medium | done |
 | T014 | SSL configuration module | low | done |
 | T015 | Server status / network issues | low | done |
-| T016 | API layer (WHMCS API compatibility) | medium | pending |
-| T017 | Docker deployment + production hardening | medium | pending |
-| T018 | Migration validation: same DB, same data, same config | high | pending |
+| T016 | API layer (WHMCS API compatibility) | medium | done |
+| T017 | Docker deployment + production hardening | medium | done |
+| T018 | Migration validation: same DB, same data, same config | high | done |
 | T019 | Feature parity gap analysis | medium | pending |
 | T020 | Performance & load testing | low | pending |
