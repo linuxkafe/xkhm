@@ -15,7 +15,7 @@ COPY tests/ tests/
 COPY docker/ docker/
 
 # Copy remaining config files
-COPY phpunit.xml.dist phpstan.neon .php-cs-fixer.dist.php ./
+COPY phpunit.xml.dist phpstan.neon .php-cs-fixer.dist.php configuration.php ./
 
 # Runtime stage
 FROM php:8.4-apache
@@ -58,6 +58,7 @@ COPY --from=builder /build/docker /var/www/html/docker
 
 # Copy runtime files
 COPY composer.json ./
+COPY configuration.php ./
 COPY phpunit.xml.dist ./
 COPY phpstan.neon ./
 COPY .php-cs-fixer.dist.php ./

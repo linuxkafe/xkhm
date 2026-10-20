@@ -104,7 +104,7 @@ class AffiliateController
         <div class="panel panel-default">
             <div class="panel-heading">Total Ganho</div>
             <div class="panel-body text-center">
-                <h3>\\${$earnings}</h3>
+                <h3>{$earnings}</h3>
             </div>
         </div>
     </div>
@@ -120,7 +120,7 @@ class AffiliateController
         <div class="panel panel-default">
             <div class="panel-heading">Saldo Disponível</div>
             <div class="panel-body text-center">
-                <h3>\\${$balance}</h3>
+                <h3>{$balance}</h3>
             </div>
         </div>
     </div>
@@ -128,7 +128,7 @@ class AffiliateController
         <div class="panel panel-default">
             <div class="panel-heading">Saldo Não Pago</div>
             <div class="panel-body text-center">
-                <h3>\\${$unpaid}</h3>
+                <h3>{$unpaid}</h3>
             </div>
         </div>
     </div>

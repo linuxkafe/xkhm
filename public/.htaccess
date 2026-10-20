@@ -1,25 +1,4 @@
-# Security headers
-<IfModule mod_headers.c>
-    Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "DENY"
-    Header set X-XSS-Protection "1; mode=block"
-    Header set Referrer-Policy "strict-origin-when-cross-origin"
-    Header unset X-Powered-By
-</IfModule>
-
-# Disable directory listing
-<Directory />
-    Options -Indexes
-    AllowOverride None
-    Require all denied
-</Directory>
-
-# Compression
-<IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript application/json
-</IfModule>
-
-# Cache static assets
-<FilesMatch "\.(ico|pdf|flv|jpg|jpeg|png|gif|css|js|swf)$">
-    Header set Cache-Control "max-age=2592000, public"
-</FilesMatch>
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]

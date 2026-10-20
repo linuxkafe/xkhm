@@ -25,7 +25,7 @@ class KnowledgebaseRepositoryPDO implements KnowledgebaseRepositoryInterface
 
     public function getArticlesByCategory(int $categoryId, int $limit = 10): array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM tblknowledgebase WHERE categoryid = ? AND published = 1 ORDER BY title LIMIT ?');
+        $stmt = $this->pdo->prepare('SELECT * FROM tblknowledgebase WHERE catid = ? AND published = 1 ORDER BY title LIMIT ?');
         $stmt->execute([$categoryId, $limit]);
         return $stmt->fetchAll();
     }

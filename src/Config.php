@@ -11,7 +11,7 @@ class Config
 
     public function __construct(?string $configPath = null)
     {
-        $configPath ??= dirname(__DIR__, 2) . '/configuration.php';
+        $configPath ??= dirname(__DIR__) . '/configuration.php';
         $this->load($configPath);
     }
 
@@ -23,41 +23,19 @@ class Config
 
         $this->config = [];
 
-        // Parse the PHP config file to extract variables
-        $content = file_get_contents($path);
-        if ($content === false) {
-            throw new \RuntimeException("Could not read configuration file: $path");
-        }
+        // Use require to execute the config file (safe since we control it)
+        // The config file uses $cfg['key'] = 'value' pattern
+        $cfg = [];
+        require $path;
 
-        // Extract variable assignments from the PHP file
-        // Matches: $variable = 'value'; or $variable = "value"; or $variable = true; or $variable = false;
-        preg_match_all(
-            '/\$(\w+)\s*=\s*(?:([\'"])(.*?)\2|([\w.]+))\s*;/s',
-            $content,
-            $matches,
-            PREG_SET_ORDER
-        );
-
-        foreach ($matches as $match) {
-            $key = $match[1];
-            // Group 3 is the string content (if quotes), group 4 is unquoted value
-            $value = $match[3] !== '' ? $match[3] : $match[4];
-            // Convert boolean strings
-            if ($value === 'true') {
-                $value = true;
-            } elseif ($value === 'false') {
-                $value = false;
-            }
-            $this->config[$key] = $value;
-        }
-
+        $this->config = $cfg;
         $this->loaded = true;
     }
 
     public function get(string $key, mixed $default = null): mixed
     {
         if (!$this->loaded) {
-            $this->load(dirname(__DIR__, 2) . '/configuration.php');
+            $this->load(dirname(__DIR__) . '/configuration.php');
         }
 
         return $this->config[$key] ?? $default;
@@ -103,7 +81,7 @@ class Config
     public function all(): array
     {
         if (!$this->loaded) {
-            $this->load(dirname(__DIR__, 2) . '/configuration.php');
+            $this->load(dirname(__DIR__) . '/configuration.php');
         }
         return $this->config;
     }

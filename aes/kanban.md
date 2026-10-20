@@ -41,5 +41,5 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T016 | API layer (WHMCS API compatibility) | medium | done |
 | T017 | Docker deployment + production hardening | medium | done |
 | T018 | Migration validation: same DB, same data, same config | high | done |
-| T019 | Feature parity gap analysis | medium | pending |
+| T019 | Feature parity gap analysis | medium | done |
 | T020 | Performance & load testing | low | pending |
