@@ -110,7 +110,7 @@ $app->post('/pwreset.php', [$pwResetController, 'process']);
 
 // ─── Client Area ───────────────────────────────────────────────────────────────
 
-// Billing service setup
+// Invoice service setup
 $invoiceRepo = new \Xkhm\Repository\InvoiceRepositoryPDO();
 $orderRepo = new \Xkhm\Repository\OrderRepositoryPDO();
 $billingService = new \Xkhm\Service\BillingService($invoiceRepo, $orderRepo, $clientRepo);

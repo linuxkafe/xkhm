@@ -5,78 +5,96 @@ declare(strict_types=1);
 namespace Xkhm\Service;
 
 use Xkhm\Repository\InvoiceRepositoryInterface;
-use Xkhm\Config;
 
 class GatewayService
 {
-    private InvoiceRepositoryInterface $invoiceRepository;
+    private InvoiceRepositoryInterface $invoiceRepo;
+    /** @var GatewayInterface[] */
+    private array $gateways = [];
 
-    public function __construct(InvoiceRepositoryInterface $invoiceRepository)
+    public function __construct(InvoiceRepositoryInterface $invoiceRepo)
     {
-        $this->invoiceRepository = $invoiceRepository;
+        $this->invoiceRepo = $invoiceRepo;
+        $this->registerGateways();
     }
 
     /**
-     * Process payment for an invoice.
-     * Returns [success, message, transaction_id]
+     * Register all available gateways.
      */
-    public function processPayment(int $invoiceId, string $gateway, array $cardData): array
+    private function registerGateways(): void
     {
-        $invoice = $this->invoiceRepository->findByIdWithItems($invoiceId);
-        if (!$invoice) {
-            return [false, 'Invoice not found', null];
+        $this->gateways['paypal'] = new PayPalGateway($this->invoiceRepo);
+        $this->gateways['authorize'] = new AuthorizeNetGateway();
+        $this->gateways['worldpay'] = new WorldPayGateway();
+    }
+
+    /**
+     * Get all available gateways.
+     * @return GatewayInterface[]
+     */
+    public function getGateways(): array
+    {
+        return $this->gateways;
+    }
+
+    /**
+     * Get active gateway configurations.
+     */
+    public function getActiveGateways(): array
+    {
+        $result = [];
+        foreach ($this->gateways as $name => $gateway) {
+            $result[] = [
+                'system' => $name,
+                'friendlyname' => $gateway->getFriendlyName(),
+                'testmode' => $gateway->isTestMode(),
+            ];
         }
-
-        $amount = (float)($invoice['total'] ?? 0);
-        if ($amount <= 0) {
-            return [true, 'No amount due', null];
-        }
-
-        // Gateway-specific processing
-        $result = match ($gateway) {
-            'paypal' => $this->processPaypalPayment($amount, $cardData),
-            'authorize' => $this->processAuthorizePayment($amount, $cardData),
-            'worldpay' => $this->processWorldpayPayment($amount, $cardData),
-            default => [false, 'Unknown gateway: ' . $gateway, null],
-        };
-
-        if ($result[0] && $result[1] !== null) {
-            $this->invoiceRepository->update($invoiceId, [
-                'status' => 'Paid',
-                'datepaid' => date('Y-m-d'),
-            ]);
-        }
-
         return $result;
     }
 
     /**
-     * Get list of active gateways.
+     * Process payment through specified gateway.
+     * Returns [success, message, transaction_id]
      */
-    public function getActiveGateways(): array
+    public function processPayment(int $invoiceId, string $gateway, array $cardData): array
     {
-        return [
-            ['system' => 'paypal', 'friendlyname' => 'PayPal'],
-            ['system' => 'authorize', 'friendlyname' => 'Authorize.Net'],
-            ['system' => 'worldpay', 'friendlyname' => 'WorldPay'],
-        ];
+        if (!isset($this->gateways[$gateway])) {
+            return [false, 'Unknown gateway: ' . $gateway, null];
+        }
+
+        $gw = $this->gateways[$gateway];
+        $result = $gw->processPayment(
+            $this->invoiceRepo->getInvoiceTotal($invoiceId) ?? 0,
+            array_merge($cardData, ['invoice_id' => $invoiceId])
+        );
+
+        // If redirect (PayPal, WorldPay), return the URL
+        if (isset($result['redirect'])) {
+            return [true, 'Redirect to payment page', $result['redirect']];
+        }
+
+        // If direct processing (Authorize.Net), update invoice
+        if ($result['success'] ?? false) {
+            $this->invoiceRepo->update($invoiceId, [
+                'status' => 'Paid',
+                'datepaid' => date('Y-m-d'),
+            ]);
+            return [true, 'Payment processed', $result['transaction_id'] ?? null];
+        }
+
+        return [false, $result['message'] ?? 'Payment failed', null];
     }
 
-    private function processPaypalPayment(float $amount, array $data): array
+    /**
+     * Handle gateway callback/webhook.
+     */
+    public function handleCallback(string $gateway, array $callbackData): array
     {
-        // PayPal sandbox integration (stub)
-        return [true, 'PayPal payment processed', 'PP-' . time()];
-    }
+        if (!isset($this->gateways[$gateway])) {
+            return ['success' => false, 'message' => 'Unknown gateway'];
+        }
 
-    private function processAuthorizePayment(float $amount, array $data): array
-    {
-        // Authorize.Net integration (stub)
-        return [true, 'Authorize.Net payment processed', 'AN-' . time()];
-    }
-
-    private function processWorldpayPayment(float $amount, array $data): array
-    {
-        // WorldPay integration (stub)
-        return [true, 'WorldPay payment processed', 'WP-' . time()];
+        return $this->gateways[$gateway]->handleCallback($callbackData);
     }
 }

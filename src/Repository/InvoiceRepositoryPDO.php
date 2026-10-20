@@ -64,4 +64,12 @@ class InvoiceRepositoryPDO implements InvoiceRepositoryInterface
         $stmt = $this->pdo->prepare("UPDATE tblinvoices SET $set WHERE id = :id");
         return $stmt->execute($data);
     }
+
+    public function getInvoiceTotal(int $id): ?float
+    {
+        $stmt = $this->pdo->prepare('SELECT total FROM tblinvoices WHERE id = ?');
+        $stmt->execute([$id]);
+        $result = $stmt->fetch();
+        return $result ? (float)$result['total'] : null;
+    }
 }

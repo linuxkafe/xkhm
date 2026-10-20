@@ -8,12 +8,10 @@ use Xkhm\Repository\InvoiceRepositoryInterface;
 
 class WorldPayGateway implements GatewayInterface
 {
-    private InvoiceRepositoryInterface $invoiceRepo;
     private array $config;
 
-    public function __construct(InvoiceRepositoryInterface $invoiceRepo, array $config = [])
+    public function __construct(array $config = [])
     {
-        $this->invoiceRepo = $invoiceRepo;
         $this->config = $config;
     }
 

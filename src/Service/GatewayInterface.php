@@ -8,5 +8,9 @@ interface GatewayInterface
 {
     public function getName(): string;
     public function getFriendlyName(): string;
-    public function processPayment(array $data): array;
+    public function isTestMode(): bool;
+    public function processPayment(float $amount, array $data): array;
+    public function handleCallback(array $callbackData): array;
+    public function getConfiguration(): array;
+    public function setConfiguration(array $config): bool;
 }
