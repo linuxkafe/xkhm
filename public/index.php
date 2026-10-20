@@ -143,6 +143,13 @@ $affiliateRepo = new \Xkhm\Repository\AffiliateRepositoryPDO();
 $affiliateService = new \Xkhm\Service\AffiliateService($affiliateRepo);
 $affiliateController = new AffiliateController($affiliateService);
 
+// Admin auth service setup
+$adminAuthService = new \Xkhm\Service\AdminAuthService(new \Xkhm\Repository\AdminRepositoryPDO());
+$adminAuthController = new AdminAuthController($adminAuthService);
+
+// Create admin auth middleware
+$adminAuthMiddleware = new AdminAuthMiddleware($app->getResponseFactory());
+
 // Client area dashboard
 $app->get('/clientarea', function (Request $request, Response $response) use ($billingService) {
     $session = $request->getAttribute('session');
@@ -273,7 +280,7 @@ $app->group('/admin', function ($group) use ($app) {
         $response->getBody()->write($html);
         return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
     });
-})->add(new AdminAuthMiddleware());
+})->add($adminAuthMiddleware);
 
 // Announcements
 $app->get('/announcements.php', [$announceController, 'index']);

@@ -2,7 +2,7 @@
 project: xkhm
 created: 2026-10-20
 current_sprint: sprint-01
-current_ticket: T012
+current_ticket: T013
 ---
 
 # XKHM — WHMCS Reimplementation
@@ -34,7 +34,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T009 | Support ticketing system | medium | done |
 | T010 | Knowledgebase module | low | done |
 | T011 | Affiliates module | low | done |
-| T012 | Admin panel (core CRUD) | medium | pending |
+| T012 | Admin panel (core CRUD) | medium | done |
 | T013 | Payment gateway integrations | medium | pending |
 | T014 | SSL configuration module | low | pending |
 | T015 | Server status / network issues | low | pending |
