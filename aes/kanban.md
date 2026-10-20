@@ -2,7 +2,7 @@
 project: xkhm
 created: 2026-10-20
 current_sprint: sprint-01
-current_ticket: T011
+current_ticket: T012
 ---
 
 # XKHM — WHMCS Reimplementation

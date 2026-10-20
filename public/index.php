@@ -253,6 +253,28 @@ $app->post('/supporttickets.php', [$ticketController, 'create']);
 $app->get('/affiliates.php', [$affiliateController, 'index']);
 $app->post('/affiliates.php', [$affiliateController, 'signup']);
 
+// ─── Admin Routes ─────────────────────────────────────────────────────────────
+
+$app->group('/admin', function ($group) use ($app) {
+    // Auth routes (no middleware)
+    $group->get('/login.php', [$adminAuthController, 'showLogin']);
+    $group->post('/login.php', [$adminAuthController, 'login']);
+    $group->get('/logout.php', [$adminAuthController, 'logout']);
+
+    // Protected routes
+    $group->get('', function (Request $request, Response $response) {
+        $html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Admin Panel - LINUXKAFE</title></head>';
+        $html .= '<body><div class="container"><h1>Admin Panel</h1>';
+        $html .= '<p><a href="/admin/clients.php">Gerenciar Clientes</a> | ';
+        $html .= '<a href="/admin/invoices.php">Gerenciar Faturas</a> | ';
+        $html .= '<a href="/admin/orders.php">Gerenciar Pedidos</a></p>';
+        $html .= '<p><a href="/admin/logout.php">Logout</a></p>';
+        $html .= '</div></body></html>';
+        $response->getBody()->write($html);
+        return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+    });
+})->add(new AdminAuthMiddleware());
+
 // Announcements
 $app->get('/announcements.php', [$announceController, 'index']);
 
