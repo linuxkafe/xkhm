@@ -26,6 +26,15 @@ class AdminAuthService
 
     /**
      * Verify admin credentials.
+     *
+     * The production admin table holds **two** hashes: `password` and
+     * `passwordhash`. WHMCS writes one of them on the migration and the
+     * other on a later password change, so **both** have to be tried — the
+     * operator's password may be in either. The production `linuxkafe`
+     * account has two *different* bcrypt hashes, which is exactly the case
+     * this covers.
+     *
+     * The verification itself lives in {@see PasswordHasher}.
      */
     public function verifyCredentials(string $username, string $password): ?array
     {
@@ -34,17 +43,23 @@ class AdminAuthService
             return null;
         }
 
-        $stored = (string)($admin['password'] ?? '');
-        if ($stored === '') {
-            return null;
-        }
-
         // A disabled admin cannot log in.
         if (isset($admin['disabled']) && (int)$admin['disabled'] === 1) {
             return null;
         }
 
-        return $this->hasher->matches($stored, $password) ? $admin : null;
+        foreach (['password', 'passwordhash'] as $column) {
+            $stored = (string)($admin[$column] ?? '');
+            if ($stored === '') {
+                continue;
+            }
+
+            if ($this->hasher->matches($stored, $password)) {
+                return $admin;
+            }
+        }
+
+        return null;
     }
 
     /**

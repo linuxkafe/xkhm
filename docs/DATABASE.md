@@ -234,6 +234,37 @@ mais alguns, para implantações mais antigas):
 
 As senhas **novas** são sempre bcrypt. Ver `src/Service/PasswordHasher.php`.
 
+### A conta de administrador tem DOIS hashes
+
+A tabela `tbladmins` do WHMCS guarda **duas** colunas de hash: `password` e
+`passwordhash`. O WHMCS escreve uma delas na migração e a outra numa
+mudança de senha posterior — e a conta `linuxkafe` tem **dois bcrypt
+diferentes**, um em cada coluna.
+
+Por isso a verificação tenta **as duas**. Se a senha do operador estiver em
+`passwordhash` e a aplicação só lesse `password`, o login falha com a senha
+certa — um sintoma indistinguível de "senha errada".
+
+Diagnóstico:
+
+```bash
+make db-check
+```
+
+que mostra o estado da conta e o formato de cada hash.
+
+### Se a senha continuar a falhar
+
+A senha de produção é forte e não é derivável. A via garantida é repô-la:
+
+```bash
+make db-reset-admin PASSWORD='a-nova-senha'
+```
+
+Isso escreve bcrypt em **ambas** as colunas da conta local. A conta de
+produção em `xk.linuxkafe.com` **não** é tocada — é preciso um reset
+lá, com o WHMCS.
+
 ---
 
 ## As credenciais

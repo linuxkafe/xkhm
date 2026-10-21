@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import os
 import pathlib
+import re
 import shutil
 import socket
 import subprocess
@@ -197,6 +198,65 @@ def check_local_database() -> tuple[bool, str]:
     return True, f"{tables} tabelas em `linuxkonect`"
 
 
+def check_admin_account() -> tuple[bool, str]:
+    """Report the state of the administrator account.
+
+    WHMCS keeps **two** password hashes on the admin row (`password` and
+    `passwordhash`) and writes one of them on the migration and the other on
+    a later password change. The application tries both — this reports which
+    are present and in what format, so a failed login can be diagnosed
+    without guessing.
+    """
+    try:
+        result = subprocess.run(
+            [
+                "docker", "exec", "xkhm-mysql-1",
+                "mysql", "-ulinuxkonect", "-pxkhm-local-only",
+                "-N", "-B", "linuxkonect",
+                "-e",
+                "SELECT username, disabled, loginattempts, "
+                "LENGTH(password), LEFT(password, 7), "
+                "LENGTH(passwordhash), LEFT(passwordhash, 7) "
+                "FROM tbladmins ORDER BY id;",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (subprocess.SubprocessError, OSError):
+        return False, "o contentor MySQL não está acessível"
+
+    if result.returncode != 0:
+        return False, f"o MySQL respondeu: {result.stderr.strip()[:120]}"
+
+    lines = [line for line in result.stdout.strip().splitlines() if line]
+    if not lines:
+        return False, "tbladmins está vazia"
+
+    details = []
+    for line in lines:
+        parts = line.split("\t")
+        if len(parts) < 7:
+            continue
+        username, disabled, attempts, pw_len, pw_head, ph_len, ph_head = parts[:7]
+
+        state = "activo" if disabled == "0" else f"DESACTIVADO (disabled={disabled})"
+        if attempts != "0":
+            state += f", {attempts} tentativas de login registadas"
+
+        hashes = []
+        if pw_len != "0" and pw_len != "NULL":
+            hashes.append(f"password={pw_head}… ({pw_len} chars)")
+        if ph_len not in ("0", "NULL"):
+            hashes.append(f"passwordhash={ph_head}… ({ph_len} chars)")
+
+        details.append(f"  {username}: {state}")
+        for entry in hashes:
+            details.append(f"      {entry}")
+
+    return True, "\n".join(details)
+
+
 # ─── Driver ──────────────────────────────────────────────────────────────────
 
 
@@ -263,15 +323,46 @@ def main() -> int:
         _fail("base de dados local", local_reason)
 
     print()
+    print("4. A conta de administrador está em que estado?")
+
+    admin_ok, admin_reason = check_admin_account()
+    if admin_ok:
+        print(f"  [OK]    {admin_reason}")
+        print("          A aplicação verifica o hash em `password` **e** em")
+        print("          `passwordhash` — o WHMCS escreve um deles na migração e")
+        print("          o outro numa mudança de senha posterior.")
+        print("          Se a senha falhar, reponha-a com:")
+        print("              make db-reset-admin PASSWORD='a-nova-senha'")
+    else:
+        _fail("conta de administrador", admin_reason)
+
+    print()
     print("=" * 62)
-    if reachable and dumps:
-        print("Tudo pronto: importe o dump e a aplicação passa a usar os dados reais.")
+
+    # The state of the local database decides what the summary says.
+    local_ok, local_reason = check_local_database()
+    tables = 0
+    if local_ok:
+        try:
+            tables = int(re.search(r"(\d+) tabelas", local_reason).group(1))
+        except (AttributeError, ValueError):
+            tables = 0
+
+    if tables > 30:
+        print(
+            "A base de dados local É a de produção (importada do dump).\n"
+            "  A aplicação corre contra os dados reais.\n"
+            "  Se o login do administrador falhar, a senha não é a que está\n"
+            "  em `password` nem em `passwordhash` — reponha-a com\n"
+            "  `make db-reset-admin PASSWORD='a-nova-senha'`."
+        )
+    elif reachable and dumps:
+        print("Tudo pronto: importe o dump com `make db-import`.")
     elif reachable:
         print("A base de dados responde — importe os dados com `make db-import`.")
     else:
         print(
-            "A causa está identificada: a base de dados de produção é "
-            "inalcançável a partir desta máquina.\n"
+            "A base de dados de produção é inalcançável a partir desta máquina.\n"
             "  Opção A: `make db-export` noutra máquina e traga o .sql aqui.\n"
             "  Opção B: adicione uma rota para a sub-rede do servidor e repita."
         )

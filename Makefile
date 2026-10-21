@@ -70,6 +70,9 @@ db-backup: ## Back up the local database
 db-test-accounts: ## Create the development test accounts (client + admin)
 	@python3 tools/seed_test_accounts.py
 
+db-reset-admin: ## Reset the administrator's password (PASSWORD=...)
+	@python3 tools/reset_admin_password.py
+
 db-seed: ## Re-seed the local database with the development fixture
 	@echo "ATENÇÃO: isto apaga os dados locais actuais."
 	@read -p "Continuar? [s/N] " answer; \
