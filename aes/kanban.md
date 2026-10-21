@@ -47,7 +47,10 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T022 | Flutter client application (web + mobile) | high | done |
 | T023 | Dark mode automático + compatibilidade mobile | high | done |
 | T024 | Interruptor manual de tema (system / light / dark) | medium | pending |
-| T025 | Decide PHP front-end replacement vs. fallback (needs production traffic data) | medium | pending |
+| T025 | Migração completa para Flutter (retirar o front-end PHP) | high | done |
+| T026 | Importação dos dados de produção + diagnóstico | standard | done |
+| T027 | Exposição do MySQL: incidente e correcção | standard | done |
+| T028 | Rever a exposição dos restantes contentores (ollama, searxng) | medium | pending |
 
 > **Note on numbering.** T020 was originally reserved for "Performance & load
 > testing". The Flutter conversion was planned as **T022** and the Playwright
@@ -60,9 +63,12 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 
 | Ticket | Title | Status | Verification |
 |--------|-------|--------|--------------|
-| T021 | Playwright E2E harness | done | 225 E2E tests green; 14 production defects fixed |
-| T022 | Flutter client application | done | 13 Flutter E2E + 40 widget tests green; design tokens single-sourced |
+| T021 | Playwright E2E harness | done | 141 E2E tests green; 14 production defects fixed |
+| T022 | Flutter client application | done | 15 Flutter E2E + 40 widget tests green; design tokens single-sourced |
 | T023 | Dark mode + compatibilidade mobile | done | 70 new assertions; 15 review defects fixed |
+| T025 | Migração completa para Flutter | done | 7 ecrãs novos; as 13 rotas HTML respondem 302 para a app |
+| T026 | Importação dos dados de produção | done | `make db-check` / `db-export` / `db-import` testados |
+| T027 | Exposição do MySQL | done | porta no loopback, credenciais locais próprias |
 
 ### Open decisions
 
@@ -70,18 +76,25 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
   dark mode, so the system preference is the only wired behaviour. The
   palette structure already supports "system / light / dark"; what is
   missing is the storage and the precedence rules.
-- **T025** — the PHP front-end is still live and fully tested. Whether to
-  retire it in favour of the Flutter application needs production traffic
-  data. The Flutter app is already served at `/app/` and is the primary
-  client UI.
+- **T028** — `ollama` (11434) and `searxng` (8081) are also published on
+  `0.0.0.0`. They are not part of xkhm, but they share the same host and
+  the same exposure that caused T027. They should be reviewed.
+
+### ⚠ Outstanding action for the operator
+
+The **production database password is compromised**. It is in
+`configuration.php` and in the git history, and it was the password of a
+MySQL instance published on the public internet (T027). It must be
+rotated, and the local database must never use it again.
 
 ### Test gates (all green)
 
 ```
 make test          # 61 PHPUnit tests
 make lint          # PHPStan level 5, 0 errors
-make e2e           # 225 Playwright tests (PHP backend + Flutter)
+make e2e           # 141 Playwright tests (API + Flutter)
 make flutter-test  # 40 Flutter unit + widget tests
-make flutter-e2e   # 13 Playwright tests (Flutter web build)
+make flutter-e2e   # 15 Playwright tests (Flutter web build)
 make tokens-check  # tokens in sync, no hard-coded colours (Dart and CSS)
+make db-check      # diagnosis of the production database
 ```

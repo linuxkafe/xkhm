@@ -1,81 +1,97 @@
-# xkhm — Flutter Application
+# xkhm — a aplicação Flutter
 
-The LINUXKAFE client application, built with Flutter (web, Android and iOS).
+A área do cliente LINUXKAFÉ, em Flutter (web, Android e iOS).
 
-It talks to the **existing** PHP backend through the versioned JSON API
-(`/api/v1`). The WHMCS database (`linuxkonect`) remains the single source of
-truth: there is no SQL and no password-hashing logic in the Dart code.
-
----
-
-## Architecture
-
-```
-┌──────────────────────────────┐        ┌───────────────────────────────┐
-│  Flutter app                 │        │  PHP / Slim 4 backend         │
-│  ┌────────────────────────┐  │  HTTP  │  ┌─────────────────────────┐  │
-│  │ screens/  widgets/     │  │───────►│  │ /api/v1/*  (JSON)       │  │
-│  │ services/ models/      │  │◄───────│  │ src/Http/Controller/Api  │  │
-│  │ theme/tokens.dart      │  │        │  └───────────┬─────────────┘  │
-│  └────────────────────────┘  │        │              │ PDO            │
-└──────────────────────────────┘        │  ┌───────────▼─────────────┐  │
-                                          │  │ linuxkonect (MySQL)    │  │
-                                          └─────────────────────────┘  │
-```
-
-- **Session**: the same `PHPSESSID` cookie the website uses. There is no
-  separate token system, so the WHMCS authentication semantics live in
-  exactly one place (the PHP backend).
-- **Web build**: served from the *same origin* as the API (`/app/`), so the
-  browser owns the cookie natively — no CORS, no manual cookie handling.
-- **Native builds**: talk to the API cross-origin; the API sends the CORS
-  headers and the app replays the cookie explicitly.
+Consome a API versionada (`/api/v1`) do backend PHP. A base de dados
+WHMCS (`linuxkonect`) é a **única fonte de verdade**: não há SQL nem
+hashing de senha no código Dart.
 
 ---
 
-## Design tokens
+## Topologia
 
-The colour scheme comes from `http://www.linuxkafe.com` and lives in **one**
-file: `assets/design_tokens.json` (repository root).
+```
+                    http://localhost:8083
+                             │
+        ┌────────────────────┼─────────────────────┐
+        │                    │                     │
+   /  (Flutter)         /api/v1/*            /admin/*
+   a aplicação          a API JSON        o painel de admin
+        │                    │                     │
+        └────────────────────┼─────────────────────┘
+                             │
+                    linuxkonect (MySQL)
+                  o esquema WHMCS, como está
+```
+
+A aplicação e a API são **mesma origem**: o browser gere o cookie de
+sessão nativamente, sem CORS e sem um segundo sistema de autenticação.
+
+### O que o PHP ainda é
+
+- o servidor da API (`/api/v1`) e da API WHMCS legada (`/api.php`, usada
+  por integrações externas)
+- o painel de administração (`/admin`)
+- os endpoints de saúde (`/health`, `/health/db`)
+
+### O que o PHP já não é
+
+As páginas HTML de cliente. As 13 rotas registadas antes
+(`/clientarea.php`, `/knowledgebase.php`, `/announcements.php`,
+`/domainchecker.php`, `/domain.php`, `/viewinvoice.php`,
+`/supporttickets.php`, `/ssl.php`, `/serverstatus.php`, `/affiliates.php`,
+`/pwreset.php`, `/dologin.php`, `/logout.php`) respondem **302 para `/`**.
+O código continua no repositório — re-registá-lo é uma linha.
+
+---
+
+## Tokens de design
+
+A paleta vem de `http://www.linuxkafe.com` e vive num **único** ficheiro:
+`assets/design_tokens.json` (na raiz do repositório).
 
 ```bash
-make tokens        # regenerate tokens.css + tokens.dart
-make tokens-check  # fail if the generated files are stale
+make tokens        # regenera tokens.css + tokens.dart
+make tokens-check  # falha se os ficheiros gerados estiverem desatualizados
 ```
 
-`tools/sync_tokens.py` generates:
+`tools/sync_tokens.py` gera as duas representações — o bloco
+`@media (prefers-color-scheme: dark)` no CSS e as paletas
+`LkColors.light` / `.dark` no Dart. O validador recusa uma paleta escura
+com chaves diferentes da clara.
 
-| Output | Consumer |
-|--------|----------|
-| `public/templates/default/css/tokens.css` | the PHP/CSS front-end |
-| `flutter/xkhm_app/lib/theme/tokens.dart` | the Flutter application |
+`tools/check_no_hardcoded_colors.py` falha se aparecer um literal de cor
+(escrito à mão) no Dart **ou** no CSS.
 
-`tools/check_no_hardcoded_colors.py` fails the build if a raw hex literal
-appears in any Dart source — the palette cannot silently fork.
+### Dark mode
+
+O site segue `prefers-color-scheme` — sem JavaScript. A aplicação usa
+`ThemeMode.system` e repinta quando o sistema muda de modo. As cores dos
+widgets vêm do tema (`Theme.of(context)`), não de constantes, que não se
+repintam.
 
 ---
 
-## Running
+## Executar
 
-### Web
+### Web (Docker)
 
 ```bash
-make flutter-build          # builds flutter/xkhm_app/build/web
-docker compose up -d        # mounts the build at http://localhost:8083/app/
+make flutter-build          # constrói flutter/xkhm_app/build/web
+docker compose up -d        # monta a aplicação e a API
 ```
 
-The build is mounted into the PHP container, so the application and the API
-share an origin.
+A aplicação fica em `http://localhost:8083/`.
 
-### Development server
+### Desenvolvimento
 
 ```bash
 cd flutter/xkhm_app
 flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8083
 ```
 
-`API_BASE_URL` is empty by default, meaning *same origin*. Native builds
-must pass an absolute URL:
+`API_BASE_URL` vem **vazio** por omissão, o que significa *mesma origem*.
+As builds nativas têm de passar um URL absoluto:
 
 ```bash
 flutter build apk --release --dart-define=API_BASE_URL=https://api.linuxkafe.com
@@ -83,57 +99,77 @@ flutter build apk --release --dart-define=API_BASE_URL=https://api.linuxkafe.com
 
 ---
 
-## Testing
+## Testes
 
 ```bash
-make flutter-test    # Flutter unit + widget tests (fast, no browser)
-make flutter-e2e     # Playwright against the built web bundle
+make flutter-test    # testes unitários e de widget (rápidos, sem browser)
+make flutter-e2e     # Playwright contra a aplicação web construída
+make e2e             # a suíte E2E completa (backend + aplicação)
 ```
 
-The Playwright suite reads Flutter's **accessibility tree** (`flt-semantics`),
-because Flutter renders to a canvas and the widget tree is not in the DOM.
-The tree is materialised by activating Flutter's hidden "Enable
-accessibility" placeholder.
+A suíte Playwright lê a **árvore de semântica** do Flutter
+(`flt-semantics`), porque o Flutter desenha num `canvas` e o DOM não
+contém os widgets. A árvore é materializada activando o botão oculto
+"Enable accessibility".
 
-Because the app and the API share an origin, the E2E suite performs a **real
-login** with real credentials and asserts on the real data coming from the
-`linuxkonect` tables.
+A aplicação e a API partilham a origem, por isso a suíte faz um **login
+real** com credenciais reais e afirma sobre os dados reais da tabela
+`linuxkonect`.
 
 ---
 
-## Screens
+## Ecrãs
 
-| Screen | API endpoints |
-|--------|---------------|
+| Ecrã | Endpoints da API |
+|------|------------------|
+| Início | `GET /api/v1/home` |
 | Login | `POST /api/v1/auth/login`, `GET /api/v1/auth/session` |
-| Painel (dashboard) | `GET /api/v1/client/summary` |
-| Faturas | `GET /api/v1/client/invoices` |
-| Tickets | `GET /api/v1/client/tickets`, `POST /api/v1/client/tickets` |
-| Base de Conhecimento | `GET /api/v1/knowledgebase`, `.../categories` |
+| Painel | `GET /api/v1/client/summary` |
+| Faturas | `GET /api/v1/client/invoices`, `.../invoices/{id}` |
+| Pedidos | `GET /api/v1/client/orders` |
+| Domínios | `GET /api/v1/client/domains` |
+| Certificados SSL | `GET /api/v1/client/ssl` |
+| Afiliados | `GET /api/v1/client/affiliate` |
+| Tickets | `GET /api/v1/client/tickets`, `.../tickets/{id}`, `POST .../tickets` |
+| Base de Conhecimento | `GET /api/v1/knowledgebase`, `.../categories`, `.../{id}` |
 | Anúncios | `GET /api/v1/announcements` |
 | Procurar Domínio | `GET /api/v1/domains/check` |
-| Status do Servidor | `GET /api/v1/serverstatus` |
+| Estado do Servidor | `GET /api/v1/serverstatus` |
+| Redefinir senha | `POST /api/v1/auth/forgot-password` |
 
-The UI is pt-BR throughout.
+A interface é **pt-BR** em todos os ecrãs.
 
 ---
 
-## Project layout
+## Estrutura do projecto
 
 ```
 flutter/xkhm_app/
 ├── lib/
-│   ├── main.dart            # app entry, providers, routing
-│   ├── models/models.dart   # DTOs mirroring the API payloads
+│   ├── main.dart            # entrada, providers, tema do sistema
+│   ├── models/models.dart   # DTOs que espelham as cargas da API
 │   ├── services/
-│   │   ├── api_client.dart  # HTTP client + session cookie handling
-│   │   └── session.dart     # authentication state
-│   ├── screens/             # one file per screen
+│   │   ├── api_client.dart  # cliente HTTP + gestão do cookie de sessão
+│   │   └── session.dart     # estado de autenticação
+│   ├── screens/             # um ficheiro por ecrã
 │   ├── theme/
-│   │   ├── tokens.dart      # GENERATED — do not edit
-│   │   └── lk_theme.dart    # Material 3 theme built from the tokens
+│   │   ├── tokens.dart      # GERADO — não editar
+│   │   └── lk_theme.dart    # tema Material 3 a partir dos tokens
 │   └── widgets/lk_widgets.dart
-├── assets/fonts/            # Inter + Poppins, bundled (no font CDN)
-├── test/                    # unit + widget tests
-└── web/flutter_bootstrap.js # pins CanvasKit to the local copy
+├── assets/fonts/            # Inter + Poppins, empacotados (sem CDN)
+├── test/                    # testes unitários e de widget
+└── web/
+    ├── index.html           # com viewport-fit=cover e theme-color
+    ├── manifest.json        # com as cores da marca
+    └── flutter_bootstrap.js # fixa o CanvasKit na cópia local
 ```
+
+---
+
+## Notas de operação
+
+- A base de dados local tem **credenciais próprias** e é publicada apenas
+  no loopback. A senha de produção vive só em `configuration.php`.
+- Para os dados de produção, ver `docs/DATABASE.md` e `make db-check`.
+- O painel de administração continua em PHP — ver `aes/tickets/T025.md`
+  para a razão.
