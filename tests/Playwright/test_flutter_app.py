@@ -110,6 +110,26 @@ def _login(page) -> None:
     page.wait_for_timeout(3000)
 
 
+def _navigate(page, label: str, expected: str, attempts: int = 3) -> str:
+    """Click a navigation-rail entry and wait for the destination to render.
+
+    Flutter repaints the rail when the viewport changes, so a single click
+    can land on a node that is about to be replaced. The click is therefore
+    retried until the expected content appears.
+    """
+    for attempt in range(attempts):
+        entry = page.get_by_role("button", name=re.compile(rf"^{label}", re.IGNORECASE))
+        if entry.count() > 0:
+            entry.first.click()
+        try:
+            expect(_semantics(page)).to_contain_text(expected, timeout=10_000)
+            return _semantics_text(page)
+        except AssertionError:
+            if attempt == attempts - 1:
+                raise
+    return _semantics_text(page)
+
+
 def test_flutter_app_boots_without_errors(app_page):
     assert app_page.locator("flutter-view").count() == 1
     assert app_page.page_errors == [], app_page.page_errors
@@ -161,10 +181,7 @@ def test_flutter_navigates_to_the_invoices(app_page):
     app_page.set_viewport_size({"width": 1280, "height": 900})
     app_page.wait_for_timeout(800)
 
-    app_page.get_by_text(re.compile(r"^Faturas", re.IGNORECASE)).first.click()
-
-    expect(_semantics(app_page)).to_contain_text("Fatura #1", timeout=15_000)
-    body = _semantics_text(app_page)
+    body = _navigate(app_page, "Faturas", "Fatura #1")
     assert "fatura" in body.lower()
 
 
@@ -173,10 +190,7 @@ def test_flutter_navigates_to_the_knowledgebase(app_page):
     app_page.set_viewport_size({"width": 1280, "height": 900})
     app_page.wait_for_timeout(800)
 
-    app_page.get_by_text(re.compile(r"^Base de Conhecimento", re.IGNORECASE)).first.click()
-
-    expect(_semantics(app_page)).to_contain_text("Categorias", timeout=15_000)
-    body = _semantics_text(app_page).lower()
+    body = _navigate(app_page, "Base de Conhecimento", "Categorias").lower()
     assert "artigos" in body
 
 
@@ -185,10 +199,7 @@ def test_flutter_navigates_to_the_server_status(app_page):
     app_page.set_viewport_size({"width": 1280, "height": 900})
     app_page.wait_for_timeout(800)
 
-    app_page.get_by_text(re.compile(r"^Status do Servidor", re.IGNORECASE)).first.click()
-
-    expect(_semantics(app_page)).to_contain_text("Tempo de atividade", timeout=15_000)
-    body = _semantics_text(app_page).lower()
+    body = _navigate(app_page, "Status do Servidor", "Tempo de atividade").lower()
     assert "base de dados" in body
 
 
@@ -197,8 +208,5 @@ def test_flutter_navigates_to_the_domain_checker(app_page):
     app_page.set_viewport_size({"width": 1280, "height": 900})
     app_page.wait_for_timeout(800)
 
-    app_page.get_by_text(re.compile(r"^Procurar Domínio", re.IGNORECASE)).first.click()
-
-    expect(_semantics(app_page)).to_contain_text("Verificar", timeout=15_000)
-    body = _semantics_text(app_page).lower()
+    body = _navigate(app_page, "Procurar Domínio", "Verificar").lower()
     assert "domínio" in body
