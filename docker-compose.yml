@@ -29,6 +29,12 @@ services:
       - MYSQL_DATABASE=linuxkonect
       - MYSQL_USER=linuxkonect
       - MYSQL_PASSWORD=qm9W8amh5XV9A4Dr
+      # The init script is UTF-8 (pt-BR content). Without this the client
+      # charset defaults to latin1 and every accented character is mangled.
+      - MYSQL_INITDB_SKIP_TZINFO=1
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql

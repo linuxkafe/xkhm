@@ -1,6 +1,10 @@
 -- Xkhm Database Initialization
 -- This creates the basic structure for testing
 
+-- Force the client connection to UTF-8. Without this the `mysql` client
+-- defaults to latin1 and every accented pt-BR character is mangled on insert.
+SET NAMES utf8mb4;
+
 -- Create tables if they don't exist (simplified schema for testing)
 CREATE TABLE IF NOT EXISTS `tblclients` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -280,35 +284,35 @@ INSERT INTO `tblknowledgebase` (`catid`, `title`, `description`, `content`, `pub
 -- ─── Sample operational data (client id 1) ───────────────────────────────────
 
 INSERT INTO `tblorders` (`id`, `userid`, `date`, `paymentmethod`, `gateway`, `status`, `total`, `tax`, `currency`, `notes`) VALUES
-(1, 1, CURDATE(), 'Transferência Bancária', 'banktransfer', 'Completed', 149.90, 0.00, 1, 'Pedido de alojamento web partilhado'),
-(2, 1, DATE_SUB(CURDATE(), INTERVAL 30 DAY), 'Cartão de Crédito', 'stripe', 'Active', 24.99, 0.00, 1, 'Registo de domínio .com');
+(1, 2, CURDATE(), 'Transferência Bancária', 'banktransfer', 'Completed', 149.90, 0.00, 1, 'Pedido de alojamento web partilhado'),
+(2, 2, DATE_SUB(CURDATE(), INTERVAL 30 DAY), 'Cartão de Crédito', 'stripe', 'Active', 24.99, 0.00, 1, 'Registo de domínio .com');
 
 INSERT INTO `tblinvoices` (`id`, `userid`, `datecreated`, `duedate`, `datepaid`, `status`, `total`, `taxrate`, `currency`, `note`) VALUES
-(1, 1, DATE_SUB(CURDATE(), INTERVAL 30 DAY), DATE_SUB(CURDATE(), INTERVAL 16 DAY), NULL, 'Unpaid', 149.90, 0.00, 1, 'Fatura de alojamento'),
-(2, 1, DATE_SUB(CURDATE(), INTERVAL 60 DAY), DATE_SUB(CURDATE(), INTERVAL 46 DAY), DATE_SUB(CURDATE(), INTERVAL 50 DAY), 'Paid', 24.99, 0.00, 1, 'Fatura de domínio');
+(1, 2, DATE_SUB(CURDATE(), INTERVAL 30 DAY), DATE_SUB(CURDATE(), INTERVAL 16 DAY), NULL, 'Unpaid', 149.90, 0.00, 1, 'Fatura de alojamento'),
+(2, 2, DATE_SUB(CURDATE(), INTERVAL 60 DAY), DATE_SUB(CURDATE(), INTERVAL 46 DAY), DATE_SUB(CURDATE(), INTERVAL 50 DAY), 'Paid', 24.99, 0.00, 1, 'Fatura de domínio');
 
 INSERT INTO `tblinvoiceitems` (`id`, `invoiceid`, `type`, `description`, `amount`, `taxed`, `duedate`) VALUES
 (1, 1, 'hosting', 'Alojamento Web Partilhado - 1 ano', 149.90, 0, DATE_SUB(CURDATE(), INTERVAL 16 DAY)),
 (2, 2, 'domain', 'Registo de domínio .com - 1 ano', 24.99, 0, DATE_SUB(CURDATE(), INTERVAL 46 DAY));
 
 INSERT INTO `tbldomains` (`id`, `userid`, `orderid`, `domain`, `period`, `registrationdate`, `expirydate`, `nextduedate`, `status`, `dateadded`, `dns1`, `dns2`, `registrar`, `currency`) VALUES
-(1, 1, 2, 'exemplo-linuxkafe.com', 1, DATE_SUB(CURDATE(), INTERVAL 60 DAY), DATE_ADD(CURDATE(), INTERVAL 305 DAY), DATE_ADD(CURDATE(), INTERVAL 305 DAY), 'Active', DATE_SUB(CURDATE(), INTERVAL 60 DAY), 'ns1.linuxkafe.com', 'ns2.linuxkafe.com', 'linuxkafe', 1);
+(1, 2, 2, 'exemplo-linuxkafe.com', 1, DATE_SUB(CURDATE(), INTERVAL 60 DAY), DATE_ADD(CURDATE(), INTERVAL 305 DAY), DATE_ADD(CURDATE(), INTERVAL 305 DAY), 'Active', DATE_SUB(CURDATE(), INTERVAL 60 DAY), 'ns1.linuxkafe.com', 'ns2.linuxkafe.com', 'linuxkafe', 1);
 
 INSERT INTO `tbltickets` (`id`, `userid`, `name`, `email`, `subject`, `message`, `status`, `priority`, `deptid`, `date`, `lastreply`) VALUES
-(1, 1, 'Linuxkafe Hosting', 'linuxkafe@linuxkafe.com', 'Dúvida sobre a fatura', 'Boa tarde, gostaria de saber mais detalhes sobre a fatura em aberto.', 'Open', 'Medium', 1, DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY));
+(1, 2, 'Linuxkafe Hosting', 'linuxkafe@linuxkafe.com', 'Dúvida sobre a fatura', 'Boa tarde, gostaria de saber mais detalhes sobre a fatura em aberto.', 'Open', 'Medium', 1, DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY));
 
 INSERT INTO `tblticketreplies` (`id`, `tid`, `userid`, `name`, `email`, `message`, `date`, `adminreply`) VALUES
-(1, 1, 1, 'Suporte LINUXKAFE', 'suporte@linuxkafe.com', 'Boa tarde! A fatura cobre o alojamento partilhado.', DATE_SUB(NOW(), INTERVAL 1 DAY), 1);
+(1, 1, 2, 'Suporte LINUXKAFE', 'suporte@linuxkafe.com', 'Boa tarde! A fatura cobre o alojamento partilhado.', DATE_SUB(NOW(), INTERVAL 1 DAY), 1);
 
 INSERT INTO `tblticketdepartments` (`id`, `name`, `description`, `sortorder`) VALUES
 (1, 'Suporte Técnico', 'Questões técnicas sobre os serviços', 1),
 (2, 'Faturação', 'Questões sobre faturas e pagamentos', 2);
 
 INSERT INTO `tblaffiliates` (`id`, `userid`, `name`, `email`, `refcode`, `commission`, `balance`, `unpaidbalance`, `datecreated`) VALUES
-(1, 1, 'Linuxkafe Parceiros', 'parceiros@linuxkafe.com', 'LINUXKAFE10', 10.00, 0.00, 0.00, CURDATE());
+(1, 2, 'Linuxkafe Parceiros', 'parceiros@linuxkafe.com', 'LINUXKAFE10', 10.00, 0.00, 0.00, CURDATE());
 
 INSERT INTO `tblaffiliatesclients` (`id`, `affiliateid`, `clientid`, `date`, `commission`) VALUES
-(1, 1, 1, DATE_SUB(CURDATE(), INTERVAL 15 DAY), 14.99);
+(1, 1, 2, DATE_SUB(CURDATE(), INTERVAL 15 DAY), 14.99);
 
 INSERT INTO `tblaffiliatespayouts` (`id`, `affiliateid`, `date`, `amount`, `description`) VALUES
 (1, 1, DATE_SUB(CURDATE(), INTERVAL 10 DAY), 14.99, 'Pagamento de comissão');

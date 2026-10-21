@@ -1,0 +1,28 @@
+{
+  "$comment": "Canonical LINUXKAFE design tokens. This file is the SINGLE SOURCE OF TRUTH for the colour scheme shared by the PHP/CSS front-end and the Flutter application. Run `make tokens` to regenerate the CSS and Dart outputs. Keys are the CSS custom-property names from the source theme, so the mapping to the Dart constants is unambiguous.",
+  "source": {
+    "url": "http://www.linuxkafe.com/wp-content/themes/linuxkafe/style.css",
+    "theme": "linuxkafe",
+    "version": "2.1.0"
+  },
+  "colors": {
+    "color-primary": "#f8b400",
+    "color-text": "#212121",
+    "color-text-light": "#555555",
+    "color-bg": "#ffffff",
+    "color-bg-card": "#ffffff",
+    "color-header": "#2d2d2d",
+    "color-border": "#e0e0e0",
+    "color-link": "#0056b3"
+  },
+  "typography": {
+    "font-base": "Inter, system-ui, -apple-system, sans-serif",
+    "font-heading": "Poppins, Inter, system-ui, -apple-system, sans-serif",
+    "font-mono": "Fira Code, monospace"
+  },
+  "layout": {
+    "width-max": 1100,
+    "border-radius": 8,
+    "shadow-card": "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
+  }
+}

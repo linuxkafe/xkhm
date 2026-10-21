@@ -62,6 +62,10 @@ $app->add(function (Request $request, RequestHandler $handler): Response {
 // Guarantee no HTML page ships without the LINUXKAFE stylesheets
 $app->add(new StylesheetMiddleware());
 
+// Parse JSON request bodies (the Flutter client posts JSON).
+// Without this, getParsedBody() is null for application/json requests.
+$app->addBodyParsingMiddleware();
+
 // Health check endpoint
 $app->get('/health', function (Request $request, Response $response): Response {
     $response->getBody()->write(json_encode(['status' => 'ok', 'service' => 'xkhm']));
@@ -130,6 +134,42 @@ $sslController = new SslController($sslService);
 $apiController = new ApiController($billingService, $ticketService, $domainService);
 
 $adminAuthMiddleware = new AdminAuthMiddleware($app->getResponseFactory());
+
+// ─── Versioned JSON API (/api/v1) — consumed by the Flutter application ─────
+
+$apiV1Controller = new \Xkhm\Http\Controller\Api\ApiV1Controller(
+    $authService,
+    $billingService,
+    $ticketService,
+    $domainService,
+    $kbService,
+    $announceService,
+    $serverStatusService
+);
+
+$apiAuth = new \Xkhm\Http\Controller\Api\ApiAuthMiddleware();
+
+// Public API endpoints
+$app->get('/api/v1/health', [$apiV1Controller, 'health']);
+$app->post('/api/v1/auth/login', [$apiV1Controller, 'login']);
+$app->get('/api/v1/knowledgebase/categories', [$apiV1Controller, 'knowledgebaseCategories']);
+$app->get('/api/v1/knowledgebase', [$apiV1Controller, 'knowledgebase']);
+$app->get('/api/v1/knowledgebase/{id:[0-9]+}', [$apiV1Controller, 'knowledgebaseArticle']);
+$app->get('/api/v1/announcements', [$apiV1Controller, 'announcements']);
+$app->get('/api/v1/serverstatus', [$apiV1Controller, 'serverStatus']);
+$app->get('/api/v1/domains/pricing', [$apiV1Controller, 'domainPricing']);
+$app->get('/api/v1/domains/check', [$apiV1Controller, 'domainCheck']);
+
+// Authenticated API endpoints
+$app->get('/api/v1/auth/session', [$apiV1Controller, 'session'])->add($apiAuth);
+$app->post('/api/v1/auth/logout', [$apiV1Controller, 'logout'])->add($apiAuth);
+$app->get('/api/v1/client/summary', [$apiV1Controller, 'clientSummary'])->add($apiAuth);
+$app->get('/api/v1/client/invoices', [$apiV1Controller, 'clientInvoices'])->add($apiAuth);
+$app->get('/api/v1/client/invoices/{id:[0-9]+}', [$apiV1Controller, 'clientInvoice'])->add($apiAuth);
+$app->get('/api/v1/client/domains', [$apiV1Controller, 'clientDomains'])->add($apiAuth);
+$app->get('/api/v1/client/tickets', [$apiV1Controller, 'clientTickets'])->add($apiAuth);
+$app->get('/api/v1/client/tickets/{id:[0-9]+}', [$apiV1Controller, 'clientTicket'])->add($apiAuth);
+$app->post('/api/v1/client/tickets', [$apiV1Controller, 'createTicket'])->add($apiAuth);
 
 // ─── Authentication Routes ────────────────────────────────────────────────────
 

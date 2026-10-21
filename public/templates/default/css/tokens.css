@@ -11,19 +11,19 @@
 :root {
 
 	/* Cores */
-	--color-primary: #f8b400;      /* Amarelo LinuxKafé */
+	--color-primary: #f8b400; /* Amarelo LinuxKafé */
 	--color-text: #212121;
-	--color-text-light: #555;
-	--color-bg: #fff;
-	--color-bg-card: #fff;
-	--color-header: #2d2d2d;       /* Fundo do Header */
+	--color-text-light: #555555;
+	--color-bg: #ffffff;
+	--color-bg-card: #ffffff;
+	--color-header: #2d2d2d;
 	--color-border: #e0e0e0;
 	--color-link: #0056b3;
 
 	/* Tipografia */
-	--font-base: "Inter", system-ui, -apple-system, sans-serif;
-	--font-heading: "Poppins", var(--font-base);
-	--font-mono: "Fira Code", monospace;
+	--font-base: "Inter, system-ui, -apple-system, sans-serif";
+	--font-heading: "Poppins, Inter, system-ui, -apple-system, sans-serif";
+	--font-mono: "Fira Code, monospace";
 
 	/* Layout */
 	--width-max: 1100px;
