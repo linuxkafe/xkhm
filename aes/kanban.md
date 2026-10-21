@@ -2,7 +2,7 @@
 project: xkhm
 created: 2026-10-20
 current_sprint: sprint-01
-current_ticket: T022
+current_ticket: T024
 ---
 
 # XKHM — WHMCS Reimplementation
@@ -45,23 +45,32 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T020 | Performance & load testing | low | pending |
 | T021 | Playwright E2E test harness (PHP backend) | high | done |
 | T022 | Flutter client application (web + mobile) | high | done |
-| T023 | Decide PHP front-end replacement vs. fallback (needs production traffic data) | medium | pending |
+| T023 | Dark mode automático + compatibilidade mobile | high | done |
+| T024 | Interruptor manual de tema (system / light / dark) | medium | pending |
+| T025 | Decide PHP front-end replacement vs. fallback (needs production traffic data) | medium | pending |
 
 > **Note on numbering.** T020 was originally reserved for "Performance & load
 > testing". The Flutter conversion was planned as **T022** and the Playwright
 > harness as **T021** (the harness had to exist first). The tickets were
-> renumbered at plan time; T020 keeps its original meaning.
+> renumbered at plan time; T020 keeps its original meaning. The
+> front-end replacement decision moved from T023 to **T025** when T023 was
+> taken by the dark-mode and mobile work.
 
 ## Sprint 01 — status
 
 | Ticket | Title | Status | Verification |
 |--------|-------|--------|--------------|
-| T021 | Playwright E2E harness | done | 132 E2E tests green; 14 production defects fixed |
-| T022 | Flutter client application | done | 9 Flutter E2E + 11 widget tests green; design tokens single-sourced |
+| T021 | Playwright E2E harness | done | 225 E2E tests green; 14 production defects fixed |
+| T022 | Flutter client application | done | 13 Flutter E2E + 40 widget tests green; design tokens single-sourced |
+| T023 | Dark mode + compatibilidade mobile | done | 70 new assertions; 15 review defects fixed |
 
 ### Open decisions
 
-- **T023** — the PHP front-end is still live and fully tested. Whether to
+- **T024** — the manual theme toggle. The operator asked for *automatic*
+  dark mode, so the system preference is the only wired behaviour. The
+  palette structure already supports "system / light / dark"; what is
+  missing is the storage and the precedence rules.
+- **T025** — the PHP front-end is still live and fully tested. Whether to
   retire it in favour of the Flutter application needs production traffic
   data. The Flutter app is already served at `/app/` and is the primary
   client UI.
@@ -69,10 +78,10 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 ### Test gates (all green)
 
 ```
-make test          # 85 PHPUnit tests
+make test          # 61 PHPUnit tests
 make lint          # PHPStan level 5, 0 errors
-make e2e           # 132 Playwright tests (PHP backend)
-make flutter-test  # 11 Flutter unit + widget tests
-make flutter-e2e   # 9 Playwright tests (Flutter web build)
-make tokens-check  # design tokens in sync, no hard-coded colours
+make e2e           # 225 Playwright tests (PHP backend + Flutter)
+make flutter-test  # 40 Flutter unit + widget tests
+make flutter-e2e   # 13 Playwright tests (Flutter web build)
+make tokens-check  # tokens in sync, no hard-coded colours (Dart and CSS)
 ```
