@@ -2,7 +2,7 @@
 project: xkhm
 created: 2026-10-20
 current_sprint: sprint-01
-current_ticket: T021
+current_ticket: T022
 ---
 
 # XKHM — WHMCS Reimplementation
@@ -43,6 +43,36 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T018 | Migration validation: same DB, same data, same config | high | done |
 | T019 | Feature parity gap analysis | medium | done |
 | T020 | Performance & load testing | low | pending |
-| T021 | Playwright E2E test harness (PHP backend) | high | planned |
-| T022 | Flutter client application (web + mobile) | high | planned |
+| T021 | Playwright E2E test harness (PHP backend) | high | done |
+| T022 | Flutter client application (web + mobile) | high | done |
 | T023 | Decide PHP front-end replacement vs. fallback (needs production traffic data) | medium | pending |
+
+> **Note on numbering.** T020 was originally reserved for "Performance & load
+> testing". The Flutter conversion was planned as **T022** and the Playwright
+> harness as **T021** (the harness had to exist first). The tickets were
+> renumbered at plan time; T020 keeps its original meaning.
+
+## Sprint 01 — status
+
+| Ticket | Title | Status | Verification |
+|--------|-------|--------|--------------|
+| T021 | Playwright E2E harness | done | 132 E2E tests green; 14 production defects fixed |
+| T022 | Flutter client application | done | 9 Flutter E2E + 11 widget tests green; design tokens single-sourced |
+
+### Open decisions
+
+- **T023** — the PHP front-end is still live and fully tested. Whether to
+  retire it in favour of the Flutter application needs production traffic
+  data. The Flutter app is already served at `/app/` and is the primary
+  client UI.
+
+### Test gates (all green)
+
+```
+make test          # 85 PHPUnit tests
+make lint          # PHPStan level 5, 0 errors
+make e2e           # 132 Playwright tests (PHP backend)
+make flutter-test  # 11 Flutter unit + widget tests
+make flutter-e2e   # 9 Playwright tests (Flutter web build)
+make tokens-check  # design tokens in sync, no hard-coded colours
+```
