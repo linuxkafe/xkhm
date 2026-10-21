@@ -111,6 +111,10 @@ class AdminPasswordResetService
         // The token is single-use.
         $this->delete($token);
 
+        // And it leaves the queue: nobody has to receive a message
+        // with a code that no longer works.
+        $this->delivery->forget($token, 'admin');
+
         return true;
     }
 

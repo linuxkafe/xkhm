@@ -84,6 +84,14 @@ class SmtpTokenDelivery implements TokenDelivery
     }
 
     /**
+     * There is no queue here: the mail was sent directly.
+     */
+    public function forget(string $token, string $purpose): bool
+    {
+        return true;
+    }
+
+    /**
      * The command that sends the message.
      *
      * The `--user` argument appears **only** when there are

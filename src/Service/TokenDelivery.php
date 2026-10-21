@@ -39,4 +39,14 @@ interface TokenDelivery
      * diagnostics. Never contains the token itself.
      */
     public function describe(): string;
+
+    /**
+     * The token is no longer pending: it was used, or it was
+     * delivered by another channel.
+     *
+     * Without this, a token that was already used would still be in the
+     * queue, and the owner would receive a message with a code that no
+     * longer works.
+     */
+    public function forget(string $token, string $purpose): bool;
 }

@@ -54,6 +54,18 @@ class TokenDispatcher implements TokenDelivery
         return $sent;
     }
 
+    /**
+     * The token is no longer pending.
+     *
+     * This is what happens when the token is **used**: the queue is
+     * cleared, so that nobody receives a message with a code that no
+     * longer works.
+     */
+    public function forget(string $token, string $purpose): bool
+    {
+        return $this->queue->forget($token, $purpose);
+    }
+
     public function describe(): string
     {
         if ($this->mailer === null) {

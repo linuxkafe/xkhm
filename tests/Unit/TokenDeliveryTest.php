@@ -36,6 +36,11 @@ final class FakeTokenDelivery implements TokenDelivery
     {
         return $this->succeeds ? 'enviado' : 'correio indisponível';
     }
+
+    public function forget(string $token, string $purpose): bool
+    {
+        return true;
+    }
 }
 
 /**
@@ -175,6 +180,21 @@ class TokenDeliveryTest extends TestCase
 
         $this->assertContains('--user', $command);
         $this->assertContains('utilizador:senha', $command);
+    }
+
+    public function testAUsedTokenLeavesTheQueue(): void
+    {
+        $queue = new FileTokenDelivery($this->directory);
+        $dispatcher = new TokenDispatcher($queue, $this->failingMailer());
+
+        $dispatcher->deliver('alguem@example.com', str_repeat('c', 64), 'cliente');
+        $this->assertCount(1, glob($this->directory . '/*.txt') ?: []);
+
+        // The token was used: it is no longer pending, and nobody has
+        // to receive a message with a code that no longer works.
+        $dispatcher->forget(str_repeat('c', 64), 'cliente');
+
+        $this->assertCount(0, glob($this->directory . '/*.txt') ?: []);
     }
 
     public function testTheDescriptionNeverContainsTheToken(): void

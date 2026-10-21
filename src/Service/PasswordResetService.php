@@ -104,6 +104,10 @@ class PasswordResetService
         // The token is single-use.
         $this->clientRepository->clearResetToken((int)$client['id']);
 
+        // And it leaves the queue: nobody has to receive a message
+        // with a code that no longer works.
+        $this->delivery->forget($token, 'cliente');
+
         return true;
     }
 

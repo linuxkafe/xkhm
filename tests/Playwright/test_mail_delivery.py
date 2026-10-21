@@ -288,6 +288,44 @@ def test_the_mailer_refuses_the_reserved_domains(page, fake_smtp):
         path.unlink()
 
 
+def test_a_used_token_leaves_the_queue(page):
+    """
+    A token that was used must not stay in the queue.
+
+    Otherwise the owner receives a message with a code that no longer
+    works — and a code that no longer works looks like a broken
+    product.
+    """
+    response = page.request.post(
+        "/api/v1/admin/auth/forgot-password",
+        data={"username": RESET_ADMIN_USER},
+    )
+    token = response.json()["data"].get("developmentToken")
+    assert token
+    assert len(pending_files()) == 1
+
+    used = page.request.post(
+        "/api/v1/admin/auth/reset-password",
+        data={"token": token, "password": "AdminUsada2026"},
+    )
+    assert used.status == 200, used.text()
+
+    assert len(pending_files()) == 0, "the used token must leave the queue"
+
+    # Put the account back.
+    again = page.request.post(
+        "/api/v1/admin/auth/forgot-password",
+        data={"username": RESET_ADMIN_USER},
+    )
+    page.request.post(
+        "/api/v1/admin/auth/reset-password",
+        data={
+            "token": again.json()["data"].get("developmentToken"),
+            "password": "xkhm-reset-2026",
+        },
+    )
+
+
 def test_a_real_address_is_not_reserved():
     """The rule must not catch a real customer's address."""
     spec = importlib.util.spec_from_file_location("mailer", MAILER)
