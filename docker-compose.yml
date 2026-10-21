@@ -8,7 +8,10 @@ services:
     ports:
       - "8083:80"
     environment:
-      - APP_ENV=production
+      # 'development' makes the credential-recovery flow show the token in the
+      # response, so it can be exercised without a mail server. In production
+      # the answer is generic and the token goes out by e-mail.
+      - APP_ENV=development
       - DB_HOST=mysql
       - DB_NAME=linuxkonect
       - DB_USER=linuxkonect
@@ -18,6 +21,8 @@ services:
       - DB_PASSWORD=${XKHM_DB_PASSWORD:-xkhm-local-only}
     volumes:
       - ./public/uploads:/var/www/html/public/uploads
+      # The credential-recovery tokens (there is no SMTP in this deployment).
+      - ./storage:/var/www/html/storage
       # The Flutter web build IS the client area. It is mounted at the
       # document root, next to the API, so the browser manages the session
       # cookie natively (no CORS) and the whole product is one origin.

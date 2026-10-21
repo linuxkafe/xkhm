@@ -217,6 +217,9 @@ publicada. A suíte de testes corre no host e usa `XKHM_DB_PORT=13306`.
 | `make db-backup` | Cópia de segurança da base local |
 | `make db-test-accounts` | Cria as contas e os dados de desenvolvimento |
 | `make db-seed` | Volta ao fixture de desenvolvimento |
+| `make db-reset-tokens` | Lista os tokens de recuperação à espera de entrega |
+| `make db-reset-client EMAIL=… PASSWORD=…` | Repõe a senha de um cliente (bcrypt) |
+| `make db-reset-admin PASSWORD=…` | Repõe a senha do administrador (bcrypt) |
 
 ## As contas
 
@@ -235,6 +238,103 @@ A suite de testes usa contas de desenvolvimento criadas por
 | `xkhm-test@example.com` | `xkhm-test-2026` |
 | `xkhm-test2@example.com` | `xkhm-test-2026` |
 | `xkhm-test` (admin) | `xkhm-test-2026` |
+| `xkhm-reset@example.com` | `xkhm-reset-2026` — **só para a recuperação** |
+| `xkhm-reset-admin` (admin) | `xkhm-reset-2026` — **só para a recuperação** |
+
+As duas últimas existem porque os testes de recuperação **mudam** a senha
+da conta: uma conta partilhada com os outros testes transformaria a
+suíte numa roulette.
+
+## Recuperação de credenciais
+
+A aplicação tem um fluxo de recuperação para **clientes** e para
+**administradores**. A regra que atravessa os dois: **a resposta é
+sempre a mesma** — exista a conta ou não. Um endpoint que responde
+diferente é uma oracle de contas.
+
+### O cliente
+
+O token vive nas colunas que o WHMCS 5.3.9 **já tem**:
+
+```
+tblclients.pwresetkey     text   ← o token
+tblclients.pwresetexpiry  int    ← expira em unix time
+```
+
+**Nenhuma coluna nova. Nenhuma tabela nova. Nenhuma migração.**
+
+```bash
+curl -X POST http://localhost:8083/api/v1/auth/forgot-password \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"xkhm-reset@example.com"}'
+
+curl -X POST http://localhost:8083/api/v1/auth/reset-password \
+  -H 'Content-Type: application/json' \
+  -d '{"token":"<o token>","password":"a-nova-senha"}'
+```
+
+O token **expira em uma hora** e é **de uso único**: depois de usado,
+`pwresetkey` fica vazio e a mesma segunda tentativa é recusada. A senha
+nova é gravada em bcrypt.
+
+### O administrador
+
+`tbladmins` **não tem** colunas de reset, e o esquema de produção não
+muda. O token do administrador vive num **ficheiro**, dentro do
+contentor:
+
+```
+storage/reset-tokens/admin/<token>.json     o token do admin (com expiração)
+storage/reset-tokens/pending/<purpose>-*.txt  o token, para entrega
+```
+
+```bash
+curl -X POST http://localhost:8083/api/v1/admin/auth/forgot-password \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"xkhm-reset-admin"}'
+
+curl -X POST http://localhost:8083/api/v1/admin/auth/reset-password \
+  -H 'Content-Type: application/json' \
+  -d '{"token":"<o token>","password":"a-nova-senha"}'
+```
+
+A página `/admin/login.php` tem o link **«Esqueci a senha?»**, que abre
+o formulário de pedido.
+
+### A entrega do token
+
+Não há SMTP configurado. A entrega é **plugável** e tem uma garantia:
+o ficheiro é **sempre** escrito, mesmo quando o SMTP existe. Assim há
+sempre um caminho para dentro, e o e-mail é um extra — não a condição.
+
+| Variável | Efeito |
+|----------|--------|
+| `XKHM_SMTP_HOST` | activa o envio por SMTP |
+| `XKHM_SMTP_PORT` | porta (por omissão `587`) |
+| `XKHM_SMTP_USER` / `XKHM_SMTP_PASS` | credenciais |
+| `XKHM_SMTP_FROM` | remetente |
+| `APP_ENV=development` | devolve o `developmentToken` na resposta |
+| `XKHM_RESET_TOKEN_DIR` | onde ficam os ficheiros dos tokens |
+
+Em produção a resposta é genérica. O administrador lê o token com:
+
+```bash
+make db-reset-tokens
+```
+
+### As três portas de entrada
+
+A recuperação é uma **das três** maneiras de voltar a entrar, e cada uma
+funciona mesmo quando as outras estão partidas:
+
+| Porta | Quando funciona |
+|-------|-----------------|
+| `make db-reset-admin` / `make db-reset-client` | sempre — não passa pela aplicação |
+| O fluxo do token | a aplicação está de pé |
+| O e-mail | há SMTP configurado |
+
+É isto que o operador precisava: **um caminho que não dependa da
+coisa que se avariou.**
 
 ## Formatos de senha
 

@@ -208,6 +208,13 @@ class LkApiClient {
   Future<Map<String, dynamic>> forgotPassword(String email) =>
       _send('POST', '/auth/forgot-password', body: {'email': email});
 
+  /// Set a new password with a recovery token.
+  Future<Map<String, dynamic>> resetPassword(String token, String password) =>
+      _send('POST', '/auth/reset-password', body: {
+        'token': token,
+        'password': password,
+      });
+
   Future<List<Map<String, dynamic>>> clientOrders() async {
     final data = await _send('GET', '/client/orders');
     return (data['orders'] as List<dynamic>? ?? const [])

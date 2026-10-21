@@ -53,6 +53,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T028 | Alinhar com o esquema WHMCS 5.3.9 real + formatos de senha | high | done |
 | T029 | Rever a exposição dos restantes contentores (ollama, searxng) | medium | pending |
 | T030 | Repor a senha do administrador `linuxkafe` na base de produção | medium | pending |
+| T031 | Sistema de recuperação de credenciais (cliente + admin) | high | done |
 
 > **Note on numbering.** T020 was originally reserved for "Performance & load
 > testing". The Flutter conversion was planned as **T022** and the Playwright
@@ -72,6 +73,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T026 | Importação dos dados de produção | done | dump de 372 MB importado; `make db-check`/`db-import` testados |
 | T027 | Exposição do MySQL | done | porta no loopback, credenciais locais próprias |
 | T028 | Esquema WHMCS 5.3.9 real + formatos de senha | done | 89 PHPUnit + 141 Playwright contra a base **real** |
+| T031 | Recuperação de credenciais | done | 103 PHPUnit + 152 Playwright; fluxo completo de cliente e admin, **sem alterar o esquema** |
 
 ### Open decisions
 
@@ -82,6 +84,9 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 - **T029** — `ollama` (11434) and `searxng` (8081) are also published on
   `0.0.0.0`. They are not part of xkhm, but they share the same host and
   the same exposure that caused T027. They should be reviewed.
+- **T030** — the production password of `linuxkafe` is only recoverable
+  by the WHMCS itself. The new recovery flow (T031) gives the *operator*
+  a way in; it does not touch the production database.
 
 ### ⚠ Outstanding action for the operator
 
@@ -93,12 +98,15 @@ rotated, and the local database must never use it again.
 ### Test gates (all green)
 
 ```
-make test            # 89 PHPUnit tests — contra a base real
+make test            # 103 PHPUnit tests — contra a base real
 make lint            # PHPStan level 5, 0 errors
-make e2e             # 141 Playwright tests (API + Flutter) — dados reais
-make flutter-test    # 40 Flutter unit + widget tests
+make e2e             # 152 Playwright tests (API + Flutter) — dados reais
+make flutter-test    # 45 Flutter unit + widget tests
 make flutter-e2e     # 15 Playwright tests (Flutter web build)
 make tokens-check    # tokens in sync, no hard-coded colours (Dart and CSS)
 make db-check        # diagnosis of the production database
 make db-test-accounts  # contas de desenvolvimento
+make db-reset-tokens   # tokens de recuperação à espera de entrega
+make db-reset-client   # repõe a senha de um cliente
+make db-reset-admin    # repõe a senha do administrador
 ```

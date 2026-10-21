@@ -42,6 +42,21 @@ class AuthServiceTest extends TestCase
                 {
                     return true;
                 }
+
+                public function setResetToken(int $id, string $token, int $expires): bool
+                {
+                    return true;
+                }
+
+                public function findByResetToken(string $token): ?array
+                {
+                    return null;
+                }
+
+                public function clearResetToken(int $id): bool
+                {
+                    return true;
+                }
             }
         );
     }

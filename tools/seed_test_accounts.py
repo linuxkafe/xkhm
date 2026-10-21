@@ -38,6 +38,14 @@ OTHER_PASS = os.getenv("XKHM_TEST_CLIENT2_PASS", "xkhm-test-2026")
 ADMIN_USER = os.getenv("XKHM_TEST_ADMIN", "xkhm-test")
 ADMIN_PASS = os.getenv("XKHM_TEST_ADMIN_PASS", "xkhm-test-2026")
 
+#: A third client and a second admin, reserved for the recovery tests: those
+#: **change** the password, and the shared accounts must stay untouched.
+RESET_CLIENT_EMAIL = os.getenv("XKHM_RESET_TEST_CLIENT", "xkhm-reset@example.com")
+RESET_CLIENT_PASS = os.getenv("XKHM_RESET_TEST_CLIENT_PASS", "xkhm-reset-2026")
+
+RESET_ADMIN_USER = os.getenv("XKHM_RESET_TEST_ADMIN", "xkhm-reset-admin")
+RESET_ADMIN_PASS = os.getenv("XKHM_RESET_TEST_ADMIN_PASS", "xkhm-reset-2026")
+
 
 # ─── Database helpers ────────────────────────────────────────────────────────
 
@@ -376,6 +384,10 @@ def main() -> int:
         client_id = upsert_client(CLIENT_EMAIL, CLIENT_PASS, 'Xkhm')
         other_id = upsert_client(OTHER_EMAIL, OTHER_PASS, 'Xkhm')
         admin_id = upsert_admin(ADMIN_USER, ADMIN_PASS)
+        reset_client_id = upsert_client(
+            RESET_CLIENT_EMAIL, RESET_CLIENT_PASS, 'Xkhm'
+        )
+        reset_admin_id = upsert_admin(RESET_ADMIN_USER, RESET_ADMIN_PASS)
     except RuntimeError as exc:
         print(f"  [FALHA] {exc}")
         return 1
@@ -383,6 +395,8 @@ def main() -> int:
     print(f"  [OK]    cliente  {CLIENT_EMAIL} (id {client_id})")
     print(f"  [OK]    cliente  {OTHER_EMAIL} (id {other_id})")
     print(f"  [OK]    admin    {ADMIN_USER} (id {admin_id})")
+    print(f"  [OK]    cliente  {RESET_CLIENT_EMAIL} (id {reset_client_id}) — só para a recuperação")
+    print(f"  [OK]    admin    {RESET_ADMIN_USER} (id {reset_admin_id}) — só para a recuperação")
 
     try:
         seed_client_data(client_id)
@@ -398,6 +412,8 @@ def main() -> int:
     print(f"    cliente  {CLIENT_EMAIL} / {CLIENT_PASS}")
     print(f"    cliente  {OTHER_EMAIL} / {OTHER_PASS}")
     print(f"    admin    {ADMIN_USER} / {ADMIN_PASS}")
+    print(f"    cliente  {RESET_CLIENT_EMAIL} / {RESET_CLIENT_PASS}  (recuperação)")
+    print(f"    admin    {RESET_ADMIN_USER} / {RESET_ADMIN_PASS}  (recuperação)")
     print()
     print("  NOTA: o admin real 'linuxkafe' NAO foi tocado — a senha")
     print("        continua a ser a de producao.")

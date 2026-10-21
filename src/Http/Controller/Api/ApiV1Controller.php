@@ -7,6 +7,7 @@ namespace Xkhm\Http\Controller\Api;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Xkhm\Repository\OrderRepositoryInterface;
+use Xkhm\Service\AdminPasswordResetService;
 use Xkhm\Service\AffiliateService;
 use Xkhm\Service\AnnouncementService;
 use Xkhm\Service\AuthService;
@@ -39,7 +40,8 @@ final class ApiV1Controller
         private SslService $sslService,
         private AffiliateService $affiliateService,
         private OrderRepositoryInterface $orderRepository,
-        private PasswordResetService $passwordResetService
+        private PasswordResetService $passwordResetService,
+        private AdminPasswordResetService $adminPasswordResetService
     ) {
     }
 
@@ -610,6 +612,9 @@ final class ApiV1Controller
 
     /**
      * POST /api/v1/auth/forgot-password
+     *
+     * The answer is **always** the same: revealing which addresses are
+     * registered would turn the endpoint into an account oracle.
      */
     public function forgotPassword(Request $request, Response $response): Response
     {
@@ -625,13 +630,141 @@ final class ApiV1Controller
             );
         }
 
-        // The answer is the same whether or not the account exists: telling
-        // the caller which emails are registered would leak the client list.
-        $this->passwordResetService->requestReset($email);
+        $exists = $this->passwordResetService->requestReset($email);
 
-        return JsonResponse::ok($response, [
-            'message' => 'Se a conta existir, enviámos um e-mail com as instruções para redefinir a senha.',
-        ]);
+        $payload = [
+            'message' => 'Se a conta existir, enviámos as instruções para redefinir a senha.',
+        ];
+
+        // In development the token is shown, so that the flow can be
+        // exercised without a mail server. In production the answer is
+        // generic — the token was delivered by e-mail or left for the
+        // administrator.
+        if ($exists && $this->isDevelopment()) {
+            $payload['developmentToken'] = $this->passwordResetService->lastToken();
+            $payload['developmentDelivery'] = $this->passwordResetService->describeDelivery();
+        }
+
+        return JsonResponse::ok($response, $payload);
+    }
+
+    /**
+     * POST /api/v1/auth/reset-password
+     */
+    public function resetPassword(Request $request, Response $response): Response
+    {
+        $data = $request->getParsedBody();
+        $token = trim((string)($data['token'] ?? ''));
+        $password = (string)($data['password'] ?? '');
+
+        if ($token === '' || $password === '') {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_BAD_REQUEST,
+                'Indique o código e a nova senha.',
+                400
+            );
+        }
+
+        if (strlen($password) < 8) {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_BAD_REQUEST,
+                'A senha deve ter pelo menos 8 caracteres.',
+                400
+            );
+        }
+
+        if (!$this->passwordResetService->resetWithToken($token, $password)) {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_BAD_REQUEST,
+                'Código inválido ou expirado.',
+                400
+            );
+        }
+
+        return JsonResponse::ok($response, ['message' => 'Senha alterada com sucesso.']);
+    }
+
+    /**
+     * POST /api/v1/admin/auth/forgot-password
+     */
+    public function adminForgotPassword(Request $request, Response $response): Response
+    {
+        $data = $request->getParsedBody();
+        $username = trim((string)($data['username'] ?? ''));
+
+        if ($username === '') {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_BAD_REQUEST,
+                'Indique o nome de utilizador.',
+                400
+            );
+        }
+
+        $exists = $this->adminPasswordResetService->requestReset($username);
+
+        $payload = [
+            'message' => 'Se a conta existir, enviámos as instruções para redefinir a senha.',
+        ];
+
+        if ($exists && $this->isDevelopment()) {
+            $payload['developmentToken'] = $this->adminPasswordResetService->lastToken();
+            $payload['developmentDelivery'] = $this->adminPasswordResetService->describeDelivery();
+        }
+
+        return JsonResponse::ok($response, $payload);
+    }
+
+    /**
+     * POST /api/v1/admin/auth/reset-password
+     */
+    public function adminResetPassword(Request $request, Response $response): Response
+    {
+        $data = $request->getParsedBody();
+        $token = trim((string)($data['token'] ?? ''));
+        $password = (string)($data['password'] ?? '');
+
+        if ($token === '' || $password === '') {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_BAD_REQUEST,
+                'Indique o código e a nova senha.',
+                400
+            );
+        }
+
+        if (strlen($password) < 8) {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_BAD_REQUEST,
+                'A senha deve ter pelo menos 8 caracteres.',
+                400
+            );
+        }
+
+        if (!$this->adminPasswordResetService->resetWithToken($token, $password)) {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_BAD_REQUEST,
+                'Código inválido ou expirado.',
+                400
+            );
+        }
+
+        return JsonResponse::ok($response, ['message' => 'Senha alterada com sucesso.']);
+    }
+
+    /**
+     * Is this a development deployment?
+     */
+    private function isDevelopment(): bool
+    {
+        $env = getenv('APP_ENV');
+
+        return $env !== false && in_array(strtolower($env), ['dev', 'development', 'local'], true);
     }
 
     /**

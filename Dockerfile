@@ -68,8 +68,24 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html \
     && chmod -R 777 /var/www/html/public/uploads 2>/dev/null || true
 
+# The credential-recovery tokens live here, outside the document root.
+# The directory must be writable by www-data; the tokens themselves are
+# written with mode 0644 so that the administrator can read them.
+RUN mkdir -p /var/www/html/storage/reset-tokens/pending \
+             /var/www/html/storage/reset-tokens/admin \
+    && chown -R www-data:www-data /var/www/html/storage \
+    && chmod -R 777 /var/www/html/storage
+
 # Copy Apache config
 COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
+
+# The entrypoint prepares the writable directories (the bind mount hides
+# the permissions set in the image).
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["apache2-foreground"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \

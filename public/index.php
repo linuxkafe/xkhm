@@ -131,8 +131,6 @@ $affiliateService = new \Xkhm\Service\AffiliateService($affiliateRepo);
 $affiliateController = new AffiliateController($affiliateService);
 
 $adminAuthService = new \Xkhm\Service\AdminAuthService(new \Xkhm\Repository\AdminRepositoryPDO());
-$adminAuthController = new AdminAuthController($adminAuthService);
-
 $serverStatusService = new \Xkhm\Service\ServerStatusService();
 $serverStatusController = new ServerStatusController($serverStatusService);
 
@@ -142,6 +140,47 @@ $sslController = new SslController($sslService, $domainService);
 $apiController = new ApiController($billingService, $ticketService, $domainService);
 
 $adminAuthMiddleware = new AdminAuthMiddleware($app->getResponseFactory());
+
+// ── Recuperação de credenciais ────────────────────────────────────────────────
+//
+// O token do cliente vive nas colunas `pwresetkey`/`pwresetexpiry` que o
+// WHMCS já tem — o esquema de produção não muda. O do administrador vive
+// num ficheiro, porque `tbladmins` não tem essas colunas.
+//
+// A entrega é plugável: com SMTP configurado o e-mail sai; sem ele, o token
+// é escrito num ficheiro e o administrador entrega-o. Há sempre uma via.
+
+$resetTokenDirectory = getenv('XKHM_RESET_TOKEN_DIR')
+    ?: __DIR__ . '/../storage/reset-tokens';
+
+$fileDelivery = new \Xkhm\Service\FileTokenDelivery(
+    $resetTokenDirectory . '/pending'
+);
+
+$smtpDelivery = \Xkhm\Service\SmtpTokenDelivery::fromEnvironment();
+
+$clientDelivery = $smtpDelivery ?? $fileDelivery;
+$adminDelivery = $smtpDelivery ?? $fileDelivery;
+
+$passwordHasher = new \Xkhm\Service\PasswordHasher();
+
+$passwordResetService = new \Xkhm\Service\PasswordResetService(
+    $clientRepo,
+    $clientDelivery,
+    $passwordHasher
+);
+
+$adminPasswordResetService = new \Xkhm\Service\AdminPasswordResetService(
+    new \Xkhm\Repository\AdminRepositoryPDO(),
+    $adminDelivery,
+    $passwordHasher,
+    $resetTokenDirectory . '/admin'
+);
+
+$adminAuthController = new AdminAuthController(
+    $adminAuthService,
+    $adminPasswordResetService
+);
 
 // ─── Versioned JSON API (/api/v1) — consumed by the Flutter application ─────
 
@@ -156,7 +195,8 @@ $apiV1Controller = new \Xkhm\Http\Controller\Api\ApiV1Controller(
     $sslService,
     $affiliateService,
     $orderRepo,
-    new \Xkhm\Service\PasswordResetService($clientRepo)
+    $passwordResetService,
+    $adminPasswordResetService
 );
 
 $apiAuth = new \Xkhm\Http\Controller\Api\ApiAuthMiddleware();
@@ -171,6 +211,9 @@ $app->group('/api/v1', function ($group) use ($apiV1Controller, $apiAuth) {
     // The password reset is public by definition: it is for someone who
     // cannot log in.
     $group->post('/auth/forgot-password', [$apiV1Controller, 'forgotPassword']);
+    $group->post('/auth/reset-password', [$apiV1Controller, 'resetPassword']);
+    $group->post('/admin/auth/forgot-password', [$apiV1Controller, 'adminForgotPassword']);
+    $group->post('/admin/auth/reset-password', [$apiV1Controller, 'adminResetPassword']);
     $group->get('/knowledgebase/categories', [$apiV1Controller, 'knowledgebaseCategories']);
     $group->get('/knowledgebase', [$apiV1Controller, 'knowledgebase']);
     $group->get('/knowledgebase/{id:[0-9]+}', [$apiV1Controller, 'knowledgebaseArticle']);

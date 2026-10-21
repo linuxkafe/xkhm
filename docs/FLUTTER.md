@@ -135,9 +135,26 @@ real** com credenciais reais e afirma sobre os dados reais da tabela
 | Anúncios | `GET /api/v1/announcements` |
 | Procurar Domínio | `GET /api/v1/domains/check` |
 | Estado do Servidor | `GET /api/v1/serverstatus` |
-| Redefinir senha | `POST /api/v1/auth/forgot-password` |
+| Redefinir senha | `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password` |
 
 A interface é **pt-BR** em todos os ecrãs.
+
+### O ecrã de recuperação de senha
+
+`password_reset_screen.dart` tem **dois passos**:
+
+1. **Pedir o código** — o utilizador escreve o email e carrega
+   «Pedir recuperação». A resposta é a mesma exista ou não a conta, por
+   isso o ecrã **nunca** diz se o email está registado.
+2. **Definir a nova senha** — o utilizador escreve o código recebido e a
+   nova senha (mínimo 8 caracteres).
+
+Em `APP_ENV=development` o código volta na resposta e o campo é
+preenchido automaticamente, para que o fluxo se possa exercitar sem
+servidor de correio. Em produção o campo fica vazio e o código chega
+por e-mail (ou é entregue pelo administrador — ver `docs/DATABASE.md`).
+
+O botão «Esqueci a senha?» do ecrã de login abre este ecrã.
 
 ---
 

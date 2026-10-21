@@ -253,6 +253,16 @@ final class SchemaMap
     ];
 
     /**
+     * The required defaults of a table, ready to be used in an insert.
+     *
+     * @return array<string, mixed>
+     */
+    public static function defaultsFor(string $table): array
+    {
+        return self::requiredDefaults($table);
+    }
+
+    /**
      * The required defaults of a table, with the dates resolved.
      *
      * The date columns cannot be a constant: PHP constants hold no runtime

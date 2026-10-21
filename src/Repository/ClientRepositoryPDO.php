@@ -73,4 +73,51 @@ class ClientRepositoryPDO implements ClientRepositoryInterface
 
         return $stmt->execute($data);
     }
+
+    /**
+     * Store a password-reset token.
+     *
+     * The WHMCS 5.3.9 schema already has `pwresetkey` and
+     * `pwresetexpiry` for exactly this — no schema change is needed.
+     */
+    public function setResetToken(int $id, string $token, int $expires): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE tblclients SET pwresetkey = :token, pwresetexpiry = :expires WHERE id = :id'
+        );
+
+        return $stmt->execute([
+            'token' => $token,
+            'expires' => $expires,
+            'id' => $id,
+        ]);
+    }
+
+    /**
+     * Find the client a reset token belongs to.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findByResetToken(string $token): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM tblclients WHERE pwresetkey = ? LIMIT 1'
+        );
+        $stmt->execute([$token]);
+        $row = $stmt->fetch();
+
+        return $row ? SchemaMap::toCanonical(self::TABLE, $row) : null;
+    }
+
+    /**
+     * Clear the reset token — it is single-use.
+     */
+    public function clearResetToken(int $id): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE tblclients SET pwresetkey = "", pwresetexpiry = 0 WHERE id = :id'
+        );
+
+        return $stmt->execute(['id' => $id]);
+    }
 }
