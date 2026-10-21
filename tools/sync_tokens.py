@@ -76,6 +76,7 @@ def load_tokens() -> dict:
 
 def render_css(tokens: dict) -> str:
     colors = tokens["colors"]
+    semantic = tokens.get("semantic", {})
     typography = tokens["typography"]
     layout = tokens["layout"]
     url = tokens["source"]["url"]
@@ -85,6 +86,11 @@ def render_css(tokens: dict) -> str:
     for key, value in colors.items():
         comment = " /* Amarelo LinuxKafé */" if key == "color-primary" else ""
         out.append(f"\t{css_var(key)}: {value};{comment}\n")
+
+    if semantic:
+        out.append("\n\t/* Cores semânticas */\n")
+        for key, value in semantic.items():
+            out.append(f"\t{css_var(key)}: {css_color(value)};\n")
 
     out.append("\n\t/* Tipografia */\n")
     for key, value in typography.items():
@@ -100,15 +106,34 @@ def render_css(tokens: dict) -> str:
 
 
 def dart_color(value: str) -> str:
-    """#f8b400 -> 0xFFF8B400 (Flutter wants the 0xAARRGGBB form)."""
+    """#f8b400 -> 0xFFF8B400 (Flutter wants the 0xAARRGGBB form).
+
+    An 8-digit value is already in the 0xAARRGGBB form and is passed through
+    (e.g. the translucent shadow colour).
+    """
     value = value.lstrip("#")
+    if len(value) == 8:
+        return "0x" + value.upper()
     if len(value) != 6:
-        raise ValueError(f"expected a 6-digit hex colour, got {value!r}")
+        raise ValueError(f"expected a 6- or 8-digit hex colour, got {value!r}")
     return "0xFF" + value.upper()
+
+
+def css_color(value: str) -> str:
+    """#f8b400 -> #f8b400; #0000001a -> rgba(0, 0, 0, 0.1)."""
+    value = value.lstrip("#")
+    if len(value) == 8:
+        red = int(value[0:2], 16)
+        green = int(value[2:4], 16)
+        blue = int(value[4:6], 16)
+        alpha = int(value[6:8], 16) / 255
+        return f"rgba({red}, {green}, {blue}, {round(alpha, 3)})"
+    return "#" + value.lower()
 
 
 def render_dart(tokens: dict) -> str:
     colors = tokens["colors"]
+    semantic = tokens.get("semantic", {})
     typography = tokens["typography"]
     layout = tokens["layout"]
     url = tokens["source"]["url"]
@@ -123,6 +148,15 @@ def render_dart(tokens: dict) -> str:
     for key, value in colors.items():
         out.append(f"  static const Color {dart_name(key)} = Color({dart_color(value)});\n")
     out.append("}\n\n")
+
+    if semantic:
+        out.append("/// Semantic colours (success / warning / danger / info).\n")
+        out.append("abstract final class LkSemantic {\n")
+        for key, value in semantic.items():
+            out.append(
+                f"  static const Color {dart_name(key)} = Color({dart_color(value)});\n"
+            )
+        out.append("}\n\n")
 
     out.append("/// Typography families, matching the CSS `--font-*` tokens.\n")
     out.append("abstract final class LkFonts {\n")

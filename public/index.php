@@ -148,28 +148,38 @@ $apiV1Controller = new \Xkhm\Http\Controller\Api\ApiV1Controller(
 );
 
 $apiAuth = new \Xkhm\Http\Controller\Api\ApiAuthMiddleware();
+$apiCors = new \Xkhm\Http\Controller\Api\CorsMiddleware();
 
-// Public API endpoints
-$app->get('/api/v1/health', [$apiV1Controller, 'health']);
-$app->post('/api/v1/auth/login', [$apiV1Controller, 'login']);
-$app->get('/api/v1/knowledgebase/categories', [$apiV1Controller, 'knowledgebaseCategories']);
-$app->get('/api/v1/knowledgebase', [$apiV1Controller, 'knowledgebase']);
-$app->get('/api/v1/knowledgebase/{id:[0-9]+}', [$apiV1Controller, 'knowledgebaseArticle']);
-$app->get('/api/v1/announcements', [$apiV1Controller, 'announcements']);
-$app->get('/api/v1/serverstatus', [$apiV1Controller, 'serverStatus']);
-$app->get('/api/v1/domains/pricing', [$apiV1Controller, 'domainPricing']);
-$app->get('/api/v1/domains/check', [$apiV1Controller, 'domainCheck']);
+// All /api/v1 routes live in one group so the CORS middleware covers them
+// uniformly (the native builds and a local dev server are a different
+// origin; the web build is served next to the API and does not need it).
+$app->group('/api/v1', function ($group) use ($apiV1Controller, $apiAuth) {
+    // Public endpoints
+    $group->get('/health', [$apiV1Controller, 'health']);
+    $group->post('/auth/login', [$apiV1Controller, 'login']);
+    $group->get('/knowledgebase/categories', [$apiV1Controller, 'knowledgebaseCategories']);
+    $group->get('/knowledgebase', [$apiV1Controller, 'knowledgebase']);
+    $group->get('/knowledgebase/{id:[0-9]+}', [$apiV1Controller, 'knowledgebaseArticle']);
+    $group->get('/announcements', [$apiV1Controller, 'announcements']);
+    $group->get('/serverstatus', [$apiV1Controller, 'serverStatus']);
+    $group->get('/domains/pricing', [$apiV1Controller, 'domainPricing']);
+    $group->get('/domains/check', [$apiV1Controller, 'domainCheck']);
 
-// Authenticated API endpoints
-$app->get('/api/v1/auth/session', [$apiV1Controller, 'session'])->add($apiAuth);
-$app->post('/api/v1/auth/logout', [$apiV1Controller, 'logout'])->add($apiAuth);
-$app->get('/api/v1/client/summary', [$apiV1Controller, 'clientSummary'])->add($apiAuth);
-$app->get('/api/v1/client/invoices', [$apiV1Controller, 'clientInvoices'])->add($apiAuth);
-$app->get('/api/v1/client/invoices/{id:[0-9]+}', [$apiV1Controller, 'clientInvoice'])->add($apiAuth);
-$app->get('/api/v1/client/domains', [$apiV1Controller, 'clientDomains'])->add($apiAuth);
-$app->get('/api/v1/client/tickets', [$apiV1Controller, 'clientTickets'])->add($apiAuth);
-$app->get('/api/v1/client/tickets/{id:[0-9]+}', [$apiV1Controller, 'clientTicket'])->add($apiAuth);
-$app->post('/api/v1/client/tickets', [$apiV1Controller, 'createTicket'])->add($apiAuth);
+    // Authenticated endpoints
+    $group->get('/auth/session', [$apiV1Controller, 'session'])->add($apiAuth);
+    $group->post('/auth/logout', [$apiV1Controller, 'logout'])->add($apiAuth);
+    $group->get('/client/summary', [$apiV1Controller, 'clientSummary'])->add($apiAuth);
+    $group->get('/client/invoices', [$apiV1Controller, 'clientInvoices'])->add($apiAuth);
+    $group->get('/client/invoices/{id:[0-9]+}', [$apiV1Controller, 'clientInvoice'])->add($apiAuth);
+    $group->get('/client/domains', [$apiV1Controller, 'clientDomains'])->add($apiAuth);
+    $group->get('/client/tickets', [$apiV1Controller, 'clientTickets'])->add($apiAuth);
+    $group->get('/client/tickets/{id:[0-9]+}', [$apiV1Controller, 'clientTicket'])->add($apiAuth);
+    $group->post('/client/tickets', [$apiV1Controller, 'createTicket'])->add($apiAuth);
+})->add($apiCors);
+
+// CORS preflight for every /api/v1 path
+$app->options('/api/v1/{path:.*}', fn (Request $request, Response $response): Response => $response)
+    ->add($apiCors);
 
 // ─── Authentication Routes ────────────────────────────────────────────────────
 

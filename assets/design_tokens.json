@@ -15,6 +15,20 @@
     "color-border": "#e0e0e0",
     "color-link": "#0056b3"
   },
+  "semantic": {
+    "color-success-bg": "#d4edda",
+    "color-success-fg": "#155724",
+    "color-warning-bg": "#fff3cd",
+    "color-warning-fg": "#856404",
+    "color-danger-bg": "#f8d7da",
+    "color-danger-fg": "#721c24",
+    "color-neutral-bg": "#e9ecef",
+    "color-neutral-fg": "#383d41",
+    "color-error": "#dc3545",
+    "color-info-bg": "#d1ecf1",
+    "color-info-fg": "#0c5460",
+    "color-shadow": "#0000001a"
+  },
   "typography": {
     "font-base": "Inter, system-ui, -apple-system, sans-serif",
     "font-heading": "Poppins, Inter, system-ui, -apple-system, sans-serif",

@@ -4,6 +4,9 @@ PHP=php
 PHP_VERSION=$(shell php -r "echo PHP_VERSION;")
 COMPOSER=composer
 
+# Flutter SDK — override with `make FLUTTER=/path/to/flutter ...`
+FLUTTER ?= $(shell command -v flutter 2>/dev/null || echo /opt/flutter/bin/flutter)
+
 setup: install ## Initialize project dependencies
 	@echo "Setup complete"
 
@@ -43,12 +46,15 @@ tokens: ## Regenerate design tokens (CSS + Dart) from assets/design_tokens.json
 
 tokens-check: ## Verify generated design tokens match the source of truth
 	@python3 tools/sync_tokens.py --check
+	@python3 tools/check_no_hardcoded_colors.py
 
 flutter-build: ## Build the Flutter web application
-	@cd flutter/xkhm_app && flutter build web
+	@cd flutter/xkhm_app && $(FLUTTER) build web --release \
+		--base-href=/app/ \
+		--dart-define=API_BASE_URL=$${API_BASE_URL:-}
 
 flutter-test: ## Run Flutter unit and widget tests
-	@cd flutter/xkhm_app && flutter test
+	@cd flutter/xkhm_app && $(FLUTTER) test
 
 flutter-e2e: ## Run the Playwright E2E suite against the Flutter web build
 	@cd tests/Playwright && python3 -m pytest test_flutter_ -v

@@ -15,6 +15,10 @@ services:
       - DB_PASSWORD=qm9W8amh5XV9A4Dr
     volumes:
       - ./public/uploads:/var/www/html/public/uploads
+      # The Flutter web build is served from the same origin as the API so
+      # the browser manages the session cookie natively (no CORS).
+      # Build it first with `make flutter-build`.
+      - ./flutter/xkhm_app/build/web:/var/www/html/public/app:ro
     depends_on:
       mysql:
         condition: service_healthy
