@@ -12,7 +12,13 @@ import '../widgets/lk_widgets.dart';
 /// The answer is always the same — whether or not the account exists — so
 /// the screen never reveals which addresses are registered.
 class PasswordResetScreen extends StatefulWidget {
-  const PasswordResetScreen({super.key});
+  const PasswordResetScreen({super.key, this.token});
+
+  /// The token, when the screen was opened by a link from the e-mail.
+  ///
+  /// With a token there is nothing to ask: the first step is already
+  /// done, and the screen opens directly on the new password.
+  final String? token;
 
   @override
   State<PasswordResetScreen> createState() => _PasswordResetScreenState();
@@ -26,9 +32,25 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
 
   bool _busy = false;
   bool _codeRequested = false;
+  bool _fromLink = false;
   String? _message;
   String? _error;
   bool _done = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // A link from the e-mail: the token is already known, so the
+    // screen opens on the step that matters — the new password.
+    final token = widget.token;
+
+    if (token != null && token.isNotEmpty) {
+      _tokenController.text = token;
+      _codeRequested = true;
+      _fromLink = true;
+    }
+  }
 
   @override
   void dispose() {
@@ -260,8 +282,11 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Se a conta existir, enviámos as instruções. '
-                      'O pedido é válido durante uma hora.',
+                      _fromLink
+                          ? 'O pedido é válido durante uma hora e só pode '
+                              'ser usado uma vez.'
+                          : 'Se a conta existir, enviámos as instruções. '
+                              'O pedido é válido durante uma hora.',
                       textAlign: TextAlign.center,
                       style: LkTheme.muted(context),
                     ),

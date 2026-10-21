@@ -94,6 +94,49 @@ def pytest_runtest_makereport(item: Any, call: Any):
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _the_host_mailer_does_not_run():
+    """
+    The host's mailer runs from the `crontab`, every minute.
+
+    The suite drives the very same queue — the application writes the
+    recovery tokens there — so the two would fight over it: the `cron`
+    could deliver a token between the application writing it and the
+    test reading it, and the test would fail for a reason that has
+    nothing to do with the code.
+
+    The `crontab` entry is therefore removed for the duration of the
+    session, and restored afterwards.
+    """
+    import subprocess
+
+    original = subprocess.run(
+        ["crontab", "-l"], capture_output=True, text=True
+    ).stdout
+
+    kept = [
+        line
+        for line in original.splitlines()
+        if "mail_pending_tokens" not in line
+    ]
+
+    subprocess.run(
+        ["crontab", "-"],
+        input="\n".join(kept) + ("\n" if kept else ""),
+        text=True,
+        capture_output=True,
+    )
+
+    yield
+
+    subprocess.run(
+        ["crontab", "-"],
+        input=original,
+        text=True,
+        capture_output=True,
+    )
+
+
 @pytest.fixture(scope="session")
 def base_url() -> str:
     return BASE_URL

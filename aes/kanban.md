@@ -55,6 +55,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T030 | Repor a senha do administrador `linuxkafe` na base de produção | medium | pending |
 | T031 | Sistema de recuperação de credenciais (cliente + admin) | high | done |
 | T032 | Rodar a senha do MySQL + entrega de correio pelo Postfix local | high | done |
+| T033 | O e-mail da recuperação leva um link (e a página que faltava) | high | done |
 
 > **Note on numbering.** T020 was originally reserved for "Performance & load
 > testing". The Flutter conversion was planned as **T022** and the Playwright
@@ -76,6 +77,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T028 | Esquema WHMCS 5.3.9 real + formatos de senha | done | 89 PHPUnit + 141 Playwright contra a base **real** |
 | T031 | Recuperação de credenciais | done | 103 PHPUnit + 152 Playwright; fluxo completo de cliente e admin, **sem alterar o esquema** |
 | T032 | Rotação do MySQL + correio | done | senhas fora do repositório, healthcheck que autentica, tokens entregues por correio |
+| T033 | Link de recuperação | done | o e-mail leva um link; o token viaja no fragmento e **não** chega ao servidor |
 
 ### Open decisions
 
@@ -117,7 +119,7 @@ operator's call.
 ```
 make test            # 112 PHPUnit tests — contra a base real
 make lint            # PHPStan level 5, 0 errors
-make e2e             # 157 Playwright tests (API + Flutter) — dados reais
+make e2e             # 169 Playwright tests (API + Flutter) — dados reais
 make flutter-test    # 45 Flutter unit + widget tests
 make flutter-e2e     # 15 Playwright tests (Flutter web build)
 make tokens-check    # tokens in sync, no hard-coded colours (Dart and CSS)
@@ -129,4 +131,5 @@ make db-reset-admin    # repõe a senha do administrador
 make db-env            # cria o .env local com senhas fortes (não versionado)
 make db-rotate         # roda a senha da base, verificando o resultado
 make db-mail-send      # entrega os tokens de recuperação por correio
+make db-mail-send --dry  # mostra o que seria entregue (sem enviar)
 ```

@@ -156,6 +156,28 @@ por e-mail (ou é entregue pelo administrador — ver `docs/DATABASE.md`).
 
 O botão «Esqueci a senha?» do ecrã de login abre este ecrã.
 
+### O link do e-mail
+
+O e-mail da recuperação leva um link:
+
+```
+https://xk.linuxkafe.com/app/#reset=<token>
+```
+
+O token viaja no **fragmento** (`#`), que o navegador **nunca envia ao
+servidor** — não vai para o log de acessos, nem para um `Referer`. A
+aplicação lê-o no arranque (`lib/services/deep_link.dart`), **tira-o
+do endereço de barras** com `history.replaceState` — para que também
+não fique no histórico — e abre o ecrã já no passo «Definir nova
+senha», com o campo do código preenchido.
+
+A *query string* (`?reset=…`) é aceite como alternativa, para os
+navegadores e as ligações que não trazem fragmento.
+
+Na aplicação móvel não há endereço de barras: um link chega pela
+plataforma, que é um mecanismo diferente. O `stub` devolve nada e
+espera que a plataforma entregue o link.
+
 ---
 
 ## Estrutura do projecto

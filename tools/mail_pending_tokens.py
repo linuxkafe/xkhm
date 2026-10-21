@@ -150,29 +150,122 @@ def parse_pending(path: pathlib.Path) -> dict[str, str]:
     return fields
 
 
-def build_message(fields: dict[str, str]) -> EmailMessage:
+def reset_link(public_url: str, purpose: str, token: str) -> str:
+    """
+    The link that takes the person to the form.
+
+    The token always travels in the **fragment** (`#reset=…`), never in
+    the query string. The browser does not send the fragment to the
+    server, so the token does not end up in the access log, nor in a
+    `Referer` header. Both the application and the administrator's page
+    read it from there and take it out of the address bar.
+
+    What travels in the query string is only what is not a secret:
+    `action=reset` says which page to render.
+    """
+    base = public_url.rstrip("/")
+
+    if purpose == "admin":
+        return f"{base}/admin/login.php?action=reset#reset={token}"
+
+    return f"{base}/app/#reset={token}"
+
+
+def build_message(fields: dict[str, str], public_url: str) -> EmailMessage:
     """
     Build the message that carries the token.
+
+    The **link** is the primary action — the person clicks and lands on
+    the form. The **code** comes as the alternative, for the person who
+    reads the e-mail on another device and cannot click it. The code
+    never disappears: the two paths are complementary.
     """
     purpose = fields.get("purpose", "cliente")
     account = fields.get("account", "")
     token = fields.get("token", "")
 
-    message = EmailMessage()
-    message["Subject"] = (
-        "LINUXKAFE — redefinicao da senha de administrador"
-        if purpose == "admin"
-        else "LINUXKAFE — redefinicao da senha"
+    link = reset_link(public_url, purpose, token)
+
+    is_admin = purpose == "admin"
+    subject = (
+        "LINUXKAFE — redefinir a senha de administrador"
+        if is_admin
+        else "LINUXKAFE — redefinir a senha"
     )
-    message.set_content(
-        "Ola,\n\n"
-        "Foi pedido um pedido de redefinicao de senha"
-        + (f' para a conta "{account}"' if account else "")
-        + ".\n\n"
+
+    greeting = "Ola,"
+
+    if is_admin:
+        intro = (
+            "Foi pedido um pedido de redefinicao da senha de administrador"
+            + (f' para a conta "{account}"' if account else "")
+            + "."
+        )
+    else:
+        intro = (
+            "Foi pedido um pedido de redefinicao de senha"
+            + (f' para a conta "{account}"' if account else "")
+            + "."
+        )
+
+    text = (
+        f"{greeting}\n\n"
+        f"{intro}\n\n"
+        "Para definir a nova senha, abra este endereco:\n\n"
+        f"    {link}\n\n"
+        "O pedido e valido durante uma hora e so pode ser usado uma vez.\n\n"
+        "Se o endereco nao funcionar, use este codigo na pagina de "
+        "redefinicao:\n\n"
         f"Codigo: {token}\n\n"
-        "O pedido e valido durante uma hora e so pode ser usado uma vez.\n"
-        "Se nao foi voce, ignore esta mensagem.\n"
+        "Se nao foi voce, ignore esta mensagem: nada acontece.\n"
     )
+
+    html = f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{subject}</title>
+</head>
+<body style="margin:0;padding:24px;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#18181b;">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;border:1px solid #e4e4e7;">
+    <h1 style="margin:0 0 16px;font-size:20px;line-height:1.3;">Redefinir a senha</h1>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">{intro}</p>
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;">
+      Clique no botao para definir a nova senha. O pedido e valido durante
+      uma hora e so pode ser usado uma vez.
+    </p>
+    <p style="margin:0 0 24px;">
+      <a href="{link}"
+         style="display:inline-block;background:#18181b;color:#ffffff;text-decoration:none;padding:13px 22px;border-radius:8px;font-size:15px;font-weight:600;">
+        Definir a nova senha
+      </a>
+    </p>
+    <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#71717a;">
+      Se o botao nao funcionar, copie este endereco para o navegador:
+    </p>
+    <p style="margin:0 0 24px;font-size:13px;line-height:1.6;word-break:break-all;">
+      <a href="{link}" style="color:#2563eb;">{link}</a>
+    </p>
+    <hr style="border:none;border-top:1px solid #e4e4e7;margin:24px 0;">
+    <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#71717a;">
+      Prefere copiar e colar? Use este codigo na pagina de redefinicao:
+    </p>
+    <p style="margin:0 0 24px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;word-break:break-all;">
+      {token}
+    </p>
+    <p style="margin:0;font-size:13px;line-height:1.6;color:#71717a;">
+      Se nao foi voce, ignore esta mensagem: nada acontece.
+    </p>
+  </div>
+</body>
+</html>
+"""
+
+    message = EmailMessage()
+    message["Subject"] = subject
+    message.set_content(text)
+    message.add_alternative(html, subtype="html")
 
     return message
 
@@ -212,6 +305,11 @@ def main() -> int:
         "false",
     )
 
+    # The public address of the site. The links in the e-mail have to
+    # point at the address the customer actually uses, not at the
+    # container.
+    public_url = os.getenv("XKHM_PUBLIC_URL", "http://localhost:8083")
+
     if not PENDING_DIR.is_dir():
         return 0
 
@@ -249,7 +347,7 @@ def main() -> int:
             print(f"  [dry]  {recipient} <- {token[:16]}…")
             continue
 
-        message = build_message(fields)
+        message = build_message(fields, public_url)
         message["From"] = sender
         message["To"] = recipient
 

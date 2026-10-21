@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
+import 'screens/password_reset_screen.dart';
 import 'services/api_client.dart';
+import 'services/deep_link.dart';
 import 'services/session.dart';
 import 'theme/lk_theme.dart';
 
@@ -65,8 +67,42 @@ class _XkhmAppState extends State<XkhmApp> {
   }
 }
 
-class _Root extends StatelessWidget {
+class _Root extends StatefulWidget {
   const _Root();
+
+  @override
+  State<_Root> createState() => _RootState();
+}
+
+class _RootState extends State<_Root> {
+  @override
+  void initState() {
+    super.initState();
+
+    // A link from the recovery e-mail carries the token in the URL.
+    // The token is read **once**, and taken out of the address bar in
+    // the same breath.
+    //
+    // The screen is pushed on top of whatever is underneath, so the
+    // link works whether the person is logged in or not.
+    final token = LkDeepLink.takeResetToken();
+
+    if (token == null) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => PasswordResetScreen(token: token),
+        ),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

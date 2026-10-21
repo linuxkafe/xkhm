@@ -353,6 +353,28 @@ A válvula de escape, para quem quiser testar contra um endereço local:
 XKHM_MAILER_ALLOW_RESERVED=1 make db-mail-send
 ```
 
+#### O link
+
+O e-mail leva um **link** — a acção principal — e o **código**, como
+alternativa para quem lê o correio noutro dispositivo.
+
+| Quem | O link |
+|------|--------|
+| cliente | `{XKHM_PUBLIC_URL}/app/#reset={token}` |
+| admin | `{XKHM_PUBLIC_URL}/admin/login.php?action=reset#reset={token}` |
+
+O token viaja no **fragmento** (`#`), que o navegador **nunca envia ao
+servidor**: não vai para o log de acessos, nem para um `Referer`. A
+aplicação lê-o e **tira-o do endereço de barras** (`replaceState`), para
+que também não fique no histórico.
+
+O painel de administração não depende de JavaScript: o campo do
+código é visível e editável, e o script só o preenche. Sem JS, o
+código do e-mail é colado à mão.
+
+`XKHM_PUBLIC_URL` é o endereço público do sítio — tem de ser o que os
+clientes usam, não o do contentor.
+
 #### O remetente
 
 O relay de saída (Brevo) só aceita o remetente que está registado. O

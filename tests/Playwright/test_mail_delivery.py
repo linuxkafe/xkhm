@@ -13,6 +13,7 @@ exercised by `make db-mail-send`.
 
 from __future__ import annotations
 
+import email
 import importlib.util
 import os
 import pathlib
@@ -42,49 +43,21 @@ def _require_stack(stack_ready: bool):
 
 
 @pytest.fixture(autouse=True)
-def _the_host_mailer_must_not_run():
+def _the_queue_starts_empty():
     """
-    The host's mailer runs from the `crontab`, every minute.
+    The queue starts empty: a leftover from another run would make the
+    counts wrong.
 
-    This test drives the very same queue, so the two would fight over
-    it: the `cron` could deliver the token to the real Postfix between
-    the application writing it and this test reading it.
-
-    The `crontab` entry is therefore removed for the duration of the
-    test, and restored afterwards — including when the test fails.
+    The `crontab` is paused for the whole session by the `conftest`,
+    so the automatic mailer cannot take a token in the middle of a
+    test.
     """
-    original = subprocess.run(
-        ["crontab", "-l"], capture_output=True, text=True
-    ).stdout
-
-    kept = [
-        line
-        for line in original.splitlines()
-        if "mail_pending_tokens" not in line
-    ]
-
-    subprocess.run(
-        ["crontab", "-"],
-        input="\n".join(kept) + ("\n" if kept else ""),
-        text=True,
-        capture_output=True,
-    )
-
-    # The queue starts empty: a leftover from another run would make
-    # the counts wrong.
     for path in pending_files():
         path.unlink()
     for path in sorted(FAILED_DIR.glob("*.txt")) if FAILED_DIR.is_dir() else []:
         path.unlink()
 
     yield
-
-    subprocess.run(
-        ["crontab", "-"],
-        input=original,
-        text=True,
-        capture_output=True,
-    )
 
     for path in pending_files():
         path.unlink()
@@ -194,6 +167,34 @@ def run_mailer(port: int) -> subprocess.CompletedProcess:
     )
 
 
+def decoded_parts(raw: str) -> tuple[str, str]:
+    """
+    The plain-text and the HTML parts of a delivered message.
+
+    The message is `multipart/alternative` and `quoted-printable`
+    encoded, so the raw text cannot be compared directly: `?` arrives
+    as `=3D` and the long lines are wrapped.
+    """
+    message = email.message_from_string(raw)
+
+    plain = ""
+    html = ""
+
+    for part in message.walk():
+        if part.get_content_maintype() == "multipart":
+            continue
+
+        payload = part.get_payload(decode=True) or b""
+        text = payload.decode(part.get_content_charset() or "utf-8", "replace")
+
+        if part.get_content_type() == "text/plain":
+            plain = text
+        elif part.get_content_type() == "text/html":
+            html = text
+
+    return plain, html
+
+
 def pending_files() -> list[pathlib.Path]:
     return sorted(PENDING_DIR.glob("*.txt")) if PENDING_DIR.is_dir() else []
 
@@ -238,12 +239,17 @@ def test_the_mailer_delivers_and_clears_the_queue(page, fake_smtp):
     assert result.returncode == 0, result.stderr
     assert len(fake_smtp.messages) == 1, "the message must have been sent"
 
-    message = fake_smtp.messages[0]
+    raw = fake_smtp.messages[0]
+    plain, html = decoded_parts(raw)
 
-    assert "Subject:" in message
-    assert "To: " in message
-    assert "Codigo:" in message
-    assert RESET_ADMIN_USER in message
+    assert "Subject:" in raw
+    assert "To: " in raw
+
+    # The link is the primary action; the code is the alternative.
+    assert "/admin/login.php?action=reset#reset=" in plain
+    assert "/admin/login.php?action=reset#reset=" in html
+    assert "Codigo:" in plain
+    assert RESET_ADMIN_USER in plain
 
     # The token is no longer pending.
     assert len(pending_files()) == 0
