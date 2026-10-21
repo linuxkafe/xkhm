@@ -5,12 +5,23 @@ pôr a aplicação a trabalhar contra os dados reais**.
 
 ---
 
-## O estado, em uma linha
+## O estado (actualizado)
 
-> A base de dados local `linuxkonect` é um **fixture de desenvolvimento**
-> (16 tabelas, dados de exemplo). A base de dados de **produção**
-> (`10.0.3.1/linuxkonect`) **nunca foi importada** — porque é inalcançável
-> a partir da máquina onde o xkhm corre.
+> A base de dados local `linuxkonect` **é a base de produção**, importada
+> do dump `whmcs-original/backupdb.sql` (372 MB, **94 tabelas**, com os
+> dados reais: 7 clientes, 88 faturas, 15 pedidos, 4 domínios).
+>
+> O `docker/init.sql` continua a existir, mas apenas como **fixture de
+> desenvolvimento** — o caminho para quando não há dump.
+
+### O dump foi importado — e mudou tudo
+
+A importação revelou que o fixture de desenvolvimento estava construído contra
+um esquema que **não existe em produção**. As divergências estão todas em
+`src/Repository/SchemaMap.php` (ver `aes/tickets/T028.md`).
+
+E explicou o login: a base real usa **dois** formatos de senha que o
+`AuthService` não suportava — bcrypt (admin) e `<md5>:<salt>` (clientes).
 
 ---
 
@@ -18,7 +29,7 @@ pôr a aplicação a trabalhar contra os dados reais**.
 
 Não é a senha. São três coisas, por ordem:
 
-### 1. A base de dados de produção não é alcançável
+### 1. A base de dados de produção não é alcançável (a partir desta máquina)
 
 ```
 $ ip route get 10.0.3.1
@@ -88,6 +99,10 @@ make db-check
 ---
 
 ## Como pôr os dados reais
+
+> **Já feito.** O dump foi importado e a aplicação corre contra os dados
+> reais. O resto desta secção documenta o procedimento, para repetir a
+> importação ou para importar de outro servidor.
 
 ### Opção A — o dump (funciona sempre)
 
@@ -186,7 +201,38 @@ são **preservadas** na importação mas ainda não são usadas pela aplicação
 | `make db-export` | Exporta a base de produção (noutra máquina) |
 | `make db-import FILE=…` | Importa um dump e verifica o resultado |
 | `make db-backup` | Cópia de segurança da base local |
+| `make db-test-accounts` | Cria as contas e os dados de desenvolvimento |
 | `make db-seed` | Volta ao fixture de desenvolvimento |
+
+## As contas
+
+As contas de **produção** nunca são tocadas pela suite de testes:
+
+| Conta | Password | Onde |
+|-------|----------|------|
+| `linuxkafe` (admin) | a de produção | `tbladmins` |
+| os 7 clientes reais | as de produção | `tblclients` |
+
+A suite de testes usa contas de desenvolvimento criadas por
+`make db-test-accounts`:
+
+| Conta | Password |
+|-------|----------|
+| `xkhm-test@example.com` | `xkhm-test-2026` |
+| `xkhm-test2@example.com` | `xkhm-test-2026` |
+| `xkhm-test` (admin) | `xkhm-test-2026` |
+
+## Formatos de senha
+
+A base de produção usa **dois** formatos. O verificador suporta ambos (e
+mais alguns, para implantações mais antigas):
+
+| Formato | Quem o usa |
+|---------|-----------|
+| bcrypt `$2y$…` | o admin `linuxkafe` |
+| `<md5>:<sal>` | os 7 clientes |
+
+As senhas **novas** são sempre bcrypt. Ver `src/Service/PasswordHasher.php`.
 
 ---
 

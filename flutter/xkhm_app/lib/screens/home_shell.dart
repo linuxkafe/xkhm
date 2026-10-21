@@ -124,7 +124,6 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final destination = _destinations[_index];
-    final theme = Theme.of(context);
     final width = MediaQuery.sizeOf(context).width;
     final wide = width >= LkBreakpoints.breakpointLg;
 
@@ -176,7 +175,7 @@ class _HomeShellState extends State<HomeShell> {
                 child: Text(
                   'LINUXKAFÉ',
                   style: TextStyle(
-                    color: theme.colorScheme.onSurface,
+                    color: LkColors.light.text,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                   ),

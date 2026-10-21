@@ -41,13 +41,15 @@ ALLOWED_CSS = {"tokens.css"}
 #: they are excluded; `Colors.transparent` is not a brand colour.
 DART_PATTERN = re.compile(
     r"0x[0-9A-Fa-f]{6,8}\b"
-    r"|#[0-9A-Fa-f]{3,8}\b"
+    # A colour literal is `#` followed by hex digits — but not an HTML
+    # entity such as `&#039;`, hence the negative look-behind for `&`.
+    r"|(?<!&)#[0-9A-Fa-f]{3,8}\b"
     r"|(?<!Lk)(?<!LkSemantic)Colors\.(?!transparent\b)[a-zA-Z]+"
     r"|Color\.fromARGB\("
 )
 
 CSS_PATTERN = re.compile(
-    r"#[0-9A-Fa-f]{3,8}\b"
+    r"(?<!&)#[0-9A-Fa-f]{3,8}\b"
     r"|\brgba?\([^)]*\)"
 )
 

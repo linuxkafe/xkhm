@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/api_client.dart';
+import '../widgets/lk_html.dart';
 import '../widgets/lk_widgets.dart';
 
 /// The landing screen: the client's identity, the billing summary, the
@@ -130,7 +131,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           ?.copyWith(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 4),
-                    Text('${item['message'] ?? ''}'),
+                    // The WHMCS announcement body is HTML.
+                    LkHtml('${item['message'] ?? ''}'),
                   ],
                 ),
               ),
@@ -153,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ?.copyWith(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 4),
-                    Text('${item['description'] ?? ''}'),
+                    LkHtml('${item['description'] ?? ''}'),
                   ],
                 ),
               ),

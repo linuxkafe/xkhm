@@ -50,7 +50,8 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T025 | Migração completa para Flutter (retirar o front-end PHP) | high | done |
 | T026 | Importação dos dados de produção + diagnóstico | standard | done |
 | T027 | Exposição do MySQL: incidente e correcção | standard | done |
-| T028 | Rever a exposição dos restantes contentores (ollama, searxng) | medium | pending |
+| T028 | Alinhar com o esquema WHMCS 5.3.9 real + formatos de senha | high | done |
+| T029 | Rever a exposição dos restantes contentores (ollama, searxng) | medium | pending |
 
 > **Note on numbering.** T020 was originally reserved for "Performance & load
 > testing". The Flutter conversion was planned as **T022** and the Playwright
@@ -67,8 +68,9 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T022 | Flutter client application | done | 15 Flutter E2E + 40 widget tests green; design tokens single-sourced |
 | T023 | Dark mode + compatibilidade mobile | done | 70 new assertions; 15 review defects fixed |
 | T025 | Migração completa para Flutter | done | 7 ecrãs novos; as 13 rotas HTML respondem 302 para a app |
-| T026 | Importação dos dados de produção | done | `make db-check` / `db-export` / `db-import` testados |
+| T026 | Importação dos dados de produção | done | dump de 372 MB importado; `make db-check`/`db-import` testados |
 | T027 | Exposição do MySQL | done | porta no loopback, credenciais locais próprias |
+| T028 | Esquema WHMCS 5.3.9 real + formatos de senha | done | 89 PHPUnit + 141 Playwright contra a base **real** |
 
 ### Open decisions
 
@@ -76,7 +78,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
   dark mode, so the system preference is the only wired behaviour. The
   palette structure already supports "system / light / dark"; what is
   missing is the storage and the precedence rules.
-- **T028** — `ollama` (11434) and `searxng` (8081) are also published on
+- **T029** — `ollama` (11434) and `searxng` (8081) are also published on
   `0.0.0.0`. They are not part of xkhm, but they share the same host and
   the same exposure that caused T027. They should be reviewed.
 
@@ -90,11 +92,12 @@ rotated, and the local database must never use it again.
 ### Test gates (all green)
 
 ```
-make test          # 61 PHPUnit tests
-make lint          # PHPStan level 5, 0 errors
-make e2e           # 141 Playwright tests (API + Flutter)
-make flutter-test  # 40 Flutter unit + widget tests
-make flutter-e2e   # 15 Playwright tests (Flutter web build)
-make tokens-check  # tokens in sync, no hard-coded colours (Dart and CSS)
-make db-check      # diagnosis of the production database
+make test            # 89 PHPUnit tests — contra a base real
+make lint            # PHPStan level 5, 0 errors
+make e2e             # 141 Playwright tests (API + Flutter) — dados reais
+make flutter-test    # 40 Flutter unit + widget tests
+make flutter-e2e     # 15 Playwright tests (Flutter web build)
+make tokens-check    # tokens in sync, no hard-coded colours (Dart and CSS)
+make db-check        # diagnosis of the production database
+make db-test-accounts  # contas de desenvolvimento
 ```

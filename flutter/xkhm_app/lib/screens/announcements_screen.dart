@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/models.dart';
 import '../services/api_client.dart';
+import '../widgets/lk_html.dart';
 import '../widgets/lk_widgets.dart';
 
 /// The news / announcements list.
@@ -89,7 +90,8 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              Text(announcement.message),
+              // The WHMCS announcement body is HTML.
+              LkHtml(announcement.message),
             ],
           ),
         );

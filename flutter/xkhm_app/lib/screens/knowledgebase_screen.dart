@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/models.dart';
 import '../services/api_client.dart';
+import '../widgets/lk_html.dart';
 import '../widgets/lk_widgets.dart';
 
 /// The knowledge base: categories, search and article list.
@@ -106,7 +107,7 @@ class _KnowledgebaseScreenState extends State<KnowledgebaseScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text(article.content),
+                LkHtml(article.content),
               ],
             ),
           ),
