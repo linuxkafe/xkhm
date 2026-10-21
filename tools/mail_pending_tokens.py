@@ -27,9 +27,11 @@ The crontab runs it every minute:
 from __future__ import annotations
 
 import argparse
+import json
 import pathlib
 import smtplib
 import sys
+import time
 from email.message import EmailMessage
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
@@ -44,6 +46,7 @@ TOKEN_DIR = pathlib.Path(
 )
 PENDING_DIR = TOKEN_DIR / "pending"
 FAILED_DIR = TOKEN_DIR / "failed"
+ADMIN_DIR = TOKEN_DIR / "admin"
 
 #: The domains reserved for testing and documentation (RFC 2606, RFC 6761).
 #:
@@ -125,6 +128,40 @@ def is_reserved(address: str) -> bool:
         return domain in RESERVED_TLDS
 
     return any(domain.endswith(suffix) for suffix in RESERVED_SUFFIXES)
+
+
+def purge_expired_admin_tokens() -> int:
+    """
+    Remove the administrator's tokens that have expired.
+
+    The tokens of the administrator live in files, because `tbladmins`
+    has no column for them. A file that nobody removes is a file that
+    accumulates — and a token that expired an hour ago is still a
+    credential sitting on the disk.
+
+    This runs from the same place as the delivery: every minute.
+    """
+    if not ADMIN_DIR.is_dir():
+        return 0
+
+    now = int(time.time())
+    removed = 0
+
+    for path in ADMIN_DIR.glob("*.json"):
+        try:
+            record = json.loads(path.read_text(encoding="utf-8"))
+            expires = int(record.get("expires", 0))
+        except (OSError, ValueError):
+            # A file that cannot be read is not a token we can trust:
+            # it goes too.
+            record = None
+            expires = 0
+
+        if record is None or expires < now:
+            path.unlink(missing_ok=True)
+            removed += 1
+
+    return removed
 
 
 def parse_pending(path: pathlib.Path) -> dict[str, str]:
@@ -309,6 +346,10 @@ def main() -> int:
     # point at the address the customer actually uses, not at the
     # container.
     public_url = os.getenv("XKHM_PUBLIC_URL", "http://localhost:8083")
+
+    # The tokens that expired are cleaned up, whether or not there is
+    # anything to deliver.
+    purge_expired_admin_tokens()
 
     if not PENDING_DIR.is_dir():
         return 0

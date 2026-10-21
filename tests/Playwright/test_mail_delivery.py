@@ -332,6 +332,36 @@ def test_a_used_token_leaves_the_queue(page):
     )
 
 
+def test_the_expired_admin_tokens_are_purged():
+    """
+    A token that expired is a credential on the disk.
+
+    The administrator's tokens live in files (there is no column for
+    them in `tbladmins`), and a file that nobody removes accumulates.
+    """
+    admin_dir = ROOT / "storage" / "reset-tokens" / "admin"
+    admin_dir.mkdir(parents=True, exist_ok=True)
+
+    expired = admin_dir / "token-expirado-de-teste.json"
+    expired.write_text(
+        '{"username":"xkhm-test","expires":1}', encoding="utf-8"
+    )
+
+    valid = admin_dir / "token-valido-de-teste.json"
+    valid.write_text(
+        '{"username":"xkhm-test","expires":%d}' % (int(time.time()) + 3600),
+        encoding="utf-8",
+    )
+
+    result = run_mailer(2525)
+
+    assert result.returncode == 0, result.stderr
+    assert not expired.exists(), "the expired token must be gone"
+    assert valid.exists(), "the valid token must stay"
+
+    valid.unlink(missing_ok=True)
+
+
 def test_a_real_address_is_not_reserved():
     """The rule must not catch a real customer's address."""
     spec = importlib.util.spec_from_file_location("mailer", MAILER)
