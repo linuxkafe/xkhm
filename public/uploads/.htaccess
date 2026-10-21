@@ -1,0 +1,12 @@
+# Never execute anything uploaded by a user as PHP.
+#
+# This lives in the uploads directory rather than in the parent .htaccess:
+# a `Require all denied` for *.php there would also deny the front
+# controller (public/index.php), because the rewrite sends every request
+# to it.
+
+<FilesMatch "\.(?i:php|phtml|phar|pl|py|cgi|sh)$">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes

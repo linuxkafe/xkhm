@@ -39,8 +39,11 @@ class KnowledgebaseRepositoryPDO implements KnowledgebaseRepositoryInterface
 
     public function searchArticles(string $query, int $limit = 20): array
     {
+        // The parentheses matter: `AND` binds tighter than `OR`, so without
+        // them the query reads `title LIKE ? OR (description LIKE ? AND
+        // published = 1)` and unpublished articles leak into the results.
         $stmt = $this->pdo->prepare(
-            'SELECT * FROM tblknowledgebase WHERE title LIKE ? OR description LIKE ? AND published = 1 ORDER BY lastupdated DESC LIMIT ?'
+            'SELECT * FROM tblknowledgebase WHERE (title LIKE ? OR description LIKE ?) AND published = 1 ORDER BY lastupdated DESC LIMIT ?'
         );
         $likeQuery = '%' . $query . '%';
         $stmt->execute([$likeQuery, $likeQuery, $limit]);

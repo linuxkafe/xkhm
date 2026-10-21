@@ -20,19 +20,38 @@ class TicketService
      */
     public function createTicket(array $data): ?int
     {
+        // The column names follow the WHMCS `tbltickets` schema exactly:
+        // `deptid` (not `departmentid`) and `date` (not `datecreated`).
         $ticketData = [
             'userid' => $data['userid'],
             'name' => $data['name'],
             'email' => $data['email'],
             'subject' => $data['subject'],
             'message' => $data['message'],
-            'priority' => $data['priority'] ?? 'Medium',
+            'priority' => self::normalisePriority($data['priority'] ?? 'Medium'),
             'status' => 'Open',
-            'departmentid' => $data['departmentid'] ?? 1,
-            'datecreated' => date('Y-m-d'),
+            'deptid' => $data['deptid'] ?? $data['departmentid'] ?? 1,
+            'date' => date('Y-m-d H:i:s'),
         ];
 
         return $this->ticketRepository->create($ticketData);
+    }
+
+    /**
+     * `tbltickets.priority` is an ENUM. A value outside the set aborts the
+     * INSERT under STRICT_TRANS_TABLES, so it is normalised here.
+     */
+    public static function normalisePriority(string $priority): string
+    {
+        $allowed = ['Low', 'Medium', 'High', 'Urgent'];
+
+        foreach ($allowed as $candidate) {
+            if (strcasecmp($candidate, $priority) === 0) {
+                return $candidate;
+            }
+        }
+
+        return 'Medium';
     }
 
     /**
@@ -62,7 +81,7 @@ class TicketService
             'name' => $data['name'],
             'email' => $data['email'],
             'message' => $data['message'],
-            'datecreated' => date('Y-m-d'),
+            'date' => date('Y-m-d H:i:s'),
             'adminreply' => $data['adminreply'] ?? 0,
         ];
 

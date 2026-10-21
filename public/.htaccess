@@ -1,4 +1,35 @@
+# Front-controller rewrite.
+#
+# Existing files and directories are served directly (the CSS, the Flutter
+# build mounted at /app/, the uploads); everything else goes to Slim.
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]
+
+# ── Static assets ────────────────────────────────────────────────────────────
+# Fingerprinted assets may be cached aggressively; the HTML must not be.
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css                 "access plus 1 year"
+    ExpiresByType application/javascript   "access plus 1 year"
+    ExpiresByType application/json         "access plus 1 hour"
+    ExpiresByType image/png                "access plus 1 year"
+    ExpiresByType image/svg+xml            "access plus 1 year"
+    ExpiresByType font/ttf                 "access plus 1 year"
+    ExpiresByType font/woff2               "access plus 1 year"
+    ExpiresByType text/html                "access plus 0 seconds"
+</IfModule>
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css text/plain
+    AddOutputFilterByType DEFLATE application/javascript application/json
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# ── Security ─────────────────────────────────────────────────────────────────
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

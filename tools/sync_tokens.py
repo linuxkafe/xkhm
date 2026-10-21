@@ -108,12 +108,13 @@ def render_css(tokens: dict) -> str:
 def dart_color(value: str) -> str:
     """#f8b400 -> 0xFFF8B400 (Flutter wants the 0xAARRGGBB form).
 
-    An 8-digit value is already in the 0xAARRGGBB form and is passed through
-    (e.g. the translucent shadow colour).
+    An 8-digit CSS value is `#RRGGBBAA` (alpha last), while Dart's
+    `Color(0xAARRGGBB)` puts the alpha first. The two orders are swapped
+    here — getting it wrong makes a translucent colour fully transparent.
     """
     value = value.lstrip("#")
     if len(value) == 8:
-        return "0x" + value.upper()
+        return "0x" + value[6:8].upper() + value[0:6].upper()
     if len(value) != 6:
         raise ValueError(f"expected a 6- or 8-digit hex colour, got {value!r}")
     return "0xFF" + value.upper()

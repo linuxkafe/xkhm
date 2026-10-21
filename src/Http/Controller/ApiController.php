@@ -39,10 +39,23 @@ class ApiController
             return $this->errorResponse($response, 'clientid required');
         }
 
-        // Would need ClientRepository for full implementation
-        $data = ['id' => $clientId, 'status' => 'active'];
+        // The client id is taken from the *session*, never from the query
+        // string: an anonymous caller must not be able to read another
+        // client's record.
+        $session = $request->getAttribute('session');
+        if (!is_array($session) || !isset($session['client_id'])) {
+            return $this->errorResponse($response, 'Authentication required', 401);
+        }
 
-        return $this->jsonResponse($response, $data);
+        $client = $session['client'] ?? [];
+
+        return $this->jsonResponse($response, [
+            'id' => (int)$session['client_id'],
+            'firstname' => $client['firstname'] ?? '',
+            'lastname' => $client['lastname'] ?? '',
+            'email' => $client['email'] ?? '',
+            'status' => $client['status'] ?? 'active',
+        ]);
     }
 
     /**
@@ -57,9 +70,19 @@ class ApiController
             return $this->errorResponse($response, 'invid required');
         }
 
+        $session = $request->getAttribute('session');
+        if (!is_array($session) || !isset($session['client_id'])) {
+            return $this->errorResponse($response, 'Authentication required', 401);
+        }
+
         $invoice = $this->billingService->getInvoiceWithItems($invoiceId);
         if (!$invoice) {
-            return $this->errorResponse($response, 'Invoice not found');
+            return $this->errorResponse($response, 'Invoice not found', 404);
+        }
+
+        // Ownership check: a client may only read their own invoices.
+        if ((int)($invoice['userid'] ?? 0) !== (int)$session['client_id']) {
+            return $this->errorResponse($response, 'Unauthorized', 403);
         }
 
         return $this->jsonResponse($response, $invoice);
@@ -77,9 +100,19 @@ class ApiController
             return $this->errorResponse($response, 'tid required');
         }
 
+        $session = $request->getAttribute('session');
+        if (!is_array($session) || !isset($session['client_id'])) {
+            return $this->errorResponse($response, 'Authentication required', 401);
+        }
+
         $ticket = $this->ticketService->getTicketWithReplies($ticketId);
         if (!$ticket) {
-            return $this->errorResponse($response, 'Ticket not found');
+            return $this->errorResponse($response, 'Ticket not found', 404);
+        }
+
+        // Ownership check: a client may only read their own tickets.
+        if ((int)($ticket['userid'] ?? 0) !== (int)$session['client_id']) {
+            return $this->errorResponse($response, 'Unauthorized', 403);
         }
 
         return $this->jsonResponse($response, $ticket);
@@ -130,10 +163,10 @@ class ApiController
         return $response->withHeader('Content-Type', 'application/json');
     }
 
-    private function errorResponse(Response $response, string $message): Response
+    private function errorResponse(Response $response, string $message, int $status = 400): Response
     {
         $data = ['result' => 'error', 'message' => $message];
         $response->getBody()->write(json_encode($data));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        return $response->withHeader('Content-Type', 'application/json')->withStatus($status);
     }
 }

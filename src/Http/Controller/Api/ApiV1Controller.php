@@ -137,7 +137,7 @@ final class ApiV1Controller
                 'title' => $category['title'] ?? '',
                 'description' => $category['description'] ?? '',
                 'sortOrder' => (int)($category['sortorder'] ?? 0),
-                'articleCount' => (int)($counts[$id] ?? 0),
+                'articleCount' => (int)($counts[$id]['count'] ?? 0),
             ];
         }
 
@@ -475,7 +475,7 @@ final class ApiV1Controller
             'subject' => $subject,
             'message' => $message,
             'status' => 'Open',
-            'priority' => (string)($data['priority'] ?? 'Medium'),
+            'priority' => TicketService::normalisePriority((string)($data['priority'] ?? 'Medium')),
             'deptid' => (int)($data['deptid'] ?? 1),
         ]);
 

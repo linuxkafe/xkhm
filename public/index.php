@@ -45,11 +45,19 @@ $app = AppFactory::create();
 // Add routing middleware
 $app->addRoutingMiddleware();
 
-// Add error middleware (display errors based on config)
-$app->addErrorMiddleware(
-    true, // Always show errors for debugging
+// Add error middleware. The detail level follows the configuration, so a
+// production deployment never leaks stack traces to an anonymous caller.
+$errorMiddleware = $app->addErrorMiddleware(
+    $config->getDisplayErrors(),
     true,
     true
+);
+
+// API failures must answer with the JSON envelope, never an HTML stack trace.
+// Slim's error middleware catches the exception before any inner middleware
+// sees it, so the contract is implemented as its error handler.
+$errorMiddleware->setDefaultErrorHandler(
+    new \Xkhm\Http\Controller\Api\ApiErrorHandlerMiddleware($config->getDisplayErrors())
 );
 
 // Inject session into request
@@ -148,7 +156,6 @@ $apiV1Controller = new \Xkhm\Http\Controller\Api\ApiV1Controller(
 );
 
 $apiAuth = new \Xkhm\Http\Controller\Api\ApiAuthMiddleware();
-$apiCors = new \Xkhm\Http\Controller\Api\CorsMiddleware();
 
 // All /api/v1 routes live in one group so the CORS middleware covers them
 // uniformly (the native builds and a local dev server are a different
@@ -175,11 +182,7 @@ $app->group('/api/v1', function ($group) use ($apiV1Controller, $apiAuth) {
     $group->get('/client/tickets', [$apiV1Controller, 'clientTickets'])->add($apiAuth);
     $group->get('/client/tickets/{id:[0-9]+}', [$apiV1Controller, 'clientTicket'])->add($apiAuth);
     $group->post('/client/tickets', [$apiV1Controller, 'createTicket'])->add($apiAuth);
-})->add($apiCors);
-
-// CORS preflight for every /api/v1 path
-$app->options('/api/v1/{path:.*}', fn (Request $request, Response $response): Response => $response)
-    ->add($apiCors);
+});
 
 // ─── Authentication Routes ────────────────────────────────────────────────────
 
@@ -289,6 +292,11 @@ $app->get('/', function (Request $request, Response $response) {
     $response->getBody()->write(Layout::render('Início', $html));
     return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
 });
+
+// CORS must be the outermost middleware so it runs before the router.
+// It is registered here (after every route) to keep the execution order
+// explicit: Slim runs the middleware in reverse order of registration.
+$app->add(new \Xkhm\Http\Controller\Api\CorsMiddleware());
 
 // Run the app
 $app->run();

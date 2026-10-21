@@ -94,18 +94,24 @@ class LkApiClient {
   void _captureCookie(http.Response response) {
     if (kIsWeb) return;
 
-    // `set-cookie` may hold several headers separated by newlines.
+    // `package:http` joins repeated headers with ", " and the server may also
+    // send several `Set-Cookie` headers separated by newlines. The login
+    // response carries TWO PHPSESSID cookies: the one `session_start()`
+    // created and the one `session_regenerate_id(true()` produced — the
+    // first is dead, the second is the live session. Take the LAST one.
     final raw = response.headers['set-cookie'];
     if (raw == null || raw.isEmpty) return;
 
-    for (final header in raw.split('\n')) {
+    final values = <String>[];
+    for (final header in raw.split(RegExp(r'[,\n]'))) {
       final trimmed = header.trim();
       if (!trimmed.startsWith('PHPSESSID=')) continue;
 
-      final value = trimmed.split(';').first.split('=').skip(1).join('=');
-      _persistCookie(value);
-      return;
+      values.add(trimmed.split(';').first.split('=').skip(1).join('='));
     }
+
+    if (values.isEmpty) return;
+    _persistCookie(values.last);
   }
 
   Map<String, String> get _headers => {

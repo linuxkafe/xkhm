@@ -187,6 +187,35 @@ a:hover {
     padding: 0 10px;
 }
 
+.col-md-4 {
+    flex: 0 0 33.3333%;
+    padding: 0 10px;
+}
+
+.col-md-6 {
+    flex: 0 0 50%;
+    padding: 0 10px;
+}
+
+.col-md-8 {
+    flex: 0 0 66.6667%;
+    padding: 0 10px;
+}
+
+.col-md-9 {
+    flex: 0 0 75%;
+    padding: 0 10px;
+}
+
+.col-md-12 {
+    flex: 0 0 100%;
+    padding: 0 10px;
+}
+
+.col-md-offset-3 {
+    margin-left: 25%;
+}
+
 .panel {
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius);
@@ -301,10 +330,20 @@ main.container {
 }
 
 @media (max-width: 850px) {
-    .col-md-3 {
+    .col-md-3,
+    .col-md-4,
+    .col-md-6,
+    .col-md-8,
+    .col-md-9,
+    .col-md-12 {
         flex: 0 0 100%;
         margin-bottom: 15px;
     }
+
+    .col-md-offset-3 {
+        margin-left: 0;
+    }
+
     .linuxkafe-modern-theme {
         padding: 1.5rem;
     }

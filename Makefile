@@ -57,7 +57,7 @@ flutter-test: ## Run Flutter unit and widget tests
 	@cd flutter/xkhm_app && $(FLUTTER) test
 
 flutter-e2e: ## Run the Playwright E2E suite against the Flutter web build
-	@cd tests/Playwright && python3 -m pytest test_flutter_ -v
+	@cd tests/Playwright && python3 -m pytest test_flutter_app.py -v
 
 doctor: ## Check environment health
 	@echo "=== xkhm doctor ==="

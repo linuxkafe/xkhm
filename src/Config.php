@@ -6,6 +6,20 @@ namespace Xkhm;
 
 class Config
 {
+    /**
+     * Keys that must be present in `configuration.php`.
+     *
+     * Without this check a legacy configuration file (the old
+     * `$db_host = '...'` form) would silently produce an empty config and
+     * the service would fall back to `localhost/whmcs` with no password.
+     */
+    public const REQUIRED_KEYS = [
+        'db_host',
+        'db_name',
+        'db_username',
+        'db_password',
+    ];
+
     private array $config = [];
     private bool $loaded = false;
 
@@ -28,8 +42,33 @@ class Config
         $cfg = [];
         require $path;
 
-        $this->config = $cfg;
+        $this->config = self::validate($cfg, $path);
         $this->loaded = true;
+    }
+
+    /**
+     * @param array<mixed> $cfg
+     * @return array<string, mixed>
+     */
+    private static function validate(array $cfg, string $path): array
+    {
+        if ($cfg === []) {
+            throw new \RuntimeException(
+                "Configuration file $path does not define the \$cfg array. "
+                . 'Expected the WHMCS pattern $cfg[\'db_host\'] = \'...\';'
+            );
+        }
+
+        foreach (self::REQUIRED_KEYS as $key) {
+            if (!isset($cfg[$key])) {
+                throw new \RuntimeException(
+                    "Configuration file $path is missing the required key '$key'."
+                );
+            }
+        }
+
+        /** @var array<string, mixed> $cfg */
+        return $cfg;
     }
 
     public function get(string $key, mixed $default = null): mixed

@@ -8,16 +8,27 @@ use PDO;
 use PHPUnit\Framework\TestCase;
 use Xkhm\Config;
 use Xkhm\Database\Connection;
+use Xkhm\Repository\AffiliateRepositoryPDO;
+use Xkhm\Repository\AnnouncementRepositoryPDO;
+use Xkhm\Repository\ClientRepositoryPDO;
+use Xkhm\Repository\DomainRepositoryPDO;
+use Xkhm\Repository\InvoiceRepositoryPDO;
+use Xkhm\Repository\KnowledgebaseRepositoryPDO;
+use Xkhm\Repository\OrderRepositoryPDO;
+use Xkhm\Repository\TicketRepositoryPDO;
 
 /**
- * Verifies that every SQL statement used by the repositories is valid against
- * the real `linuxkonect` (WHMCS) schema.
+ * Verifies that the repositories work against the real `linuxkonect` (WHMCS)
+ * schema.
  *
- * This is the automated guard for the operator's hard requirement: the service
- * must stay fully compatible with the existing WHMCS database. Column-name
- * drift (e.g. `tbldomains.name` instead of `tbldomains.domain`) is silent in
- * unit tests and only explodes at runtime — exactly the class of defect the
- * Playwright suite hit.
+ * This is the automated guard for the operator's hard requirement: the
+ * service must stay fully compatible with the existing WHMCS database.
+ * Column-name drift (e.g. `tbldomains.name` instead of `tbldomains.domain`)
+ * is silent in unit tests and only explodes at runtime.
+ *
+ * Unlike a hand-written list of SQL literals, this test **calls the
+ * repositories themselves** — a copy of the SQL in the test file can drift
+ * away from the code it is supposed to guard, and then it protects nothing.
  */
 class SchemaParityTest extends TestCase
 {
@@ -34,170 +45,42 @@ class SchemaParityTest extends TestCase
     }
 
     /**
-     * Every SELECT used by the repositories, with the parameters it binds.
-     *
-     * @return array<string, array{0: string, 1: array}>
+     * @return array<string, array{0: string}>
      */
-    public static function selectProvider(): array
+    public static function requiredTableProvider(): array
     {
         return [
-            'admin by username' => [
-                'SELECT id, username, password, fullname, email FROM tbladmins WHERE username = ?',
-                ['admin'],
-            ],
-            'client by email' => [
-                'SELECT id, firstname, lastname, email, password, status, credit FROM tblclients WHERE email = ?',
-                ['test@example.com'],
-            ],
-            'client by id' => [
-                'SELECT id, firstname, lastname, email, password, status, credit FROM tblclients WHERE id = ?',
-                [1],
-            ],
-            'invoice by id' => [
-                'SELECT id, userid, datecreated, duedate, status, total FROM tblinvoices WHERE id = ?',
-                [1],
-            ],
-            'invoice items' => [
-                'SELECT id, invoiceid, description, amount FROM tblinvoiceitems WHERE invoiceid = ?',
-                [1],
-            ],
-            'invoices by user' => [
-                'SELECT id, userid, datecreated, duedate, status, total FROM tblinvoices WHERE userid = ? ORDER BY datecreated DESC',
-                [1],
-            ],
-            'order by id' => [
-                'SELECT id, userid, date, status, total FROM tblorders WHERE id = ?',
-                [1],
-            ],
-            'orders by user' => [
-                'SELECT id, userid, date, status, total FROM tblorders WHERE userid = ? ORDER BY date DESC',
-                [1],
-            ],
-            'domain by name' => [
-                'SELECT * FROM tbldomains WHERE domain = ?',
-                ['example.com'],
-            ],
-            'domains by user' => [
-                'SELECT * FROM tbldomains WHERE userid = ? ORDER BY registrationdate DESC',
-                [1],
-            ],
-            'domain pricing' => [
-                'SELECT * FROM tbldomainpricing WHERE extension IN (?)',
-                ['.com'],
-            ],
-            'ticket by id' => [
-                'SELECT id, userid, name, email, subject, status, priority FROM tbltickets WHERE id = ?',
-                [1],
-            ],
-            'tickets by user' => [
-                'SELECT id, userid, name, email, subject, status, priority FROM tbltickets WHERE userid = ? ORDER BY date DESC',
-                [1],
-            ],
-            'ticket replies' => [
-                'SELECT id, tid, userid, name, message, date FROM tblticketreplies WHERE tid = ? ORDER BY date',
-                [1],
-            ],
-            'ticket departments' => [
-                'SELECT * FROM tblticketdepartments ORDER BY sortorder',
-                [],
-            ],
-            'knowledgebase categories' => [
-                'SELECT * FROM tblknowledgebasecats ORDER BY sortorder',
-                [],
-            ],
-            'knowledgebase by category' => [
-                'SELECT * FROM tblknowledgebase WHERE catid = ? AND published = 1 ORDER BY title LIMIT ?',
-                [1, 10],
-            ],
-            'knowledgebase by id' => [
-                'SELECT * FROM tblknowledgebase WHERE id = ? AND published = 1',
-                [1],
-            ],
-            'knowledgebase search' => [
-                'SELECT * FROM tblknowledgebase WHERE (title LIKE ? OR description LIKE ?) AND published = 1 ORDER BY lastupdated DESC LIMIT ?',
-                ['%a%', '%a%', 10],
-            ],
-            'knowledgebase published' => [
-                'SELECT * FROM tblknowledgebase WHERE published = 1 ORDER BY lastupdated DESC',
-                [],
-            ],
-            'announcements published' => [
-                'SELECT * FROM tblannouncements WHERE published = 1 ORDER BY date DESC LIMIT ?',
-                [10],
-            ],
-            'announcement by id' => [
-                'SELECT * FROM tblannouncements WHERE id = ? AND published = 1',
-                [1],
-            ],
-            'affiliate by user' => [
-                'SELECT * FROM tblaffiliates WHERE userid = ?',
-                [1],
-            ],
-            'affiliate by id' => [
-                'SELECT * FROM tblaffiliates WHERE id = ?',
-                [1],
-            ],
-            'affiliate by refcode' => [
-                'SELECT * FROM tblaffiliates WHERE refcode = ?',
-                ['ABC123'],
-            ],
-            'affiliate clients' => [
-                'SELECT * FROM tblaffiliatesclients WHERE affiliateid = ? ORDER BY date DESC',
-                [1],
-            ],
-            'affiliate payouts' => [
-                'SELECT * FROM tblaffiliatespayouts WHERE affiliateid = ? ORDER BY date DESC',
-                [1],
-            ],
+            'admins' => ['tbladmins'],
+            'affiliates' => ['tblaffiliates'],
+            'affiliate clients' => ['tblaffiliatesclients'],
+            'affiliate payouts' => ['tblaffiliatespayouts'],
+            'announcements' => ['tblannouncements'],
+            'clients' => ['tblclients'],
+            'domain pricing' => ['tbldomainpricing'],
+            'domains' => ['tbldomains'],
+            'invoice items' => ['tblinvoiceitems'],
+            'invoices' => ['tblinvoices'],
+            'knowledgebase' => ['tblknowledgebase'],
+            'knowledgebase categories' => ['tblknowledgebasecats'],
+            'orders' => ['tblorders'],
+            'ticket departments' => ['tblticketdepartments'],
+            'ticket replies' => ['tblticketreplies'],
+            'tickets' => ['tbltickets'],
         ];
     }
 
     /**
-     * @dataProvider selectProvider
+     * @dataProvider requiredTableProvider
      */
-    public function testSelectIsValidAgainstSchema(string $sql, array $params): void
+    public function testRequiredTableExists(string $table): void
     {
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM information_schema.TABLES
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?'
+        );
+        $stmt->execute([$table]);
 
-        $this->assertTrue(true, 'Query executed without a schema error');
-    }
-
-    /**
-     * The columns the repositories read must exist in the WHMCS schema.
-     *
-     * @dataProvider selectProvider
-     */
-    public function testSelectColumnsExist(string $sql, array $params): void
-    {
-        $table = $this->tableOf($sql);
-        $columns = $this->extractColumns($sql);
-
-        if ($columns === []) {
-            // `SELECT *` — assert the table itself is resolvable.
-            $exists = $this->pdo->prepare(
-                'SELECT COUNT(*) FROM information_schema.TABLES
-                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?'
-            );
-            $exists->execute([$table]);
-            $this->assertGreaterThan(0, (int) $exists->fetchColumn(), "Table {$table} is missing");
-
-            return;
-        }
-
-        foreach ($columns as $column) {
-            $exists = $this->pdo->prepare(
-                'SELECT COUNT(*) FROM information_schema.COLUMNS
-                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
-            );
-            $exists->execute([$table, $column]);
-
-            $this->assertGreaterThan(
-                0,
-                (int) $exists->fetchColumn(),
-                sprintf('Column %s.%s does not exist in the WHMCS schema', $table, $column)
-            );
-        }
+        $this->assertGreaterThan(0, (int) $stmt->fetchColumn(), "Table {$table} is missing");
     }
 
     /**
@@ -205,72 +88,209 @@ class SchemaParityTest extends TestCase
      */
     public function testAllRequiredTablesExist(): void
     {
-        $required = [
-            'tbladmins',
-            'tblaffiliates',
-            'tblaffiliatesclients',
-            'tblaffiliatespayouts',
-            'tblannouncements',
-            'tblclients',
-            'tbldomainpricing',
-            'tbldomains',
-            'tblinvoiceitems',
-            'tblinvoices',
-            'tblknowledgebase',
-            'tblknowledgebasecats',
-            'tblorders',
-            'tblticketdepartments',
-            'tblticketreplies',
-            'tbltickets',
-        ];
-
-        foreach ($required as $table) {
-            $stmt = $this->pdo->prepare(
-                'SELECT COUNT(*) FROM information_schema.TABLES
-                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?'
-            );
-            $stmt->execute([$table]);
-
-            $this->assertGreaterThan(0, (int) $stmt->fetchColumn(), "Table {$table} is missing");
+        foreach (self::requiredTableProvider() as $case) {
+            $this->testRequiredTableExists($case[0]);
         }
     }
 
-    private function tableOf(string $sql): string
-    {
-        if (preg_match('/FROM\s+`?(\w+)`?/i', $sql, $m) === 1) {
-            return $m[1];
-        }
+    // ─── Read paths ──────────────────────────────────────────────────────────
 
-        return '';
+    public function testClientRepositoryReads(): void
+    {
+        $repository = new ClientRepositoryPDO($this->pdo);
+
+        $client = $repository->findById(1);
+        $this->assertIsArray($client, 'tblclients row 1 must be readable');
+
+        $byEmail = $repository->findByEmail((string)$client['email']);
+        $this->assertIsArray($byEmail);
+        $this->assertSame($client['id'], $byEmail['id']);
     }
 
-    /**
-     * @return list<string>
-     */
-    private function extractColumns(string $sql): array
+    public function testAdminRepositoryReads(): void
     {
-        if (preg_match('/SELECT\s+(.+?)\s+FROM/i', $sql, $m) !== 1) {
-            return [];
+        $repository = new \Xkhm\Repository\AdminRepositoryPDO($this->pdo);
+
+        $admin = $repository->findByUsername('admin');
+        $this->assertIsArray($admin, 'tbladmins row "admin" must be readable');
+    }
+
+    public function testDomainRepositoryReads(): void
+    {
+        $repository = new DomainRepositoryPDO($this->pdo);
+
+        $domains = $repository->findByUserId(1);
+        $this->assertIsArray($domains);
+
+        $pricing = $repository->getPricing(['.com']);
+        $this->assertArrayHasKey('.com', $pricing);
+
+        if ($domains !== []) {
+            $domain = $repository->findByName((string)$domains[0]['domain']);
+            $this->assertIsArray($domain, 'findByName must find the domain');
         }
+    }
 
-        $selectList = $m[1];
+    public function testInvoiceRepositoryReads(): void
+    {
+        $repository = new InvoiceRepositoryPDO($this->pdo);
 
-        if (str_contains($selectList, '*')) {
-            return [];
+        $invoices = $repository->findByUserId(1);
+        $this->assertIsArray($invoices);
+
+        if ($invoices !== []) {
+            $invoice = $repository->findById((int)$invoices[0]['id']);
+            $this->assertIsArray($invoice);
         }
+    }
 
-        $columns = [];
-        foreach (explode(',', $selectList) as $part) {
-            $part = trim($part);
-            // Strip table qualifiers and aliases.
-            $part = preg_replace('/\s+AS\s+.+$/i', '', $part) ?? $part;
-            $part = explode('.', $part)[0];
-            $part = trim($part, " `\t");
-            if ($part !== '' && !str_contains($part, '(')) {
-                $columns[] = $part;
-            }
+    public function testOrderRepositoryReads(): void
+    {
+        $repository = new OrderRepositoryPDO($this->pdo);
+
+        $orders = $repository->findByUserId(1);
+        $this->assertIsArray($orders);
+    }
+
+    public function testTicketRepositoryReads(): void
+    {
+        $repository = new TicketRepositoryPDO($this->pdo);
+
+        $tickets = $repository->findByUserId(1);
+        $this->assertIsArray($tickets);
+
+        $departments = $repository->getDepartments();
+        $this->assertIsArray($departments);
+
+        if ($tickets !== []) {
+            $ticket = $repository->findWithReplies((int)$tickets[0]['id']);
+            $this->assertIsArray($ticket);
+            $this->assertArrayHasKey('replies', $ticket);
         }
+    }
 
-        return $columns;
+    public function testKnowledgebaseRepositoryReads(): void
+    {
+        $repository = new KnowledgebaseRepositoryPDO($this->pdo);
+
+        $this->assertIsArray($repository->getCategories());
+        $this->assertIsArray($repository->getPublishedArticles());
+        $this->assertIsArray($repository->searchArticles('a', 10));
+    }
+
+    public function testAnnouncementRepositoryReads(): void
+    {
+        $repository = new AnnouncementRepositoryPDO($this->pdo);
+
+        $this->assertIsArray($repository->getPublished(5));
+    }
+
+    public function testAffiliateRepositoryReads(): void
+    {
+        $repository = new AffiliateRepositoryPDO($this->pdo);
+
+        $affiliate = $repository->findByUserId(1);
+        $this->assertNotFalse($affiliate, 'findByUserId must not fail');
+
+        $byRef = $repository->findByRefCode('LINUXKAFE10');
+        $this->assertNotFalse($byRef, 'findByRefCode must not fail');
+    }
+
+    // ─── Write paths ─────────────────────────────────────────────────────────
+    //
+    // The write paths are where the column drift actually bit: a wrong
+    // column name only fails at INSERT time, and only against the real
+    // schema.
+
+    public function testTicketRepositoryWrites(): void
+    {
+        $repository = new TicketRepositoryPDO($this->pdo);
+
+        $ticketId = $repository->create([
+            'userid' => 1,
+            'name' => 'Schema Parity',
+            'email' => 'parity@example.com',
+            'subject' => 'Schema parity probe',
+            'message' => 'Created by SchemaParityTest.',
+            'priority' => 'Medium',
+            'status' => 'Open',
+            'deptid' => 1,
+            'date' => date('Y-m-d H:i:s'),
+        ]);
+
+        $this->assertGreaterThan(0, (int)$ticketId);
+
+        $replyId = $repository->addReply($ticketId, [
+            'userid' => 1,
+            'name' => 'Schema Parity',
+            'email' => 'parity@example.com',
+            'message' => 'Reply from SchemaParityTest.',
+            'adminreply' => 0,
+        ]);
+
+        $this->assertGreaterThan(0, (int)$replyId);
+
+        $this->pdo->prepare('DELETE FROM tblticketreplies WHERE tid = ?')->execute([$ticketId]);
+        $this->pdo->prepare('DELETE FROM tbltickets WHERE id = ?')->execute([$ticketId]);
+    }
+
+    public function testDomainRepositoryWrites(): void
+    {
+        $repository = new DomainRepositoryPDO($this->pdo);
+
+        $domainId = $repository->register(1, 'schema-parity-probe.example', 1);
+        $this->assertGreaterThan(0, (int)$domainId);
+
+        $this->pdo->prepare('DELETE FROM tbldomains WHERE id = ?')->execute([$domainId]);
+    }
+
+    public function testDomainServiceRegisterUsesRealColumns(): void
+    {
+        $service = new \Xkhm\Service\DomainService(new DomainRepositoryPDO($this->pdo));
+
+        $result = $service->registerDomain('schema-parity-service.example', 1, ['period' => 1]);
+
+        $this->assertTrue($result[0], 'registerDomain must succeed: ' . $result[1]);
+        $this->assertGreaterThan(0, (int)$result[2]);
+
+        $this->pdo->prepare('DELETE FROM tbldomains WHERE id = ?')->execute([$result[2]]);
+    }
+
+    public function testTicketServiceCreateUsesRealColumns(): void
+    {
+        $service = new \Xkhm\Service\TicketService(new TicketRepositoryPDO($this->pdo));
+
+        $ticketId = $service->createTicket([
+            'userid' => 1,
+            'name' => 'Schema Parity',
+            'email' => 'parity@example.com',
+            'subject' => 'Service probe',
+            'message' => 'Created by SchemaParityTest.',
+            'priority' => 'Urgent',
+        ]);
+
+        $this->assertGreaterThan(0, (int)$ticketId);
+
+        $this->pdo->prepare('DELETE FROM tbltickets WHERE id = ?')->execute([$ticketId]);
+    }
+
+    public function testTicketServiceNormalisesAnInvalidPriority(): void
+    {
+        $service = new \Xkhm\Service\TicketService(new TicketRepositoryPDO($this->pdo));
+
+        // `tbltickets.priority` is an ENUM: an unknown value would abort the
+        // INSERT under STRICT_TRANS_TABLES.
+        $ticketId = $service->createTicket([
+            'userid' => 1,
+            'name' => 'Schema Parity',
+            'email' => 'parity@example.com',
+            'subject' => 'Invalid priority probe',
+            'message' => 'Created by SchemaParityTest.',
+            'priority' => 'not-a-valid-priority',
+        ]);
+
+        $this->assertGreaterThan(0, (int)$ticketId);
+
+        $this->pdo->prepare('DELETE FROM tbltickets WHERE id = ?')->execute([$ticketId]);
     }
 }

@@ -66,19 +66,26 @@ class DomainService
         }
 
         $tld = $this->extractTLD($domain);
-        $price = $this->getTLDPrice($tld);
+        $period = max(1, (int)($data['period'] ?? 1));
 
+        // The column names follow the WHMCS `tbldomains` schema exactly:
+        // `domain` (not `name`), `registrationdate` (not `regdate`),
+        // `period` (not `registrationperiod`). There is no `tld`, `price`
+        // or `transfer` column — the TLD is part of `domain` and the price
+        // lives in `tbldomainpricing`.
         $domainData = [
-            'name' => $domain,
+            'domain' => $domain,
             'userid' => $clientId,
-            'regdate' => date('Y-m-d'),
-            'expirydate' => date('Y-m-d', strtotime('+1 year')),
+            'period' => $period,
+            'registrationdate' => date('Y-m-d'),
+            'expirydate' => date('Y-m-d', strtotime("+{$period} years")),
+            'nextduedate' => date('Y-m-d', strtotime("+{$period} years")),
             'status' => 'Active',
-            'tld' => $tld,
-            'registrar' => 'whmcs',
+            'registrar' => 'linuxkafe',
+            'dateadded' => date('Y-m-d H:i:s'),
             'dns1' => $data['dns1'] ?? 'ns1.linuxkafe.com',
             'dns2' => $data['dns2'] ?? 'ns2.linuxkafe.com',
-            'price' => $price,
+            'currency' => 1,
         ];
 
         $domainId = $this->domainRepository->create($domainData);
@@ -116,21 +123,24 @@ class DomainService
             return [false, 'Domain already registered', null];
         }
 
-        $tld = $this->extractTLD($domain);
-        $price = $this->getTLDPrice($tld);
+        $period = max(1, (int)($data['period'] ?? 1));
 
+        // Same WHMCS column contract as registerDomain(). The transfer flag
+        // lives in `tbldomains` as `transfer` only in newer WHMCS releases;
+        // the 5.3.x schema has no such column, so it is not written.
         $domainData = [
-            'name' => $domain,
+            'domain' => $domain,
             'userid' => $clientId,
-            'regdate' => date('Y-m-d'),
-            'expirydate' => date('Y-m-d', strtotime('+1 year')),
+            'period' => $period,
+            'registrationdate' => date('Y-m-d'),
+            'expirydate' => date('Y-m-d', strtotime("+{$period} years")),
+            'nextduedate' => date('Y-m-d', strtotime("+{$period} years")),
             'status' => 'Active',
-            'tld' => $tld,
-            'registrar' => 'whmcs',
+            'registrar' => 'linuxkafe',
+            'dateadded' => date('Y-m-d H:i:s'),
             'dns1' => $data['dns1'] ?? 'ns1.linuxkafe.com',
             'dns2' => $data['dns2'] ?? 'ns2.linuxkafe.com',
-            'price' => $price,
-            'transfer' => 1,
+            'currency' => 1,
         ];
 
         $domainId = $this->domainRepository->create($domainData);

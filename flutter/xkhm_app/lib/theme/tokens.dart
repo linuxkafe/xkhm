@@ -36,7 +36,7 @@ abstract final class LkSemantic {
   static const Color error = Color(0xFFDC3545);
   static const Color infoBg = Color(0xFFD1ECF1);
   static const Color infoFg = Color(0xFF0C5460);
-  static const Color shadow = Color(0x0000001A);
+  static const Color shadow = Color(0x1A000000);
 }
 
 /// Typography families, matching the CSS `--font-*` tokens.
