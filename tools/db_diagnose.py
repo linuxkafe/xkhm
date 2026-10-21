@@ -165,6 +165,10 @@ def find_dumps() -> list[pathlib.Path]:
 
 def check_local_database() -> tuple[bool, str]:
     """Is the local MySQL reachable, and how many tables does it have?"""
+    # The LOCAL database's own credentials — never the production ones.
+    local_user = os.getenv("XKHM_DB_USER", "linuxkonect")
+    local_pass = os.getenv("XKHM_DB_PASSWORD", "xkhm-local-only")
+
     try:
         result = subprocess.run(
             [
@@ -172,8 +176,8 @@ def check_local_database() -> tuple[bool, str]:
                 "exec",
                 "xkhm-mysql-1",
                 "mysql",
-                "-ulinuxkonect",
-                "-pqm9W8amh5XV9A4Dr",
+                f"-u{local_user}",
+                f"-p{local_pass}",
                 "-N",
                 "-e",
                 "SELECT COUNT(*) FROM information_schema.TABLES "
