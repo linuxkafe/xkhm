@@ -80,27 +80,12 @@ p { margin: 0 0 12px; }
 
 .table th {
     background-color: var(--color-header);
-    color: #fff;
+    color: var(--color-on-header);
     font-weight: 600;
 }
 
 .table-striped tbody tr:nth-child(odd) {
     background-color: var(--color-bg);
-}
-
-/* Below the medium breakpoint a table scrolls sideways inside its own box
- * instead of widening the whole page. `display: block` on a table turns it
- * into a scroll container — no markup change is needed. */
-.table-scroll {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    margin-bottom: 20px;
-}
-
-.table-scroll > .table {
-    margin-bottom: 0;
-    min-width: 480px;
 }
 
 /* ─── Buttons and links ───────────────────────────────────────────────────── */
@@ -125,24 +110,24 @@ p { margin: 0 0 12px; }
 
 .btn:hover {
     background-color: var(--color-primary);
-    color: var(--color-text);
+    color: var(--color-on-primary);
     text-decoration: none;
 }
 
 .btn-primary {
     background-color: var(--color-primary);
-    color: var(--color-text);
+    color: var(--color-on-primary);
     border-color: var(--color-primary);
 }
 
 .btn-primary:hover {
-    background-color: #e6a300;
-    color: var(--color-text);
+    background-color: var(--color-primary-hover);
+    color: var(--color-on-primary);
 }
 
 .btn-success {
     background-color: var(--color-success-fg);
-    color: #fff;
+    color: var(--color-on-success);
     border-color: var(--color-success-fg);
 }
 
@@ -291,7 +276,7 @@ a:hover {
 .panel-heading {
     padding: 10px 15px;
     background-color: var(--color-header);
-    color: #fff;
+    color: var(--color-on-header);
     border-bottom: 1px solid var(--color-border);
     font-weight: 600;
 }
@@ -334,7 +319,7 @@ a:hover {
 
 .nav li a.active {
     background-color: var(--color-primary);
-    color: var(--color-text);
+    color: var(--color-on-primary);
 }
 
 /* ─── Site chrome ──────────────────────────────────────────────────────────── */
@@ -392,7 +377,7 @@ a:hover {
 }
 
 .main-navigation a {
-    color: #e0e0e0;
+    color: var(--color-on-header);
     font-weight: 500;
     font-size: 0.95rem;
     padding: 0.8rem 0;
@@ -412,11 +397,17 @@ main.container {
     min-height: 60vh;
     padding-top: 24px;
     padding-bottom: 32px;
+    /* With `viewport-fit=cover` the content would otherwise run under the
+     * notch in landscape. */
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
 }
 
 footer {
     text-align: center;
     padding: 20px;
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
     color: var(--color-text-light);
     font-size: 12px;
@@ -424,7 +415,7 @@ footer {
 
 /* ─── Responsive ──────────────────────────────────────────────────────────── */
 
-@media (max-width: 850px) {
+@media (max-width: 992px) {   /* --breakpoint-lg */
     .col-md-3,
     .col-md-4,
     .col-md-6,
@@ -444,7 +435,7 @@ footer {
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px) {   /* --breakpoint-md */
     .container {
         padding: 16px;
     }
@@ -484,7 +475,7 @@ footer {
     }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 576px) {   /* --breakpoint-sm */
     body {
         font-size: 15px;
     }
@@ -511,7 +502,7 @@ footer {
     }
 
     body {
-        background: #fff;
-        color: #000;
+        background: var(--color-bg);
+        color: var(--color-text);
     }
 }

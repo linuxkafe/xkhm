@@ -1,12 +1,12 @@
 {
-    "name": "xkhm_app",
-    "short_name": "xkhm_app",
+    "name": "LINUXKAFÉ — Área do Cliente",
+    "short_name": "LINUXKAFÉ",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#ffffff",
+    "theme_color": "#f8b400",
+    "description": "Área do cliente LINUXKAFÉ — servidores, software livre e soberania digital.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

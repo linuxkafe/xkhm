@@ -41,6 +41,9 @@ abstract final class LkTheme {
       onPrimary: colors.onPrimary,
       surface: colors.bg,
       onSurface: colors.text,
+      // The secondary text is a token, not a seed-derived colour — the two
+      // clients must share the same value.
+      onSurfaceVariant: colors.textLight,
       error: semantic.error,
       onError: colors.onPrimary,
       outline: colors.border,
@@ -50,18 +53,18 @@ abstract final class LkTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: colors.bg,
-      fontFamily: LkTheme.fontBase,
+      fontFamily: LkFonts.base,
     );
 
     return base.copyWith(
       textTheme: base.textTheme.apply(
-        fontFamily: LkTheme.fontBase,
+        fontFamily: LkFonts.base,
         bodyColor: colors.text,
         displayColor: colors.text,
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: colors.header,
-        foregroundColor: Colors.white,
+        foregroundColor: colors.onHeader,
         elevation: 0,
         centerTitle: false,
       ),
@@ -76,7 +79,18 @@ abstract final class LkTheme {
       ),
       dividerTheme: DividerThemeData(color: colors.border, space: 1),
       iconTheme: IconThemeData(color: colors.textLight),
-      listTileTheme: ListTileThemeData(iconColor: colors.textLight),
+      listTileTheme: ListTileThemeData(
+        iconColor: colors.textLight,
+        selectedColor: colors.onPrimary,
+        selectedTileColor: colors.primary.withValues(alpha: 0.16),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: colors.bg,
+        selectedColor: colors.primary,
+        labelStyle: TextStyle(color: colors.text),
+        secondaryLabelStyle: TextStyle(color: colors.onPrimary),
+        side: BorderSide(color: colors.border),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: colors.bg,
@@ -166,7 +180,7 @@ abstract final class LkTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: colors.header,
-        contentTextStyle: const TextStyle(color: Colors.white),
+        contentTextStyle: TextStyle(color: colors.onHeader),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(LkLayout.borderRadius),
@@ -177,7 +191,7 @@ abstract final class LkTheme {
           color: colors.header,
           borderRadius: BorderRadius.circular(LkLayout.borderRadius),
         ),
-        textStyle: const TextStyle(color: Colors.white),
+        textStyle: TextStyle(color: colors.onHeader),
       ),
     );
   }
@@ -190,8 +204,8 @@ abstract final class LkTheme {
       );
 
   /// Font family names, matching the `--font-*` design tokens.
-  static const String fontBase = 'Inter';
-  static const String fontHeading = 'Poppins';
+  static const String fontBase = LkFonts.base;
+  static const String fontHeading = LkFonts.heading;
 
   /// Secondary text, matching `--color-text-light`.
   static TextStyle muted(BuildContext context) =>

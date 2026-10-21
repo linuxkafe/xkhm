@@ -85,18 +85,25 @@ def dart_color(value: str) -> str:
     An 8-digit CSS value is `#RRGGBBAA` (alpha last), while Dart's
     `Color(0xAARRGGBB)` puts the alpha first. The two orders are swapped
     here — getting it wrong makes a translucent colour fully transparent.
+
+    A 3-digit value is expanded, so the CSS and the Dart representations
+    accept exactly the same inputs.
     """
     value = value.lstrip("#")
+    if len(value) == 3:
+        value = "".join(channel * 2 for channel in value)
     if len(value) == 8:
         return "0x" + value[6:8].upper() + value[0:6].upper()
     if len(value) != 6:
-        raise ValueError(f"expected a 6- or 8-digit hex colour, got {value!r}")
+        raise ValueError(f"expected a 3-, 6- or 8-digit hex colour, got {value!r}")
     return "0xFF" + value.upper()
 
 
 def css_color(value: str) -> str:
     """#f8b400 -> #f8b400; #0000001a -> rgba(0, 0, 0, 0.1)."""
     value = value.lstrip("#")
+    if len(value) == 3:
+        value = "".join(channel * 2 for channel in value)
     if len(value) == 8:
         red = int(value[0:2], 16)
         green = int(value[2:4], 16)

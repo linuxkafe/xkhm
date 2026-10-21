@@ -33,7 +33,10 @@ class LkAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final onHeader = theme.colorScheme.onSurface;
+    // The AppBar sits on the header colour, so it needs the header's own
+    // foreground — the body text colour would be invisible on it.
+    final onHeader = theme.appBarTheme.foregroundColor ??
+        theme.colorScheme.onSurface;
 
     return AppBar(
       backgroundColor: theme.appBarTheme.backgroundColor,
@@ -94,7 +97,9 @@ class LkCard extends StatelessWidget {
         border: Border.all(color: theme.dividerColor),
         boxShadow: [
           BoxShadow(
-            color: LkSemantic.light.shadow,
+            color: theme.brightness == Brightness.dark
+                ? LkSemantic.dark.shadow
+                : LkSemantic.light.shadow,
             blurRadius: 6,
             offset: const Offset(0, 4),
           ),
@@ -177,6 +182,13 @@ class LkStatusBadge extends StatelessWidget {
           background: semantic.warningBg,
           foreground: semantic.warningFg,
         );
+      case 'disponível':
+      case 'disponivel':
+        return LkBadgeTone(
+          background: semantic.successBg,
+          foreground: semantic.successFg,
+        );
+      case 'registado':
       case 'cancelled':
       case 'closed':
       case 'error':

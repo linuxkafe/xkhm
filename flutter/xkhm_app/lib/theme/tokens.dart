@@ -22,23 +22,27 @@ import 'package:flutter/material.dart';
 class LkPalette {
   const LkPalette({
     required this.primary,
+    required this.primaryHover,
     required this.onPrimary,
     required this.text,
     required this.textLight,
     required this.bg,
     required this.bgCard,
     required this.header,
+    required this.onHeader,
     required this.border,
     required this.link,
   });
 
   final Color primary;
+  final Color primaryHover;
   final Color onPrimary;
   final Color text;
   final Color textLight;
   final Color bg;
   final Color bgCard;
   final Color header;
+  final Color onHeader;
   final Color border;
   final Color link;
 }
@@ -47,24 +51,28 @@ class LkPalette {
 abstract final class LkColors {
   static const LkPalette light = LkPalette(
     primary: Color(0xFFF8B400),
+    primaryHover: Color(0xFFE6A300),
     onPrimary: Color(0xFF212121),
     text: Color(0xFF212121),
     textLight: Color(0xFF555555),
     bg: Color(0xFFFFFFFF),
     bgCard: Color(0xFFFFFFFF),
     header: Color(0xFF2D2D2D),
+    onHeader: Color(0xFFFFFFFF),
     border: Color(0xFFE0E0E0),
     link: Color(0xFF0056B3),
   );
 
   static const LkPalette dark = LkPalette(
     primary: Color(0xFFF8B400),
+    primaryHover: Color(0xFFE6A300),
     onPrimary: Color(0xFF1A1A1A),
     text: Color(0xFFE8E8E8),
     textLight: Color(0xFFA0A0A0),
     bg: Color(0xFF141414),
     bgCard: Color(0xFF1E1E1E),
     header: Color(0xFF0D0D0D),
+    onHeader: Color(0xFFF0F0F0),
     border: Color(0xFF333333),
     link: Color(0xFF66B2FF),
   );
@@ -76,6 +84,7 @@ class LkSemanticPalette {
   const LkSemanticPalette({
     required this.successBg,
     required this.successFg,
+    required this.onSuccess,
     required this.warningBg,
     required this.warningFg,
     required this.dangerBg,
@@ -90,6 +99,7 @@ class LkSemanticPalette {
 
   final Color successBg;
   final Color successFg;
+  final Color onSuccess;
   final Color warningBg;
   final Color warningFg;
   final Color dangerBg;
@@ -107,6 +117,7 @@ abstract final class LkSemantic {
   static const LkSemanticPalette light = LkSemanticPalette(
     successBg: Color(0xFFD4EDDA),
     successFg: Color(0xFF155724),
+    onSuccess: Color(0xFFFFFFFF),
     warningBg: Color(0xFFFFF3CD),
     warningFg: Color(0xFF856404),
     dangerBg: Color(0xFFF8D7DA),
@@ -122,6 +133,7 @@ abstract final class LkSemantic {
   static const LkSemanticPalette dark = LkSemanticPalette(
     successBg: Color(0xFF16351F),
     successFg: Color(0xFF7EE2A8),
+    onSuccess: Color(0xFF16351F),
     warningBg: Color(0xFF3A2F10),
     warningFg: Color(0xFFF0C674),
     dangerBg: Color(0xFF3D1A1A),

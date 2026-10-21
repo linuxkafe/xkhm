@@ -146,7 +146,7 @@ class _HomeShellState extends State<HomeShell> {
                 child: Text(
                   'LINUXKAFÉ',
                   style: TextStyle(
-                    color: theme.appBarTheme.backgroundColor,
+                    color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                   ),
@@ -172,7 +172,9 @@ class _HomeShellState extends State<HomeShell> {
       drawer: _buildDrawer(context),
       body: content,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _primaryDestinations.indexOf(_index).clamp(0, 3),
+        // -1 means "no destination of the bar is selected" — which is the
+        // case when the user picked one from the drawer.
+        selectedIndex: _primaryDestinations.indexOf(_index),
         onDestinationSelected: (i) => _select(_primaryDestinations[i]),
         backgroundColor: Theme.of(context).colorScheme.surface,
         indicatorColor: Theme.of(context).colorScheme.primary,
@@ -227,9 +229,19 @@ class _HomeShellState extends State<HomeShell> {
                 identifier: 'drawer-destination-$i',
                 child: ListTile(
                   leading: Icon(_destinations[i].icon),
-                  title: Text(_destinations[i].label),
+                  title: Text(
+                    _destinations[i].label,
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontWeight:
+                          i == _index ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
                   selected: i == _index,
-                  selectedTileColor: theme.colorScheme.primary,
+                  // A tint of the brand: the raw yellow would put the
+                  // label on the same colour as the background.
+                  selectedTileColor:
+                      theme.colorScheme.primary.withValues(alpha: 0.16),
                   onTap: () {
                     Navigator.of(context).pop();
                     _select(i);
