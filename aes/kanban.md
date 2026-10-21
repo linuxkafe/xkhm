@@ -115,9 +115,9 @@ operator's call.
 ### Test gates (all green)
 
 ```
-make test            # 111 PHPUnit tests — contra a base real
+make test            # 112 PHPUnit tests — contra a base real
 make lint            # PHPStan level 5, 0 errors
-make e2e             # 152 Playwright tests (API + Flutter) — dados reais
+make e2e             # 157 Playwright tests (API + Flutter) — dados reais
 make flutter-test    # 45 Flutter unit + widget tests
 make flutter-e2e     # 15 Playwright tests (Flutter web build)
 make tokens-check    # tokens in sync, no hard-coded colours (Dart and CSS)

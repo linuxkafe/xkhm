@@ -14,10 +14,10 @@ requires:
 
 | Gate | Command | Result |
 |------|---------|--------|
-| PHPUnit | `make test` | **111 tests, 226 assertions** — green |
+| PHPUnit | `make test` | **112 tests, 228 assertions** — green |
 | PHPStan (nível 5) | `make lint` | **0 erros** |
 | Flutter | `make flutter-test` | **45 testes** — green |
-| Playwright | `make e2e` | **156 testes** — green (152 + 4 do correio) |
+| Playwright | `make e2e` | **157 testes** — green (152 + 5 do correio) |
 | Tokens | `make tokens-check` | em sincronia |
 
 ## Acceptance criteria
@@ -44,6 +44,7 @@ e conduz a cadeia inteira:
 test_the_application_writes_the_queue           a aplicação escreve a fila
 test_the_mailer_delivers_and_clears_the_queue   o mailer entrega e limpa
 test_the_mailer_refuses_the_reserved_domains    os domínios reservados não saem
+test_a_used_token_leaves_the_queue              um token usado sai da fila
 test_a_real_address_is_not_reserved             a regra não apanha um cliente real
 ```
 
