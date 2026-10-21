@@ -38,7 +38,8 @@ class TicketRepositoryPDO implements TicketRepositoryInterface
             return null;
         }
 
-        $stmt = $this->pdo->prepare('SELECT * FROM tblticketreplies WHERE ticketid = ? ORDER BY date');
+        // WHMCS 5.3.x names the FK column `tid`, not `ticketid`.
+        $stmt = $this->pdo->prepare('SELECT * FROM tblticketreplies WHERE tid = ? ORDER BY date');
         $stmt->execute([$id]);
         $ticket['replies'] = $stmt->fetchAll();
 
@@ -58,7 +59,8 @@ class TicketRepositoryPDO implements TicketRepositoryInterface
 
     public function addReply(int $ticketId, array $data): int
     {
-        $data['ticketid'] = $ticketId;
+        // WHMCS 5.3.x names the FK column `tid`, not `ticketid`.
+        $data['tid'] = $ticketId;
         $columns = implode(', ', array_keys($data));
         $placeholders = ':' . implode(', :', array_keys($data));
 

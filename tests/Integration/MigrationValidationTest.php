@@ -46,8 +46,13 @@ class MigrationValidationTest extends TestCase
         $dbConfig = $this->config->getDbConfig();
 
         $this->assertArrayHasKey('host', $dbConfig);
-        $this->assertArrayHasKey('dbname', $dbConfig);
-        $this->assertArrayHasKey('username', $dbConfig);
+        $this->assertArrayHasKey('name', $dbConfig);
+        $this->assertArrayHasKey('user', $dbConfig);
+        $this->assertArrayHasKey('pass', $dbConfig);
+        $this->assertArrayHasKey('charset', $dbConfig);
+
+        // The production database name must not drift.
+        $this->assertSame('linuxkonect', $dbConfig['name']);
     }
 
     public function testCcEncryptionHashPresent(): void
@@ -58,7 +63,8 @@ class MigrationValidationTest extends TestCase
 
         $hash = $this->config->getCcEncryptionHash();
         $this->assertNotEmpty($hash, 'CC encryption hash should be present');
-        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $hash);
+        // WHMCS stores a 64-character base64 hash, not hex.
+        $this->assertMatchesRegularExpression('/^[A-Za-z0-9+\/]{64}$/', $hash);
     }
 
     public function testTableSchemaIntegrity(): void

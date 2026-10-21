@@ -1,14 +1,33 @@
-config.local.php
-.env
-*.key
-*.pem
-vendor/
-node_modules/
-tmp/
-build/
-dist/
-*.log
+# Dependencies
+/vendor/
+/node_modules/
 
-# PHP CS Fixer configuration
-/.php-cs-fixer.cache
-/.php-cs-fixer.php
+# AES
+/aes/metrics/
+/aes/index.db
+
+# Playwright
+/tests/Playwright/artifacts/
+/tests/Playwright/.pytest_cache/
+/tests/Playwright/**/__pycache__/
+
+# Flutter
+/flutter/xkhm_app/.dart_tool/
+/flutter/xkhm_app/build/
+/flutter/xkhm_app/.flutter-plugins
+/flutter/xkhm_app/.flutter-plugins-dependencies
+/flutter/xkhm_app/pubspec.lock
+
+# Environment
+.env
+.env.local
+*.local.php
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp

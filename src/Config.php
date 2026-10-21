@@ -43,13 +43,28 @@ class Config
 
     public function getDbConfig(): array
     {
+        // Environment variables take precedence over configuration.php so the
+        // test suite can run on the host against the Docker-published MySQL
+        // port (127.0.0.1:3306) while the container keeps using the service
+        // name (mysql:3306). The committed configuration.php stays untouched
+        // and continues to point at the production database.
         return [
-            'host' => $this->get('db_host', 'localhost'),
-            'name' => $this->get('db_name', 'whmcs'),
-            'user' => $this->get('db_username', 'whmcs'),
-            'pass' => $this->get('db_password', ''),
+            'host' => $this->env('XKHM_DB_HOST') ?? $this->get('db_host', 'localhost'),
+            'name' => $this->env('XKHM_DB_NAME') ?? $this->get('db_name', 'whmcs'),
+            'user' => $this->env('XKHM_DB_USER') ?? $this->get('db_username', 'whmcs'),
+            'pass' => $this->env('XKHM_DB_PASS') ?? $this->get('db_password', ''),
             'charset' => $this->get('mysql_charset', 'utf8'),
         ];
+    }
+
+    private function env(string $name): ?string
+    {
+        $value = getenv($name);
+        if ($value === false || $value === '') {
+            return null;
+        }
+
+        return $value;
     }
 
     public function getCcEncryptionHash(): string

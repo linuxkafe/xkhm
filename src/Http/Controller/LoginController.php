@@ -6,6 +6,7 @@ namespace Xkhm\Http\Controller;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Xkhm\Http\View\Layout;
 use Xkhm\Service\AuthService;
 
 class LoginController
@@ -44,16 +45,18 @@ class LoginController
         $remember = isset($data['rememberme']);
 
         if (!$email || !$password) {
-            $response->getBody()->write('Username and password required');
+            $response->getBody()->write('Utilizador e senha são obrigatórios');
             return $response->withStatus(400);
         }
 
         $client = $this->authService->verifyPassword($email, $password);
 
         if (!$client) {
-            // Invalid credentials - redirect back with error
-            $response->getBody()->write('Invalid username or password');
-            return $response->withStatus(401);
+            // Invalid credentials - render the login form again with an error
+            $response->getBody()->write($this->renderLoginForm(true));
+            return $response
+                ->withHeader('Content-Type', 'text/html; charset=utf-8')
+                ->withStatus(401);
         }
 
         // Regenerate session ID for security
@@ -113,55 +116,53 @@ class LoginController
         return $response->withHeader('Location', '/clientarea.php')->withStatus(302);
     }
 
-    private function renderLoginForm(): string
+    private function renderLoginForm(bool $hasError = false): string
     {
-        return <<<HTML
-            <!DOCTYPE html>
-            <html lang="pt-BR">
-            <head>
-                <meta charset="utf-8">
-                <title>Login - LINUXKAFE</title>
-                <link href="/templates/default/css/bootstrap.css" rel="stylesheet">
-                <link href="/templates/default/css/whmcs.css" rel="stylesheet">
-            </head>
-            <body>
-                <div class="whmcscontainer">
-                    <div class="container">
-                        <div class="row">
-                            <div class="col-md-6 col-md-offset-3">
-                                <div class="panel panel-default">
-                                    <div class="panel-heading">
-                                        <h3 class="panel-title">Login</h3>
-                                    </div>
-                                    <div class="panel-body">
-                                        <form method="post" action="/dologin.php">
-                                            <div class="form-group">
-                                                <label>Email</label>
-                                                <input type="email" name="username" class="form-control" required autofocus>
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Password</label>
-                                                <input type="password" name="password" class="form-control" required>
-                                            </div>
-                                            <div class="checkbox">
-                                                <label>
-                                                    <input type="checkbox" name="rememberme"> Remember Me
-                                                </label>
-                                            </div>
-                                            <button type="submit" class="btn btn-primary btn-block">Login</button>
-                                        </form>
-                                        <div class="text-center" style="margin-top: 15px;">
-                                            <a href="/pwreset.php">Forgot Password?</a> | 
-                                            <a href="/register.php">Register</a>
+        $error = '';
+        if ($hasError) {
+            $error = '<div class="alert alert-danger">'
+                . 'Utilizador ou senha inválidos. Verifique os dados e tente novamente.'
+                . '</div>';
+        }
+
+        $body = <<<HTML
+            <div class="whmcscontainer">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-md-6 col-md-offset-3">
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h3 class="panel-title">Iniciar Sessão</h3>
+                                </div>
+                                <div class="panel-body">
+                                    {$error}
+                                    <form method="post" action="/dologin.php">
+                                        <div class="form-group">
+                                            <label>Email</label>
+                                            <input type="email" name="username" class="form-control" required autofocus>
                                         </div>
+                                        <div class="form-group">
+                                            <label>Senha</label>
+                                            <input type="password" name="password" class="form-control" required>
+                                        </div>
+                                        <div class="checkbox">
+                                            <label>
+                                                <input type="checkbox" name="rememberme"> Lembrar-me
+                                            </label>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+                                    </form>
+                                    <div class="text-center" style="margin-top: 15px;">
+                                        <a href="/pwreset.php">Esqueci a senha?</a>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </body>
-            </html>
+            </div>
             HTML;
+
+        return Layout::render('Iniciar Sessão', $body);
     }
 }

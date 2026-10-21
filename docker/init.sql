@@ -193,6 +193,24 @@ CREATE TABLE IF NOT EXISTS `tblticketreplies` (
   KEY `tid` (`tid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `tblticketdepartments` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `sortorder` int(10) unsigned DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `tblaffiliatespayouts` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `affiliateid` int(10) unsigned NOT NULL,
+  `date` date NOT NULL,
+  `amount` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `description` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `affiliateid` (`affiliateid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS `tblannouncements` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `title` varchar(255) NOT NULL,
@@ -228,13 +246,16 @@ CREATE TABLE IF NOT EXISTS `tblknowledgebase` (
 
 -- Insert sample data
 INSERT INTO `tblclients` (`firstname`, `lastname`, `email`, `password`, `status`, `datecreated`) VALUES
-('Test', 'User', 'test@example.com', '5f4dcc3b5aa765d61d8327deb882cf99', 'Active', CURDATE());
+('Test', 'User', 'test@example.com', '5f4dcc3b5aa765d61d8327deb882cf99', 'Active', CURDATE()),
+('Linuxkafe', 'Hosting', 'linuxkafe@linuxkafe.com', '5e1620720d77c67074fe2d55b7832cac', 'Active', CURDATE());
 
 INSERT INTO `tbladmins` (`username`, `password`, `fullname`, `email`) VALUES
 ('admin', '0192023a7bbd73250516f069df18b500', 'Administrator', 'admin@linuxkafe.com');
 
 -- Sample client (password: "password", md5 hash)
 -- Client login: test@example.com / password
+
+-- Client "linuxkafe" login: linuxkafe@linuxkafe.com / linuxkafe123
 
 INSERT INTO `tbldomainpricing` (`extension`, `msetupprice`, `renprice`) VALUES
 ('.com', 9.99, 14.99),
@@ -255,3 +276,39 @@ INSERT INTO `tblknowledgebasecats` (`title`, `description`, `sortorder`) VALUES
 INSERT INTO `tblknowledgebase` (`catid`, `title`, `description`, `content`, `published`) VALUES
 (1, 'How to get started', 'Basic getting started guide', 'Welcome to our service! Here is how you can get started...', 1),
 (2, 'Understanding invoices', 'Invoice billing questions', 'Invoices are generated automatically for all services...', 1);
+
+-- ─── Sample operational data (client id 1) ───────────────────────────────────
+
+INSERT INTO `tblorders` (`id`, `userid`, `date`, `paymentmethod`, `gateway`, `status`, `total`, `tax`, `currency`, `notes`) VALUES
+(1, 1, CURDATE(), 'Transferência Bancária', 'banktransfer', 'Completed', 149.90, 0.00, 1, 'Pedido de alojamento web partilhado'),
+(2, 1, DATE_SUB(CURDATE(), INTERVAL 30 DAY), 'Cartão de Crédito', 'stripe', 'Active', 24.99, 0.00, 1, 'Registo de domínio .com');
+
+INSERT INTO `tblinvoices` (`id`, `userid`, `datecreated`, `duedate`, `datepaid`, `status`, `total`, `taxrate`, `currency`, `note`) VALUES
+(1, 1, DATE_SUB(CURDATE(), INTERVAL 30 DAY), DATE_SUB(CURDATE(), INTERVAL 16 DAY), NULL, 'Unpaid', 149.90, 0.00, 1, 'Fatura de alojamento'),
+(2, 1, DATE_SUB(CURDATE(), INTERVAL 60 DAY), DATE_SUB(CURDATE(), INTERVAL 46 DAY), DATE_SUB(CURDATE(), INTERVAL 50 DAY), 'Paid', 24.99, 0.00, 1, 'Fatura de domínio');
+
+INSERT INTO `tblinvoiceitems` (`id`, `invoiceid`, `type`, `description`, `amount`, `taxed`, `duedate`) VALUES
+(1, 1, 'hosting', 'Alojamento Web Partilhado - 1 ano', 149.90, 0, DATE_SUB(CURDATE(), INTERVAL 16 DAY)),
+(2, 2, 'domain', 'Registo de domínio .com - 1 ano', 24.99, 0, DATE_SUB(CURDATE(), INTERVAL 46 DAY));
+
+INSERT INTO `tbldomains` (`id`, `userid`, `orderid`, `domain`, `period`, `registrationdate`, `expirydate`, `nextduedate`, `status`, `dateadded`, `dns1`, `dns2`, `registrar`, `currency`) VALUES
+(1, 1, 2, 'exemplo-linuxkafe.com', 1, DATE_SUB(CURDATE(), INTERVAL 60 DAY), DATE_ADD(CURDATE(), INTERVAL 305 DAY), DATE_ADD(CURDATE(), INTERVAL 305 DAY), 'Active', DATE_SUB(CURDATE(), INTERVAL 60 DAY), 'ns1.linuxkafe.com', 'ns2.linuxkafe.com', 'linuxkafe', 1);
+
+INSERT INTO `tbltickets` (`id`, `userid`, `name`, `email`, `subject`, `message`, `status`, `priority`, `deptid`, `date`, `lastreply`) VALUES
+(1, 1, 'Linuxkafe Hosting', 'linuxkafe@linuxkafe.com', 'Dúvida sobre a fatura', 'Boa tarde, gostaria de saber mais detalhes sobre a fatura em aberto.', 'Open', 'Medium', 1, DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY));
+
+INSERT INTO `tblticketreplies` (`id`, `tid`, `userid`, `name`, `email`, `message`, `date`, `adminreply`) VALUES
+(1, 1, 1, 'Suporte LINUXKAFE', 'suporte@linuxkafe.com', 'Boa tarde! A fatura cobre o alojamento partilhado.', DATE_SUB(NOW(), INTERVAL 1 DAY), 1);
+
+INSERT INTO `tblticketdepartments` (`id`, `name`, `description`, `sortorder`) VALUES
+(1, 'Suporte Técnico', 'Questões técnicas sobre os serviços', 1),
+(2, 'Faturação', 'Questões sobre faturas e pagamentos', 2);
+
+INSERT INTO `tblaffiliates` (`id`, `userid`, `name`, `email`, `refcode`, `commission`, `balance`, `unpaidbalance`, `datecreated`) VALUES
+(1, 1, 'Linuxkafe Parceiros', 'parceiros@linuxkafe.com', 'LINUXKAFE10', 10.00, 0.00, 0.00, CURDATE());
+
+INSERT INTO `tblaffiliatesclients` (`id`, `affiliateid`, `clientid`, `date`, `commission`) VALUES
+(1, 1, 1, DATE_SUB(CURDATE(), INTERVAL 15 DAY), 14.99);
+
+INSERT INTO `tblaffiliatespayouts` (`id`, `affiliateid`, `date`, `amount`, `description`) VALUES
+(1, 1, DATE_SUB(CURDATE(), INTERVAL 10 DAY), 14.99, 'Pagamento de comissão');

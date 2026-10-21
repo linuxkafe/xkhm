@@ -34,12 +34,13 @@ class DomainRepositoryPDO implements DomainRepositoryInterface
 
     public function register(int $userId, string $domain, int $period): int
     {
+        // Column names follow the WHMCS `tbldomains` schema exactly.
         $data = [
             'userid' => $userId,
             'domain' => $domain,
-            'registrationperiod' => $period,
+            'period' => $period,
             'status' => 'Active',
-            'regdate' => date('Y-m-d'),
+            'registrationdate' => date('Y-m-d'),
             'nextduedate' => date('Y-m-d', strtotime("+$period years")),
         ];
 
@@ -54,7 +55,9 @@ class DomainRepositoryPDO implements DomainRepositoryInterface
 
     public function findByUserId(int $userId): array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM tbldomains WHERE userid = ? ORDER BY regdate DESC');
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM tbldomains WHERE userid = ? ORDER BY registrationdate DESC'
+        );
         $stmt->execute([$userId]);
         return $stmt->fetchAll();
     }
@@ -79,7 +82,8 @@ class DomainRepositoryPDO implements DomainRepositoryInterface
 
     public function findByName(string $domain): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM tbldomains WHERE name = ?');
+        // The WHMCS schema stores the domain name in the `domain` column.
+        $stmt = $this->pdo->prepare('SELECT * FROM tbldomains WHERE domain = ?');
         $stmt->execute([$domain]);
         return $stmt->fetch() ?: null;
     }

@@ -6,6 +6,7 @@ namespace Xkhm\Http\Controller;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Xkhm\Http\View\Layout;
 use Xkhm\Service\KnowledgebaseService;
 
 class KnowledgebaseController
@@ -26,9 +27,7 @@ class KnowledgebaseController
         $action = $queryParams['action'] ?? 'search';
         $search = $queryParams['search'] ?? '';
 
-        $html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Central de Ajuda - LINUXKAFE</title></head><body>';
-        $html .= '<div class="container">';
-        $html .= '<h2>Central de Ajuda</h2>';
+        $html = '<h2>Central de Ajuda</h2>';
         $html .= '<form method="get" class="form-inline">';
         $html .= '<input type="hidden" name="action" value="search">';
         $html .= '<input type="text" name="search" class="form-control" placeholder="Buscar artigos..." value="' . htmlspecialchars($search) . '">';
@@ -45,8 +44,7 @@ class KnowledgebaseController
             $html .= $this->renderCategories();
         }
 
-        $html .= '</div></body></html>';
-        $response->getBody()->write($html);
+        $response->getBody()->write(Layout::render('Central de Ajuda', $html));
         return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
     }
 

@@ -113,15 +113,15 @@ class ApiController
         $queryParams = $request->getQueryParams();
         $action = $queryParams['action'] ?? '';
 
-        match ($action) {
+        // NOTE: the match arms must be *returned*. Discarding them would drop
+        // the Content-Type header set by jsonResponse()/errorResponse().
+        return match ($action) {
             'getclientinfo' => $this->getClientInfo($request, $response),
             'getinvoiceinfo' => $this->getInvoiceInfo($request, $response),
             'getticketinfo' => $this->getTicketInfo($request, $response),
             'getdomaininfo' => $this->getDomainInfo($request, $response),
             default => $this->errorResponse($response, 'Unknown action: ' . $action),
         };
-
-        return $response;
     }
 
     private function jsonResponse(Response $response, array $data): Response

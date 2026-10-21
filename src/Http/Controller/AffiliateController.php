@@ -31,9 +31,7 @@ class AffiliateController
 
         $affiliate = $this->service->getAffiliateByRefCode($session['affiliate_code'] ?? '');
 
-        $html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Afiliados - LINUXKAFE</title></head><body>';
-        $html .= '<div class="container">';
-        $html .= '<h2>Programa de Afiliados</h2>';
+        $html = '<h2>Programa de Afiliados</h2>';
 
         if ($affiliate) {
             $html .= $this->renderDashboard($affiliate, $clientId);
@@ -41,8 +39,7 @@ class AffiliateController
             $html .= $this->renderSignup();
         }
 
-        $html .= '</div></body></html>';
-        $response->getBody()->write($html);
+        $response->getBody()->write(Layout::render('Programa de Afiliados', $html));
         return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
     }
 

@@ -2,7 +2,7 @@
 project: xkhm
 created: 2026-10-20
 current_sprint: sprint-01
-current_ticket: T019
+current_ticket: T021
 ---
 
 # XKHM — WHMCS Reimplementation
@@ -43,3 +43,6 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T018 | Migration validation: same DB, same data, same config | high | done |
 | T019 | Feature parity gap analysis | medium | done |
 | T020 | Performance & load testing | low | pending |
+| T021 | Playwright E2E test harness (PHP backend) | high | planned |
+| T022 | Flutter client application (web + mobile) | high | planned |
+| T023 | Decide PHP front-end replacement vs. fallback (needs production traffic data) | medium | pending |

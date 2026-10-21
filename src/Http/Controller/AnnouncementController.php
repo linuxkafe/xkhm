@@ -6,6 +6,7 @@ namespace Xkhm\Http\Controller;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Xkhm\Http\View\Layout;
 use Xkhm\Service\AnnouncementService;
 
 class AnnouncementController
@@ -25,9 +26,7 @@ class AnnouncementController
         $queryParams = $request->getQueryParams();
         $announcementId = (int)($queryParams['id'] ?? 0);
 
-        $html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Notícias - LINUXKAFE</title></head><body>';
-        $html .= '<div class="container">';
-        $html .= '<h2>Notícias</h2>';
+        $html = '<h2>Notícias</h2>';
 
         if ($announcementId > 0) {
             $announcement = $this->service->getAnnouncement($announcementId);
@@ -61,8 +60,7 @@ class AnnouncementController
             }
         }
 
-        $html .= '</div></body></html>';
-        $response->getBody()->write($html);
+        $response->getBody()->write(Layout::render('Notícias', $html));
         return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
     }
 }

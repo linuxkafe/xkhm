@@ -19,6 +19,8 @@ use Xkhm\Http\Controller\AnnouncementController;
 use Xkhm\Http\Controller\AffiliateController;
 use Xkhm\Http\Controller\AdminAuthController;
 use Xkhm\Http\Middleware\AdminAuthMiddleware;
+use Xkhm\Http\Middleware\StylesheetMiddleware;
+use Xkhm\Http\View\Layout;
 use Xkhm\Http\Controller\ServerStatusController;
 use Xkhm\Http\Controller\SslController;
 use Xkhm\Http\Controller\ApiController;
@@ -56,6 +58,9 @@ $app->add(function (Request $request, RequestHandler $handler): Response {
     $request = $request->withAttribute('session', $session);
     return $handler->handle($request);
 });
+
+// Guarantee no HTML page ships without the LINUXKAFE stylesheets
+$app->add(new StylesheetMiddleware());
 
 // Health check endpoint
 $app->get('/health', function (Request $request, Response $response): Response {
@@ -151,16 +156,14 @@ $app->get('/clientarea.php', function (Request $request, Response $response) use
     // Default: show dashboard
     $clientId = $session['client_id'];
     $summary = $billingService->getInvoiceSummary($clientId);
-    $html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Área do Cliente - LINUXKAFE</title></head>';
-    $html .= '<body><div class="container"><h1>Bemvindo, ' . htmlspecialchars($session['client']['firstname'] ?? 'Cliente') . '</h1>';
+    $html = '<h1>Bemvindo, ' . htmlspecialchars($session['client']['firstname'] ?? 'Cliente') . '</h1>';
     $html .= '<h3>Resumo Financeiro</h3>';
     $html .= '<p>Crédito: $' . number_format($summary['credit_balance'], 2) . '</p>';
     $html .= '<p>Total em Aberto: $' . number_format($summary['unpaid_total'], 2) . '</p>';
     $html .= '<p><a href="/clientarea.php?action=invoices">Ver Faturas</a> | ';
     $html .= '<a href="/clientarea.php?action=orders">Ver Pedidos</a> | ';
     $html .= '<a href="/logout.php">Logout</a></p>';
-    $html .= '</div></body></html>';
-    $response->getBody()->write($html);
+    $response->getBody()->write(Layout::render('Área do Cliente', $html));
     return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
 });
 $app->post('/dologin.php', [$loginController, 'processLogin']);
@@ -207,11 +210,9 @@ $app->get('/admin/login.php', [$adminAuthController, 'showLogin']);
 $app->post('/admin/login.php', [$adminAuthController, 'login']);
 $app->get('/admin/logout.php', [$adminAuthController, 'logout']);
 $app->get('/admin', function (Request $request, Response $response) {
-    $html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Admin Panel - LINUXKAFE</title></head>';
-    $html .= '<body><div class="container"><h1>Admin Panel</h1>';
-    $html .= '<p><a href="/admin/login.php">Login</a></p>';
-    $html .= '</div></body></html>';
-    $response->getBody()->write($html);
+    $html = '<h1>Admin Panel</h1>';
+    $html .= '<p><a href="/admin/logout.php">Terminar sessão</a></p>';
+    $response->getBody()->write(Layout::render('Admin Panel', $html));
     return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
 })->add($adminAuthMiddleware);
 
@@ -222,8 +223,7 @@ $app->get('/admin/', function (Request $request, Response $response) {
 
 // Default route - show welcome page
 $app->get('/', function (Request $request, Response $response) {
-    $html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>LINUXKAFE</title></head>';
-    $html .= '<body><div class="container"><h1>Bemvindo ao LINUXKAFE</h1>';
+    $html = '<h1>Bemvindo ao LINUXKAFE</h1>';
     $html .= '<p>Service Provider - Hosting, Domains, SSL</p>';
     $html .= '<ul>';
     $html .= '<li><a href="/clientarea.php">Área do Cliente</a></li>';
@@ -232,8 +232,8 @@ $app->get('/', function (Request $request, Response $response) {
     $html .= '<li><a href="/knowledgebase.php">Base de Conhecimento</a></li>';
     $html .= '<li><a href="/supporttickets.php">Abrir Ticket</a></li>';
     $html .= '<li><a href="/serverstatus.php">Status do Servidor</a></li>';
-    $html .= '</ul></div></body></html>';
-    $response->getBody()->write($html);
+    $html .= '</ul>';
+    $response->getBody()->write(Layout::render('Início', $html));
     return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
 });
 

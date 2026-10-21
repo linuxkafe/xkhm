@@ -1,4 +1,4 @@
-.PHONY: setup test lint format check doctor clean index wake sleep install dev
+.PHONY: setup test lint format check doctor clean index wake sleep install dev e2e e2e-install tokens tokens-check flutter-build flutter-test flutter-e2e
 
 PHP=php
 PHP_VERSION=$(shell php -r "echo PHP_VERSION;")
@@ -14,7 +14,11 @@ vendor/autoload.php: composer.json composer.lock
 
 test: vendor/autoload.php ## Run test suite
 	@echo "Running unit tests..."
-	./vendor/bin/phpunit --configuration phpunit.xml.dist
+	@XKHM_DB_HOST=$${XKHM_DB_HOST:-127.0.0.1} \
+	 XKHM_DB_NAME=$${XKHM_DB_NAME:-linuxkonect} \
+	 XKHM_DB_USER=$${XKHM_DB_USER:-linuxkonect} \
+	 XKHM_DB_PASS=$${XKHM_DB_PASS:-qm9W8amh5XV9A4Dr} \
+	 ./vendor/bin/phpunit --configuration phpunit.xml.dist
 
 lint: vendor/autoload.php ## Lint source code
 	@echo "Running PHPStan..."
@@ -26,6 +30,28 @@ format: vendor/autoload.php ## Format source code
 
 check: test lint ## Run all quality gates
 	@echo "All gates passed"
+
+e2e-install: ## Install Playwright + browser binaries
+	@pip3 install -r tests/Playwright/requirements.txt
+	@python3 -m playwright install chromium
+
+e2e: ## Run the Playwright E2E suite against the Docker stack
+	@cd tests/Playwright && python3 -m pytest
+
+tokens: ## Regenerate design tokens (CSS + Dart) from assets/design_tokens.json
+	@python3 tools/sync_tokens.py
+
+tokens-check: ## Verify generated design tokens match the source of truth
+	@python3 tools/sync_tokens.py --check
+
+flutter-build: ## Build the Flutter web application
+	@cd flutter/xkhm_app && flutter build web
+
+flutter-test: ## Run Flutter unit and widget tests
+	@cd flutter/xkhm_app && flutter test
+
+flutter-e2e: ## Run the Playwright E2E suite against the Flutter web build
+	@cd tests/Playwright && python3 -m pytest test_flutter_ -v
 
 doctor: ## Check environment health
 	@echo "=== xkhm doctor ==="

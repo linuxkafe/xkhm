@@ -1,0 +1,32 @@
+/*
+ * LINUXKAFE design tokens — single source of truth for the colour scheme.
+ *
+ * Derived from the live theme stylesheet at
+ *   http://www.linuxkafe.com/wp-content/themes/linuxkafe/style.css
+ *
+ * NOTE: generated file. Do not edit by hand.
+ *       Edit `assets/design_tokens.json` and run `make tokens`.
+ */
+
+:root {
+
+	/* Cores */
+	--color-primary: #f8b400;      /* Amarelo LinuxKafé */
+	--color-text: #212121;
+	--color-text-light: #555;
+	--color-bg: #fff;
+	--color-bg-card: #fff;
+	--color-header: #2d2d2d;       /* Fundo do Header */
+	--color-border: #e0e0e0;
+	--color-link: #0056b3;
+
+	/* Tipografia */
+	--font-base: "Inter", system-ui, -apple-system, sans-serif;
+	--font-heading: "Poppins", var(--font-base);
+	--font-mono: "Fira Code", monospace;
+
+	/* Layout */
+	--width-max: 1100px;
+	--border-radius: 8px;
+	--shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
