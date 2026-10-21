@@ -33,3 +33,7 @@ Thumbs.db
 *.swp
 .phpunit.result.cache
 
+
+# Dumps e copias de seguranca da base de dados (contem dados pessoais)
+docker/dumps/
+docker/backups/

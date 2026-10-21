@@ -1,5 +1,24 @@
--- Xkhm Database Initialization
--- This creates the basic structure for testing
+-- ============================================================================
+--  XKHM — FIXTURE DE DESENVOLVIMENTO (NÃO É A BASE DE DADOS DE PRODUÇÃO)
+-- ============================================================================
+--
+--  Este ficheiro cria um ESBOÇO da base de dados WHMCS (`linuxkonect`) com
+--  dados de EXEMPLO, para desenvolvimento e para a suíte de testes.
+--
+--  NÃO contém os dados reais. O utilizador `linuxkafe` aqui existe apenas
+--  para que os testes automatizados tenham uma conta com que trabalhar.
+--
+--  Para a base de dados REAL:
+--    1. noutra máquina, corra `make db-export` (produz o dump de produção)
+--    2. traga o ficheiro .sql para aqui
+--    3. corra `make db-import FILE=<ficheiro.sql>`
+--
+--  O dump traz os seus próprios `CREATE TABLE`, portanto o esquema real é
+--  aplicado tal e qual — nada é inventado aqui.
+--
+--  Ver `make db-check` para o diagnóstico e `docs/DATABASE.md` para o
+--  procedimento completo.
+-- ============================================================================
 
 -- Force the client connection to UTF-8. Without this the `mysql` client
 -- defaults to latin1 and every accented pt-BR character is mangled on insert.

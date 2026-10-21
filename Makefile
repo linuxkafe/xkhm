@@ -48,6 +48,31 @@ tokens-check: ## Verify generated design tokens match the source of truth
 	@python3 tools/sync_tokens.py --check
 	@python3 tools/check_no_hardcoded_colors.py
 
+# ─── Base de dados ───────────────────────────────────────────────────────────
+
+db-check: ## Diagnose why the production database is unreachable
+	@python3 tools/db_diagnose.py
+
+db-export: ## Export the production database (run where 10.0.3.1 is reachable)
+	@bash tools/export_prod_db.sh $(if $(FILE),--output $(FILE),)
+
+db-import: ## Import a database dump into the local MySQL (FILE=dump.sql)
+	@test -n "$(FILE)" || { echo "uso: make db-import FILE=<dump.sql>"; exit 1; }
+	@python3 tools/db_import.py --file "$(FILE)"
+
+db-backup: ## Back up the local database
+	@mkdir -p docker/backups && \
+	 docker exec xkhm-mysql-1 mysqldump -ulinuxkonect -pqm9W8amh5XV9A4Dr \
+	   --single-transaction --default-character-set=utf8mb4 linuxkonect \
+	   > docker/backups/linuxkonect-$$(date +%Y%m%d-%H%M%S).sql && \
+	 echo "cópia em docker/backups/"
+
+db-seed: ## Re-seed the local database with the development fixture
+	@echo "ATENÇÃO: isto apaga os dados locais actuais."
+	@read -p "Continuar? [s/N] " answer; \
+	 [ "$$answer" = "s" ] || { echo "cancelado"; exit 1; }; \
+	 docker compose down -v && docker compose up -d
+
 flutter-build: ## Build the Flutter web application
 	@cd flutter/xkhm_app && $(FLUTTER) build web --release \
 		--base-href=/app/ \
