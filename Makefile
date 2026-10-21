@@ -77,7 +77,7 @@ db-reset-admin: ## Reset the administrator's password (PASSWORD=...)
 db-reset-client: ## Reset a client's password (EMAIL=... PASSWORD=...)
 	@python3 tools/reset_client_password.py
 
-db-reset-tokens: ## List the pending credential-recovery tokens
+db-reset-tokens: ## List the pending credential-recovery tokens (CLEAR=1 removes the expired ones)
 	@python3 tools/list_reset_tokens.py
 
 db-seed: ## Re-seed the local database with the development fixture

@@ -319,7 +319,9 @@ sempre um caminho para dentro, e o e-mail é um extra — não a condição.
 Em produção a resposta é genérica. O administrador lê o token com:
 
 ```bash
-make db-reset-tokens
+make db-reset-tokens              # listar
+make db-reset-tokens CLEAR=1      # limpar os expirados
+make db-reset-tokens CLEAR=1 ALL=1   # limpar todos
 ```
 
 ### As três portas de entrada
