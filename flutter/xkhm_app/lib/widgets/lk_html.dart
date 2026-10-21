@@ -141,9 +141,27 @@ class LkHtml extends StatelessWidget {
     return spans;
   }
 
+  /// The content as plain text, with the markup removed.
+  ///
+  /// Used where the HTML has to be clipped to a few lines — a summary
+  /// that shows the markup would be worse than no summary.
+  static String toPlainText(String source) => _decode(_strip(source));
+
   /// Removes every remaining tag, keeping the text.
-  static String _strip(String source) =>
-      source.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+  ///
+  /// A line break or a block boundary becomes a **space**: removing it
+  /// outright would glue two words together ("Olá.Hoje").
+  static String _strip(String source) {
+    final spaced = source.replaceAll(
+      RegExp(
+        r'<\s*(/?)\s*(br|p|div|li|tr|h[1-6]|blockquote)\b[^>]*>',
+        caseSensitive: false,
+      ),
+      ' ',
+    );
+
+    return spaced.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+  }
 
   /// Decodes the HTML entities that appear in this content.
   static String _decode(String source) => source

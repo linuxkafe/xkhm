@@ -405,3 +405,253 @@ class LkContentWidth extends StatelessWidget {
     );
   }
 }
+
+/// The greeting at the top of the home screen.
+///
+/// A modern application opens with the **identity** and the **figures**,
+/// not with a panel that takes half the screen to say "hello".
+///
+/// The colours come from the theme's tokens — the gradient is the brand
+/// primary, and the text is the "on primary" colour — so the hero
+/// follows the dark mode like everything else.
+class LkHeroCard extends StatelessWidget {
+  const LkHeroCard({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.figures = const [],
+  });
+
+  /// The client's name.
+  final String title;
+
+  /// The e-mail, or anything else that identifies the account.
+  final String? subtitle;
+
+  /// The figures, in the order they should appear.
+  final List<Widget> figures;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.colorScheme.primary,
+            Color.lerp(
+              theme.colorScheme.primary,
+              theme.colorScheme.primary,
+              0.55,
+            )!,
+          ],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onPrimary,
+            ),
+          ),
+          if (subtitle != null && subtitle!.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              subtitle!,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
+          if (figures.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            // The figures share the row: two fit on a phone, and they
+            // take the width they need rather than a fixed one.
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var index = 0; index < figures.length; index++) ...[
+                  if (index > 0) const SizedBox(width: 16),
+                  Expanded(child: figures[index]),
+                ],
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A figure inside the hero: a value and its label.
+class LkHeroFigure extends StatelessWidget {
+  const LkHeroFigure({
+    super.key,
+    required this.label,
+    required this.value,
+    this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          Icon(
+            icon,
+            size: 20,
+            color: theme.colorScheme.onPrimary.withValues(alpha: 0.75),
+          ),
+          const SizedBox(height: 4),
+        ],
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: theme.colorScheme.onPrimary,
+          ),
+        ),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A text that is **clipped** to a few lines, with a "read more" that
+/// expands it.
+///
+/// The announcements and the knowledge-base articles carry a whole
+/// article in them. On a phone, that pushes everything else off the
+/// screen — so the text is summarised, and one tap shows the rest.
+///
+/// Nothing is lost: the full text is there, one tap away.
+class LkExpandableText extends StatefulWidget {
+  const LkExpandableText({
+    super.key,
+    required this.text,
+    this.maxLines = 3,
+    this.moreLabel = 'Ler mais',
+    this.lessLabel = 'Ler menos',
+  });
+
+  /// The text to show.
+  final String text;
+
+  /// How many lines the summary has.
+  final int maxLines;
+
+  final String moreLabel;
+  final String lessLabel;
+
+  @override
+  State<LkExpandableText> createState() => _LkExpandableTextState();
+}
+
+class _LkExpandableTextState extends State<LkExpandableText> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = theme.textTheme.bodyMedium?.copyWith(height: 1.45);
+
+    // Whether the text is **clipped** is measured, not guessed: a
+    // "read more" that opens nothing is worse than no button.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final painter = TextPainter(
+          text: TextSpan(text: widget.text, style: style),
+          maxLines: widget.maxLines,
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: constraints.maxWidth);
+
+        final clipped = painter.didExceedMaxLines;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.text,
+              maxLines: _expanded ? null : widget.maxLines,
+              overflow: _expanded ? null : TextOverflow.ellipsis,
+              style: style,
+            ),
+            if (clipped || _expanded) ...[
+              const SizedBox(height: 4),
+              // The target is at least the minimum touch target, even
+              // though the label itself is small.
+              ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minHeight: LkLayout.touchTargetMin,
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: () => setState(() => _expanded = !_expanded),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 0),
+                      minimumSize: const Size(0, LkLayout.touchTargetMin),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      _expanded ? widget.lessLabel : widget.moreLabel,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// A scrollable that can be pulled down to reload.
+///
+/// The gesture is the one everybody expects from a phone, and it is
+/// the fastest way to see a new invoice without hunting for a menu.
+class LkRefreshable extends StatelessWidget {
+  const LkRefreshable({
+    super.key,
+    required this.onRefresh,
+    required this.child,
+  });
+
+  /// The reload. It has to return a `Future` — the indicator waits
+  /// for it.
+  final Future<void> Function() onRefresh;
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(onRefresh: onRefresh, child: child);
+  }
+}

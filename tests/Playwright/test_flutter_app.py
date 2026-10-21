@@ -186,8 +186,9 @@ def test_flutter_login_reaches_the_home_screen(app_page):
     _login(app_page)
     body = _semantics_text(app_page)
 
-    # Identity comes from the real `linuxkonect` client row.
-    assert "linuxkafe" in body.lower()
+    # The brand is in the app bar.
+    assert "linuxkaf" in body.lower()
+    # And the identity comes from the real `linuxkonect` client row.
     assert CLIENT_USER in body
     # The billing summary is read from `tblinvoices`.
     assert "crédito disponível" in body.lower()

@@ -75,59 +75,62 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
 
     final theme = Theme.of(context);
 
-    return ListView.separated(
-      itemCount: _invoices.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final invoice = _invoices[index];
-        return LkCard(
-          child: InkWell(
-            onTap: () => _openDetail(context, invoice.id),
-            borderRadius: BorderRadius.circular(LkLayout.borderRadius),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    return LkRefreshable(
+      onRefresh: _load,
+      child: ListView.separated(
+        itemCount: _invoices.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          final invoice = _invoices[index];
+          return LkCard(
+            child: InkWell(
+              onTap: () => _openDetail(context, invoice.id),
+              borderRadius: BorderRadius.circular(LkLayout.borderRadius),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Fatura #${invoice.number}',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Emitida: ${invoice.dateCreated}  •  Vencimento: ${invoice.dueDate}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.hintColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        'Fatura #${invoice.number}',
+                        '\$ ${invoice.total.toStringAsFixed(2)}',
                         style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                           color: theme.colorScheme.onSurface,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Emitida: ${invoice.dateCreated}  •  Vencimento: ${invoice.dueDate}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.hintColor,
-                        ),
-                      ),
+                      const SizedBox(height: 6),
+                      LkStatusBadge(label: invoice.status),
                     ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '\$ ${invoice.total.toStringAsFixed(2)}',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    LkStatusBadge(label: invoice.status),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

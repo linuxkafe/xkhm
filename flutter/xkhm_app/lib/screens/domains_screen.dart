@@ -59,55 +59,55 @@ class _DomainsScreenState extends State<DomainsScreen> {
       return const LkEmptyState(
         message: 'Ainda não tem domínios registados.',
         icon: Icons.language_outlined,
-        action: TextButton(
-          onPressed: null,
-          child: Text(''),
-        ),
+        action: TextButton(onPressed: null, child: Text('')),
       );
     }
 
     final theme = Theme.of(context);
 
-    return ListView.separated(
-      itemCount: _domains.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final domain = _domains[index];
+    return LkRefreshable(
+      onRefresh: _load,
+      child: ListView.separated(
+        itemCount: _domains.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          final domain = _domains[index];
 
-        return LkCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${domain['domain'] ?? ''}',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+          return LkCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${domain['domain'] ?? ''}',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
+                    LkStatusBadge(label: '${domain['status'] ?? ''}'),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Registado: ${domain['registrationDate'] ?? '—'}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.hintColor,
                   ),
-                  LkStatusBadge(label: '${domain['status'] ?? ''}'),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Registado: ${domain['registrationDate'] ?? '—'}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.hintColor,
                 ),
-              ),
-              Text(
-                'Expira: ${domain['expiryDate'] ?? '—'}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.hintColor,
+                Text(
+                  'Expira: ${domain['expiryDate'] ?? '—'}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.hintColor,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

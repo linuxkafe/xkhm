@@ -63,10 +63,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
       return const LkEmptyState(
         message: 'Ainda não tem serviços subscritos.',
         icon: Icons.dns_outlined,
-        action: TextButton(
-          onPressed: null,
-          child: Text(''),
-        ),
+        action: TextButton(onPressed: null, child: Text('')),
       );
     }
 
@@ -81,28 +78,31 @@ class _ServicesScreenState extends State<ServicesScreen> {
 
     final theme = Theme.of(context);
 
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
-      children: [
-        for (final type in types) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
-            child: Text(
-              type,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: theme.hintColor,
-                letterSpacing: 0.4,
+    return LkRefreshable(
+      onRefresh: _load,
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 24),
+        children: [
+          for (final type in types) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+              child: Text(
+                type,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: theme.hintColor,
+                  letterSpacing: 0.4,
+                ),
               ),
             ),
-          ),
-          for (final service in groups[type]!)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _ServiceCard(service: service),
-            ),
+            for (final service in groups[type]!)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _ServiceCard(service: service),
+              ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

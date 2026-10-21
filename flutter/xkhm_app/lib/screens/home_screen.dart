@@ -61,8 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final data = _data ?? const {};
     final client = (data['client'] as Map<String, dynamic>?) ?? const {};
     final billing = (data['billing'] as Map<String, dynamic>?) ?? const {};
-    final announcements =
-        (data['announcements'] as List<dynamic>?) ?? const [];
+    final announcements = (data['announcements'] as List<dynamic>?) ?? const [];
     final articles = (data['articles'] as List<dynamic>?) ?? const [];
 
     final name = [
@@ -70,98 +69,83 @@ class _HomeScreenState extends State<HomeScreen> {
       client['lastname'] ?? '',
     ].where((part) => '$part'.isNotEmpty).join(' ');
 
-    return ListView(
-      children: [
-        LkCard(
-          title: 'Bemvindo',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 4),
-              Text(
-                name.isEmpty ? 'Cliente' : name,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+    return LkRefreshable(
+      onRefresh: _load,
+      child: ListView(
+        children: [
+          // The greeting: the identity and the figures, in one block.
+          // On a phone the two figures share the row — they take the
+          // width they need, instead of a fixed one that does not fit.
+          LkHeroCard(
+            title: name.isEmpty ? 'Cliente' : name,
+            subtitle: '${client['email'] ?? ''}',
+            figures: [
+              LkHeroFigure(
+                label: 'Crédito disponível',
+                value:
+                    '\$ ${_asDouble(billing['creditBalance']).toStringAsFixed(2)}',
+                icon: Icons.account_balance_wallet_outlined,
               ),
-              const SizedBox(height: 4),
-              Text('${client['email'] ?? ''}'),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  SizedBox(
-                    width: 220,
-                    child: LkStatTile(
-                      label: 'Crédito disponível',
-                      value:
-                          '\$ ${_asDouble(billing['creditBalance']).toStringAsFixed(2)}',
-                      icon: Icons.account_balance_wallet_outlined,
-                    ),
-                  ),
-                  SizedBox(
-                    width: 220,
-                    child: LkStatTile(
-                      label: 'Total em aberto',
-                      value:
-                          '\$ ${_asDouble(billing['unpaidTotal']).toStringAsFixed(2)}',
-                      icon: Icons.payments_outlined,
-                    ),
-                  ),
-                ],
+              LkHeroFigure(
+                label: 'Total em aberto',
+                value:
+                    '\$ ${_asDouble(billing['unpaidTotal']).toStringAsFixed(2)}',
+                icon: Icons.payments_outlined,
               ),
             ],
           ),
-        ),
-        if (announcements.isNotEmpty) ...[
-          const LkSectionTitle('Notícias'),
-          for (final item in announcements.cast<Map<String, dynamic>>())
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: LkCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${item['title'] ?? ''}',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 4),
-                    // The WHMCS announcement body is HTML.
-                    LkHtml('${item['message'] ?? ''}'),
-                  ],
+          if (announcements.isNotEmpty) ...[
+            const LkSectionTitle('Notícias'),
+            for (final item in announcements.cast<Map<String, dynamic>>())
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: LkCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${item['title'] ?? ''}',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 4),
+                      // The WHMCS announcement body is HTML. On a phone it
+                      // is summarised, and one tap shows the rest.
+                      LkExpandableText(
+                        text: LkHtml.toPlainText('${item['message'] ?? ''}'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-        ],
-        if (articles.isNotEmpty) ...[
-          const LkSectionTitle('Da base de conhecimento'),
-          for (final item in articles.cast<Map<String, dynamic>>())
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: LkCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${item['title'] ?? ''}',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 4),
-                    LkHtml('${item['description'] ?? ''}'),
-                  ],
+          ],
+          if (articles.isNotEmpty) ...[
+            const LkSectionTitle('Da base de conhecimento'),
+            for (final item in articles.cast<Map<String, dynamic>>())
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: LkCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${item['title'] ?? ''}',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 4),
+                      LkExpandableText(
+                        text: LkHtml.toPlainText(
+                          '${item['description'] ?? ''}',
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

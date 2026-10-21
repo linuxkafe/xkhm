@@ -58,6 +58,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T033 | O e-mail da recuperação leva um link (e a página que faltava) | high | done |
 | T034 | O painel de administração (as funções que faltavam) | high | done |
 | T035 | Os serviços do cliente, pelo seu tipo | high | done |
+| T036 | A interface mobile, modernizada | high | done |
 
 > **Note on numbering.** T020 was originally reserved for "Performance & load
 > testing". The Flutter conversion was planned as **T022** and the Playwright
@@ -82,6 +83,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T033 | Link de recuperação | done | o e-mail leva um link; o token viaja no fragmento e **não** chega ao servidor |
 | T034 | O painel de administração | done | 9 áreas, com pesquisa, filtros, paginação e **escritas**; 128 PHPUnit + 189 Playwright |
 | T035 | Os serviços pelo seu tipo | done | o tipo vem do produto, não de uma lista escrita à mão; ecrã novo na app |
+| T036 | A interface mobile, modernizada | done | herói, figuras lado a lado, artigos resumidos, pull-to-refresh |
 
 ### Open decisions
 
@@ -132,8 +134,8 @@ the verification file for every ticket that has one.
 ```
 make test            # 128 PHPUnit tests — contra a base real
 make lint            # PHPStan level 5, 0 errors
-make e2e             # 195 Playwright tests (API + Flutter) — dados reais
-make flutter-test    # 45 Flutter unit + widget tests
+make e2e             # 202 Playwright tests (API + Flutter) — dados reais
+make flutter-test    # 49 Flutter unit + widget tests
 make flutter-e2e     # 15 Playwright tests (Flutter web build)
 make tokens-check    # tokens in sync, no hard-coded colours (Dart and CSS)
 make db-check        # diagnosis of the production database

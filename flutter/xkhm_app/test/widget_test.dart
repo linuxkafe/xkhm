@@ -222,4 +222,123 @@ void main() {
       expect(lightCard.decoration, isNot(darkCard.decoration));
     });
   });
+
+  group('The modernised mobile interface', () {
+    testWidgets('LkHeroCard shows the identity and the figures',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: LkHeroCard(
+              title: 'Xkhm Teste',
+              subtitle: 'xkhm-test@example.com',
+              figures: [
+                LkHeroFigure(label: 'Crédito disponível', value: '\$ 0.00'),
+                LkHeroFigure(label: 'Total em aberto', value: '\$ 149.90'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Xkhm Teste'), findsOneWidget);
+      expect(find.text('xkhm-test@example.com'), findsOneWidget);
+      expect(find.text('Crédito disponível'), findsOneWidget);
+      expect(find.text('Total em aberto'), findsOneWidget);
+    });
+
+    testWidgets('the figures share the row on a phone', (tester) async {
+      tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: LkHeroCard(
+              title: 'Xkhm Teste',
+              figures: [
+                LkHeroFigure(label: 'Crédito disponível', value: '\$ 0.00'),
+                LkHeroFigure(label: 'Total em aberto', value: '\$ 149.90'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final credit = tester.getTopLeft(find.text('Crédito disponível'));
+      final total = tester.getTopLeft(find.text('Total em aberto'));
+
+      // Side by side: the second is to the right, and on the same line.
+      expect(total.dx, greaterThan(credit.dx));
+      expect((total.dy - credit.dy).abs(), lessThan(4.0));
+    });
+
+    testWidgets('LkExpandableText only offers "read more" when it clips',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 300,
+              child: LkExpandableText(text: 'Uma frase curta.'),
+            ),
+          ),
+        ),
+      );
+
+      // Nothing to expand: no button.
+      expect(find.text('Ler mais'), findsNothing);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 300,
+              child: LkExpandableText(
+                text: 'Uma frase bastante mais longa, que com este tamanho '
+                    'de coluna não cabe em três linhas e vai ser cortada '
+                    'pelo widget, o que faz o botão aparecer.',
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Ler mais'), findsOneWidget);
+
+      // And it expands.
+      await tester.tap(find.text('Ler mais'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ler menos'), findsOneWidget);
+    });
+
+    testWidgets('LkRefreshable gives the list the pull-to-refresh gesture',
+        (tester) async {
+      var refreshed = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LkRefreshable(
+              onRefresh: () async => refreshed = true,
+              child: ListView(children: const [Text('conteúdo')]),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(RefreshIndicator), findsOneWidget);
+
+      await tester.fling(
+        find.byType(ListView),
+        const Offset(0, 300),
+        1000,
+      );
+      await tester.pumpAndSettle();
+
+      expect(refreshed, isTrue, reason: 'the gesture must reload');
+    });
+  });
 }

@@ -63,6 +63,17 @@ com chaves diferentes da clara.
 `tools/check_no_hardcoded_colors.py` falha se aparecer um literal de cor
 (escrito à mão) no Dart **ou** no CSS.
 
+### A interface no telefone
+
+A aplicação abre com um **herói**: o nome, o email e as duas figuras
+(crédito e total em aberto) — lado a lado, com a largura de que
+precisam. As notícias e os artigos da base de conhecimento resumem-se a
+três linhas, com um «ler mais» que os abre. E os ecrãs de dados
+aceitam o gesto de arrastar para baixo para recarregar.
+
+O corte do texto é **visual**: o nó de acessibilidade carrega o texto
+todo, e quem usa um leitor de ecrã não perde nada.
+
 ### Dark mode
 
 O site segue `prefers-color-scheme` — sem JavaScript. A aplicação usa
