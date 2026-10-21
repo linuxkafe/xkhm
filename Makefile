@@ -20,7 +20,7 @@ test: vendor/autoload.php ## Run test suite
 	@XKHM_DB_HOST=$${XKHM_DB_HOST:-127.0.0.1} \
 	 XKHM_DB_NAME=$${XKHM_DB_NAME:-linuxkonect} \
 	 XKHM_DB_USER=$${XKHM_DB_USER:-linuxkonect} \
-	 XKHM_DB_PASS=$${XKHM_DB_PASS:-qm9W8amh5XV9A4Dr} \
+	 XKHM_DB_PASS=$${XKHM_DB_PASS:-$${XKHM_DB_PASSWORD:-xkhm-local-only}} \
 	 ./vendor/bin/phpunit --configuration phpunit.xml.dist
 
 lint: vendor/autoload.php ## Lint source code
@@ -62,7 +62,7 @@ db-import: ## Import a database dump into the local MySQL (FILE=dump.sql)
 
 db-backup: ## Back up the local database
 	@mkdir -p docker/backups && \
-	 docker exec xkhm-mysql-1 mysqldump -ulinuxkonect -pqm9W8amh5XV9A4Dr \
+	 docker exec xkhm-mysql-1 mysqldump -ulinuxkonect -p$${XKHM_DB_PASSWORD:-xkhm-local-only} \
 	   --single-transaction --default-character-set=utf8mb4 linuxkonect \
 	   > docker/backups/linuxkonect-$$(date +%Y%m%d-%H%M%S).sql && \
 	 echo "cópia em docker/backups/"

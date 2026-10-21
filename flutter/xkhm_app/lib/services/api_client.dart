@@ -203,6 +203,26 @@ class LkApiClient {
 
   Future<Map<String, dynamic>> clientSummary() => _send('GET', '/client/summary');
 
+  Future<Map<String, dynamic>> home() => _send('GET', '/home');
+
+  Future<Map<String, dynamic>> forgotPassword(String email) =>
+      _send('POST', '/auth/forgot-password', body: {'email': email});
+
+  Future<List<Map<String, dynamic>>> clientOrders() async {
+    final data = await _send('GET', '/client/orders');
+    return (data['orders'] as List<dynamic>? ?? const [])
+        .cast<Map<String, dynamic>>();
+  }
+
+  Future<List<Map<String, dynamic>>> clientSsl() async {
+    final data = await _send('GET', '/client/ssl');
+    return (data['certificates'] as List<dynamic>? ?? const [])
+        .cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> clientAffiliate() =>
+      _send('GET', '/client/affiliate');
+
   Future<List<Map<String, dynamic>>> clientInvoices() async {
     final data = await _send('GET', '/client/invoices');
     return (data['invoices'] as List<dynamic>? ?? const [])

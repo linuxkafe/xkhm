@@ -34,33 +34,24 @@ CLIENT_PASS = os.getenv("XKHM_CLIENT_PASS", "linuxkafe123")
 ARTIFACTS_DIR = pathlib.Path(__file__).parent / "artifacts"
 
 #: Routes that must never return a server error.
+#:
+#: The client area is the Flutter application (T025); the HTML pages are
+#: retired. What is left of the PHP is the API, the admin and the health
+#: endpoints.
 PUBLIC_ROUTES = [
     "/",
     "/health",
     "/health/db",
-    "/domainchecker.php",
-    "/knowledgebase.php",
-    "/announcements.php",
-    "/serverstatus.php",
     "/api.php",
-    "/clientarea.php",
-    "/affiliates.php",
     "/admin/login.php",
 ]
 
-#: The subset of PUBLIC_ROUTES that renders HTML (and therefore must be styled).
+#: The routes that render HTML (and therefore must be styled).
 HTML_ROUTES = [
-    "/",
-    "/domainchecker.php",
-    "/knowledgebase.php",
-    "/announcements.php",
-    "/serverstatus.php",
-    "/clientarea.php",
-    "/affiliates.php",
     "/admin/login.php",
 ]
 
-#: The subset of PUBLIC_ROUTES that returns JSON.
+#: The routes that return JSON.
 JSON_ROUTES = [
     "/health",
     "/health/db",

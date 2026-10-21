@@ -52,6 +52,14 @@ class AffiliateService
     }
 
     /**
+     * Get the affiliate record owned by a client.
+     */
+    public function getAffiliateByUserId(int $userId): ?array
+    {
+        return $this->repository->findByUserId($userId);
+    }
+
+    /**
      * Get referral count for affiliate.
      */
     public function getReferralCount(int $affiliateId): int

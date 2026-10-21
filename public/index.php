@@ -152,7 +152,11 @@ $apiV1Controller = new \Xkhm\Http\Controller\Api\ApiV1Controller(
     $domainService,
     $kbService,
     $announceService,
-    $serverStatusService
+    $serverStatusService,
+    $sslService,
+    $affiliateService,
+    $orderRepo,
+    new \Xkhm\Service\PasswordResetService($clientRepo)
 );
 
 $apiAuth = new \Xkhm\Http\Controller\Api\ApiAuthMiddleware();
@@ -164,6 +168,9 @@ $app->group('/api/v1', function ($group) use ($apiV1Controller, $apiAuth) {
     // Public endpoints
     $group->get('/health', [$apiV1Controller, 'health']);
     $group->post('/auth/login', [$apiV1Controller, 'login']);
+    // The password reset is public by definition: it is for someone who
+    // cannot log in.
+    $group->post('/auth/forgot-password', [$apiV1Controller, 'forgotPassword']);
     $group->get('/knowledgebase/categories', [$apiV1Controller, 'knowledgebaseCategories']);
     $group->get('/knowledgebase', [$apiV1Controller, 'knowledgebase']);
     $group->get('/knowledgebase/{id:[0-9]+}', [$apiV1Controller, 'knowledgebaseArticle']);
@@ -175,89 +182,55 @@ $app->group('/api/v1', function ($group) use ($apiV1Controller, $apiAuth) {
     // Authenticated endpoints
     $group->get('/auth/session', [$apiV1Controller, 'session'])->add($apiAuth);
     $group->post('/auth/logout', [$apiV1Controller, 'logout'])->add($apiAuth);
+    $group->get('/home', [$apiV1Controller, 'home'])->add($apiAuth);
     $group->get('/client/summary', [$apiV1Controller, 'clientSummary'])->add($apiAuth);
     $group->get('/client/invoices', [$apiV1Controller, 'clientInvoices'])->add($apiAuth);
     $group->get('/client/invoices/{id:[0-9]+}', [$apiV1Controller, 'clientInvoice'])->add($apiAuth);
+    $group->get('/client/orders', [$apiV1Controller, 'clientOrders'])->add($apiAuth);
     $group->get('/client/domains', [$apiV1Controller, 'clientDomains'])->add($apiAuth);
+    $group->get('/client/ssl', [$apiV1Controller, 'clientSsl'])->add($apiAuth);
+    $group->get('/client/affiliate', [$apiV1Controller, 'clientAffiliate'])->add($apiAuth);
     $group->get('/client/tickets', [$apiV1Controller, 'clientTickets'])->add($apiAuth);
     $group->get('/client/tickets/{id:[0-9]+}', [$apiV1Controller, 'clientTicket'])->add($apiAuth);
     $group->post('/client/tickets', [$apiV1Controller, 'createTicket'])->add($apiAuth);
 });
 
-// ─── Authentication Routes ────────────────────────────────────────────────────
+// ─── Retired client-facing pages ─────────────────────────────────────────────
+//
+// The client area migrated to Flutter (T025). The HTML routes are kept as
+// redirects so that no bookmark breaks, and the handlers are NOT registered
+// — the pages are unreachable. Re-enabling one is a single line.
+//
+// The PHP stays: it is the API server (`/api/v1`, `/api.php`), the admin
+// panel, and the health endpoints.
 
-$app->get('/clientarea.php', function (Request $request, Response $response) use ($loginController, $invoiceController, $orderController, $billingService) {
-    $queryParams = $request->getQueryParams();
-    $action = $queryParams['action'] ?? '';
+$retiredRoutes = [
+    '/clientarea.php',
+    '/dologin.php',
+    '/logout.php',
+    '/pwreset.php',
+    '/domainchecker.php',
+    '/domain.php',
+    '/viewinvoice.php',
+    '/knowledgebase.php',
+    '/supporttickets.php',
+    '/ssl.php',
+    '/serverstatus.php',
+    '/announcements.php',
+    '/affiliates.php',
+];
 
-    // Show login form if not authenticated
-    $session = $request->getAttribute('session');
-    if (!$session || !isset($session['client_id'])) {
-        return $loginController->showLogin($request, $response);
-    }
+foreach ($retiredRoutes as $retired) {
+    $app->any($retired, function (Request $request, Response $response) {
+        return $response->withHeader('Location', '/')->withStatus(302);
+    });
+}
 
-    // Handle invoice listing
-    if ($action === 'invoices') {
-        return $invoiceController->list($request, $response);
-    }
+// ─── API ──────────────────────────────────────────────────────────────────────
 
-    // Handle order listing
-    if ($action === 'orders') {
-        return $orderController->list($request, $response);
-    }
-
-    // Default: show dashboard
-    $clientId = $session['client_id'];
-    $summary = $billingService->getInvoiceSummary($clientId);
-    $html = '<h1>Bemvindo, ' . htmlspecialchars($session['client']['firstname'] ?? 'Cliente') . '</h1>';
-    $html .= '<h3>Resumo Financeiro</h3>';
-    $html .= '<p>Crédito: $' . number_format($summary['credit_balance'], 2) . '</p>';
-    $html .= '<p>Total em Aberto: $' . number_format($summary['unpaid_total'], 2) . '</p>';
-    $html .= '<p><a href="/clientarea.php?action=invoices">Ver Faturas</a> | ';
-    $html .= '<a href="/clientarea.php?action=orders">Ver Pedidos</a> | ';
-    $html .= '<a href="/logout.php">Logout</a></p>';
-    $response->getBody()->write(Layout::render('Área do Cliente', $html));
-    return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
-});
-$app->post('/dologin.php', [$loginController, 'processLogin']);
-$app->get('/logout.php', [$loginController, 'logout']);
-$app->get('/pwreset.php', [$pwResetController, 'showForm']);
-$app->post('/pwreset.php', [$pwResetController, 'process']);
-
-// ─── Public Routes ─────────────────────────────────────────────────────────────
-
-// Domain checker
-$app->get('/domainchecker.php', [$domainController, 'checker']);
-
-// Domain management
-$app->get('/domain.php', [$domainController, 'list']);
-
-// Invoice detail (WHMCS convention: viewinvoice.php)
-$app->get('/viewinvoice.php', [$invoiceController, 'view']);
-
-// Knowledgebase
-$app->get('/knowledgebase.php', function (Request $request, Response $response) use ($kbController) {
-    return $kbController->index($request, $response);
-});
-
-// Support tickets
-$app->get('/supporttickets.php', [$ticketController, 'list']);
-$app->post('/supporttickets.php', [$ticketController, 'create']);
-
-// SSL Configuration
-$app->get('/ssl.php', [$sslController, 'index']);
-
-// Server Status (public)
-$app->get('/serverstatus.php', [$serverStatusController, 'index']);
-
-// Announcements
-$app->get('/announcements.php', [$announceController, 'index']);
-
-// API
+// The WHMCS-compatible API. External integrations use it; it is not a
+// front-end and it stays.
 $app->get('/api.php', [$apiController, 'handleApi']);
-
-// Affiliates
-$app->get('/affiliates.php', [$affiliateController, 'index']);
 
 // ─── Admin Routes ─────────────────────────────────────────────────────────────
 
@@ -277,21 +250,39 @@ $app->get('/admin/', function (Request $request, Response $response) {
     return $response->withHeader('Location', '/admin')->withStatus(302);
 });
 
-// Default route - show welcome page
-$app->get('/', function (Request $request, Response $response) {
-    $html = '<h1>Bemvindo ao LINUXKAFE</h1>';
-    $html .= '<p>Service Provider - Hosting, Domains, SSL</p>';
-    $html .= '<ul>';
-    $html .= '<li><a href="/clientarea.php">Área do Cliente</a></li>';
-    $html .= '<li><a href="/domainchecker.php">Verificar Domínio</a></li>';
-    $html .= '<li><a href="/announcements.php">Anúncios</a></li>';
-    $html .= '<li><a href="/knowledgebase.php">Base de Conhecimento</a></li>';
-    $html .= '<li><a href="/supporttickets.php">Abrir Ticket</a></li>';
-    $html .= '<li><a href="/serverstatus.php">Status do Servidor</a></li>';
-    $html .= '</ul>';
-    $response->getBody()->write(Layout::render('Início', $html));
-    return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
-});
+// ─── The Flutter application ──────────────────────────────────────────────────
+//
+// The client area is the Flutter web build. It is mounted by Docker at
+// `public/app/` (see docker-compose.yml) and its `<base href="/app/">` makes
+// the engine load its assets from there.
+//
+// Serving `index.html` at `/` means the client lands on the application
+// directly, with no redirect and no second URL.
+
+$flutterIndex = __DIR__ . '/app/index.html';
+
+if (is_file($flutterIndex)) {
+    $app->get('/', function (Request $request, Response $response) use ($flutterIndex) {
+        $html = (string) file_get_contents($flutterIndex);
+
+        return $response
+            ->withHeader('Content-Type', 'text/html; charset=utf-8')
+            ->withBody((new \Slim\Psr7\Factory\StreamFactory())->createStream($html));
+    });
+} else {
+    // The build is missing — say so plainly instead of serving a blank page.
+    $app->get('/', function (Request $request, Response $response) {
+        $body = '<h1>A aplicação não está instalada</h1>'
+            . '<p>Corra <code>make flutter-build</code> para gerar a aplicação '
+            . 'Flutter e reinicie o contentor.</p>';
+
+        $response->getBody()->write(Layout::render('Aplicação indisponível', $body));
+
+        return $response
+            ->withHeader('Content-Type', 'text/html; charset=utf-8')
+            ->withStatus(503);
+    });
+}
 
 // CORS must be the outermost middleware so it runs before the router.
 // It is registered here (after every route) to keep the execution order

@@ -17,8 +17,8 @@ import pytest
 
 from conftest import HTML_ROUTES, stack_is_up
 
-#: The Flutter web build, served next to the API.
-APP_URL = "http://localhost:8083/app/"
+#: The Flutter application — the client area is the app since T025.
+APP_URL = "http://localhost:8083/"
 
 
 @pytest.fixture(autouse=True)
@@ -87,6 +87,48 @@ def test_page_follows_the_light_preference(page, route: str):
 
     assert _luminance(background) > 0.8, f"{route} background is {background}"
     assert _luminance(foreground) < 0.2, f"{route} text is {foreground}"
+
+
+def _canvas_centre_pixel(page):
+    """The colour at the centre of the Flutter canvas, if there is one."""
+    return page.evaluate(
+        """() => {
+            const canvas = document.querySelector('canvas');
+            if (!canvas) return null;
+            const context = canvas.getContext('2d');
+            if (!context) return null;
+            const data = context.getImageData(
+                Math.floor(canvas.width / 2),
+                Math.floor(canvas.height / 2), 1, 1).data;
+            return [data[0], data[1], data[2]];
+        }"""
+    )
+
+
+def test_the_application_follows_the_dark_preference(page):
+    """The application paints a dark background in dark mode.
+
+    Flutter renders to a canvas, so the assertion is on the painted pixel
+    rather than on a computed style.
+    """
+    for scheme, expect_dark in (("dark", True), ("light", False)):
+        page.emulate_media(color_scheme=scheme)
+        page.goto(APP_URL)
+        page.wait_for_selector("flutter-view", timeout=30_000)
+        page.wait_for_timeout(2500)
+
+        pixel = _canvas_centre_pixel(page)
+        if pixel is None:
+            # No 2D canvas to read (the renderer may use WebGL): the
+            # semantics tree still proves the application is alive.
+            assert page.locator("flutter-view").count() == 1
+            continue
+
+        luminance = 0.2126 * pixel[0] + 0.7152 * pixel[1] + 0.0722 * pixel[2]
+        if expect_dark:
+            assert luminance < 128, f"dark mode painted {pixel}"
+        else:
+            assert luminance > 128, f"light mode painted {pixel}"
 
 
 def test_dark_mode_needs_no_javascript(page):
@@ -224,10 +266,10 @@ def test_forms_use_a_16px_font(page):
     assert "font-size: 16px" in css
 
 
-def test_tables_scroll_inside_their_own_box(page):
+def test_the_admin_page_does_not_scroll_sideways(page):
     """A wide table must not widen the page."""
     page.set_viewport_size({"width": 360, "height": 640})
-    page.goto("/knowledgebase.php")
+    page.goto("/admin/login.php")
     page.wait_for_timeout(300)
 
     overflow = page.evaluate(

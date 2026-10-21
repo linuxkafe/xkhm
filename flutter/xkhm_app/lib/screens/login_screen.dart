@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/session.dart';
 import '../theme/lk_theme.dart';
 import '../widgets/lk_widgets.dart';
+import 'password_reset_screen.dart';
 
 /// The login screen (pt-BR).
 class LoginScreen extends StatefulWidget {
@@ -160,7 +161,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(height: 12),
                             TextButton(
-                              onPressed: () {},
+                              key: const Key('login-forgot'),
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const PasswordResetScreen(),
+                                ),
+                              ),
                               child: const Text('Esqueci a senha?'),
                             ),
                           ],

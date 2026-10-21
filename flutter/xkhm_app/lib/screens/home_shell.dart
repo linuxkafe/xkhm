@@ -4,12 +4,17 @@ import 'package:provider/provider.dart';
 import '../services/session.dart';
 import '../theme/tokens.dart';
 import '../widgets/lk_widgets.dart';
+import 'affiliate_screen.dart';
 import 'announcements_screen.dart';
 import 'client_area_screen.dart';
 import 'domain_checker_screen.dart';
+import 'domains_screen.dart';
+import 'home_screen.dart';
 import 'invoices_screen.dart';
 import 'knowledgebase_screen.dart';
+import 'orders_screen.dart';
 import 'server_status_screen.dart';
+import 'ssl_screen.dart';
 import 'tickets_screen.dart';
 
 /// One entry of the client-area navigation.
@@ -46,10 +51,15 @@ class _HomeShellState extends State<HomeShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   /// The destinations shown in the bottom navigation bar. The rest live in
-  /// the drawer.
+  /// the drawer, so no destination is unreachable on a phone.
   static const List<int> _primaryDestinations = [0, 1, 2, 3];
 
   static final List<LkDestination> _destinations = [
+    LkDestination(
+      label: 'Início',
+      icon: Icons.home_outlined,
+      builder: (_) => const HomeScreen(),
+    ),
     LkDestination(
       label: 'Painel',
       icon: Icons.dashboard_outlined,
@@ -64,6 +74,26 @@ class _HomeShellState extends State<HomeShell> {
       label: 'Tickets',
       icon: Icons.support_agent_outlined,
       builder: (_) => const TicketsScreen(),
+    ),
+    LkDestination(
+      label: 'Pedidos',
+      icon: Icons.shopping_bag_outlined,
+      builder: (_) => const OrdersScreen(),
+    ),
+    LkDestination(
+      label: 'Domínios',
+      icon: Icons.language_outlined,
+      builder: (_) => const DomainsScreen(),
+    ),
+    LkDestination(
+      label: 'Certificados SSL',
+      icon: Icons.lock_outline,
+      builder: (_) => const SslScreen(),
+    ),
+    LkDestination(
+      label: 'Afiliados',
+      icon: Icons.groups_outlined,
+      builder: (_) => const AffiliateScreen(),
     ),
     LkDestination(
       label: 'Base de Conhecimento',

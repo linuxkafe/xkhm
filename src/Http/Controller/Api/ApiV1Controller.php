@@ -6,12 +6,16 @@ namespace Xkhm\Http\Controller\Api;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Xkhm\Repository\OrderRepositoryInterface;
+use Xkhm\Service\AffiliateService;
 use Xkhm\Service\AnnouncementService;
 use Xkhm\Service\AuthService;
 use Xkhm\Service\BillingService;
 use Xkhm\Service\DomainService;
 use Xkhm\Service\KnowledgebaseService;
+use Xkhm\Service\PasswordResetService;
 use Xkhm\Service\ServerStatusService;
+use Xkhm\Service\SslService;
 use Xkhm\Service\TicketService;
 
 /**
@@ -31,7 +35,11 @@ final class ApiV1Controller
         private DomainService $domainService,
         private KnowledgebaseService $knowledgebaseService,
         private AnnouncementService $announcementService,
-        private ServerStatusService $serverStatusService
+        private ServerStatusService $serverStatusService,
+        private SslService $sslService,
+        private AffiliateService $affiliateService,
+        private OrderRepositoryInterface $orderRepository,
+        private PasswordResetService $passwordResetService
     ) {
     }
 
@@ -443,6 +451,184 @@ final class ApiV1Controller
                 ],
                 $ticket['replies'] ?? []
             ),
+        ]);
+    }
+
+    /**
+     * GET /api/v1/client/orders
+     */
+    public function clientOrders(Request $request, Response $response): Response
+    {
+        $session = $request->getAttribute('session');
+        $clientId = (int)($session['client_id'] ?? 0);
+
+        $orders = $this->orderRepository->findByUserId($clientId);
+
+        return JsonResponse::ok($response, [
+            'orders' => array_map(
+                static fn (array $order): array => [
+                    'id' => (int)($order['id'] ?? 0),
+                    'number' => (string)($order['id'] ?? 0),
+                    'date' => $order['date'] ?? '',
+                    'status' => $order['status'] ?? '',
+                    'paymentMethod' => $order['paymentmethod'] ?? '',
+                    'gateway' => $order['gateway'] ?? '',
+                    'total' => (float)($order['total'] ?? 0),
+                    'tax' => (float)($order['tax'] ?? 0),
+                    'currency' => (int)($order['currency'] ?? 1),
+                    'notes' => $order['notes'] ?? '',
+                ],
+                $orders
+            ),
+        ]);
+    }
+
+    /**
+     * GET /api/v1/client/ssl
+     *
+     * The certificates belong to the domains the client owns.
+     */
+    public function clientSsl(Request $request, Response $response): Response
+    {
+        $session = $request->getAttribute('session');
+        $clientId = (int)($session['client_id'] ?? 0);
+
+        $domains = $this->domainService->getClientDomains($clientId);
+        $autoRenew = $this->sslService->isAutoRenewalEnabled();
+
+        $certificates = [];
+        foreach ($domains as $domain) {
+            $name = (string)($domain['domain'] ?? '');
+            $certificate = $this->sslService->getCertificateInfo($name);
+
+            $certificates[] = [
+                'domain' => $name,
+                'validFrom' => $certificate['valid_from'] ?? '',
+                'validTo' => $certificate['valid_to'] ?? '',
+                'daysRemaining' => (int)($certificate['days_remaining'] ?? 0),
+                'issuer' => $certificate['issuer'] ?? '',
+                'selfSigned' => (bool)($certificate['self_signed'] ?? false),
+                'autoRenew' => $autoRenew,
+            ];
+        }
+
+        return JsonResponse::ok($response, ['certificates' => $certificates]);
+    }
+
+    /**
+     * GET /api/v1/client/affiliate
+     */
+    public function clientAffiliate(Request $request, Response $response): Response
+    {
+        $session = $request->getAttribute('session');
+        $clientId = (int)($session['client_id'] ?? 0);
+
+        $affiliate = $this->affiliateService->getAffiliateByUserId($clientId);
+
+        if ($affiliate === null) {
+            return JsonResponse::ok($response, [
+                'affiliate' => null,
+                'program' => [
+                    'commissionRate' => 10.0,
+                    'name' => 'Programa de Afiliados LINUXKAFÉ',
+                ],
+            ]);
+        }
+
+        $affiliateId = (int)$affiliate['id'];
+
+        return JsonResponse::ok($response, [
+            'affiliate' => [
+                'id' => $affiliateId,
+                'name' => $affiliate['name'] ?? '',
+                'email' => $affiliate['email'] ?? '',
+                'refCode' => $affiliate['refcode'] ?? '',
+                'commissionRate' => (float)($affiliate['commission'] ?? 0),
+                'balance' => (float)($affiliate['balance'] ?? 0),
+                'unpaidBalance' => (float)($affiliate['unpaidbalance'] ?? 0),
+                'referralCount' => $this->affiliateService->getReferralCount($affiliateId),
+                'earnings' => $this->affiliateService->getEarnings($affiliateId),
+                'link' => $this->affiliateService->getAffiliateLink($affiliateId),
+            ],
+            'referrals' => array_map(
+                static fn (array $referral): array => [
+                    'clientId' => (int)($referral['clientid'] ?? 0),
+                    'date' => $referral['date'] ?? '',
+                    'commission' => (float)($referral['commission'] ?? 0),
+                ],
+                $this->affiliateService->getReferrals($affiliateId)
+            ),
+        ]);
+    }
+
+    /**
+     * GET /api/v1/home
+     *
+     * The landing screen: the summary plus the most recent news.
+     */
+    public function home(Request $request, Response $response): Response
+    {
+        $session = $request->getAttribute('session');
+        $clientId = (int)($session['client_id'] ?? 0);
+
+        $summary = $this->billingService->getInvoiceSummary($clientId);
+        $announcements = $this->announcementService->getRecentAnnouncements(3);
+        $articles = $this->knowledgebaseService->getRecentArticles(3);
+
+        return JsonResponse::ok($response, [
+            'client' => [
+                'id' => $clientId,
+                'firstname' => $session['client']['firstname'] ?? '',
+                'lastname' => $session['client']['lastname'] ?? '',
+                'email' => $session['client']['email'] ?? '',
+            ],
+            'billing' => [
+                'creditBalance' => (float)($summary['credit_balance'] ?? 0),
+                'unpaidTotal' => (float)($summary['unpaid_total'] ?? 0),
+            ],
+            'announcements' => array_map(
+                static fn (array $a): array => [
+                    'id' => (int)($a['id'] ?? 0),
+                    'title' => $a['title'] ?? '',
+                    'message' => $a['message'] ?? '',
+                    'date' => $a['date'] ?? '',
+                ],
+                $announcements
+            ),
+            'articles' => array_map(
+                static fn (array $article): array => [
+                    'id' => (int)($article['id'] ?? 0),
+                    'title' => $article['title'] ?? '',
+                    'description' => $article['description'] ?? '',
+                ],
+                $articles
+            ),
+        ]);
+    }
+
+    /**
+     * POST /api/v1/auth/forgot-password
+     */
+    public function forgotPassword(Request $request, Response $response): Response
+    {
+        $data = $request->getParsedBody();
+        $email = trim((string)($data['email'] ?? ''));
+
+        if ($email === '') {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_BAD_REQUEST,
+                'Indique o email da sua conta.',
+                400
+            );
+        }
+
+        // The answer is the same whether or not the account exists: telling
+        // the caller which emails are registered would leak the client list.
+        $this->passwordResetService->requestReset($email);
+
+        return JsonResponse::ok($response, [
+            'message' => 'Se a conta existir, enviámos um e-mail com as instruções para redefinir a senha.',
         ]);
     }
 

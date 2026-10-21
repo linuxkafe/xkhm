@@ -40,7 +40,10 @@ BACKUP_DIR = ROOT / "docker" / "backups"
 CONTAINER = "xkhm-mysql-1"
 DB_NAME = os.getenv("XKHM_DB_NAME", "linuxkonect")
 DB_USER = os.getenv("XKHM_DB_USER", "linuxkonect")
-DB_PASS = os.getenv("XKHM_DB_PASS", "qm9W8amh5XV9A4Dr")
+# The LOCAL database's password. It is deliberately not the production one:
+# see aes/tickets/T027.md.
+DB_PASS = os.getenv("XKHM_DB_PASSWORD", "xkhm-local-only")
+DB_ROOT_PASS = os.getenv("XKHM_DB_ROOT_PASSWORD", "xkhm-local-root")
 
 #: The tables the application actually reads. Anything else in the dump is
 #: kept (it is production data) but is not used by xkhm yet.

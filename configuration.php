@@ -4,7 +4,13 @@ $cfg = array();
 
 $cfg['db_host'] = 'mysql';
 $cfg['db_username'] = 'linuxkonect';
-$cfg['db_password'] = 'qm9W8amh5XV9A4Dr';
+// The environment variable wins, so the local Docker stack can use its own
+// database password. The value below is the PRODUCTION one and is only used
+// when no environment variable is set.
+//
+// It is also in the git history — it must be rotated. See
+// aes/tickets/T027.md.
+$cfg['db_password'] = getenv('DB_PASSWORD') ?: 'qm9W8amh5XV9A4Dr';
 $cfg['db_name'] = 'linuxkonect';
 $cfg['db_port'] = '3306';
 $cfg['mysql_charset'] = 'utf8mb4';

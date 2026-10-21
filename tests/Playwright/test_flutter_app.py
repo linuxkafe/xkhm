@@ -85,20 +85,39 @@ def _require_app(app_ready: bool):
         )
 
 
-def _fill(page, label: str, value: str) -> None:
+def _fill(page, label: str, value: str, attempts: int = 3) -> None:
     """Type a value into a Flutter text field.
 
     Flutter keeps the real value in a `TextEditingController`; the DOM input
-    is only a mirror. Typing must therefore be *settled* before the form is
-    submitted, otherwise the last keystrokes are still in flight and the
-    server receives a truncated value.
+    is only a mirror. Two things must therefore be true before the form is
+    submitted:
+
+    1. the field is really focused — otherwise the *first* keystroke is lost
+       to the focus transition;
+    2. the value has settled — otherwise the last keystrokes are still in
+       flight and the server receives a truncated value.
+
+    Both are checked, and the whole fill is retried if the result is wrong.
     """
     field = page.get_by_label(label)
-    field.click()
-    page.keyboard.type(value, delay=25)
-    expect(field).to_have_value(value)
-    # Let the framework drain its input queue before the next interaction.
-    page.wait_for_timeout(250)
+
+    for attempt in range(attempts):
+        field.click()
+        # Let the framework process the focus change before typing.
+        page.wait_for_timeout(150)
+
+        field.fill("")
+        page.wait_for_timeout(80)
+        page.keyboard.type(value, delay=25)
+
+        try:
+            expect(field).to_have_value(value, timeout=5_000)
+            # Let the framework drain its input queue.
+            page.wait_for_timeout(250)
+            return
+        except AssertionError:
+            if attempt == attempts - 1:
+                raise
 
 
 def _login(page) -> None:
@@ -163,7 +182,7 @@ def test_flutter_login_rejects_bad_credentials(app_page):
     assert "inválid" in body.lower(), body
 
 
-def test_flutter_login_reaches_the_dashboard(app_page):
+def test_flutter_login_reaches_the_home_screen(app_page):
     _login(app_page)
     body = _semantics_text(app_page)
 
@@ -171,13 +190,24 @@ def test_flutter_login_reaches_the_dashboard(app_page):
     assert "linuxkafe" in body.lower()
     assert CLIENT_USER in body
     # The billing summary is read from `tblinvoices`.
-    assert "resumo financeiro" in body.lower()
+    assert "crédito disponível" in body.lower()
     assert "total em aberto" in body.lower()
+    # The home screen also carries the latest news and articles.
+    assert "notícias" in body.lower()
+    assert "da base de conhecimento" in body.lower()
+
+
+def test_flutter_reaches_the_client_area_dashboard(app_page):
+    _login(app_page)
+    body = _navigate(app_page, "Painel", "Serviços")
+
+    assert "resumo financeiro" in body.lower()
+    assert "serviços" in body.lower()
 
 
 def test_flutter_dashboard_shows_the_database_counts(app_page):
     _login(app_page)
-    body = _semantics_text(app_page).lower()
+    body = _navigate(app_page, "Painel", "Serviços").lower()
 
     assert "serviços" in body
     assert "faturas" in body
@@ -226,9 +256,14 @@ def test_flutter_navigates_to_the_domain_checker(app_page):
 #: Every destination of the client area. None of them may be unreachable on
 #: a phone — the bottom bar only has room for four.
 ALL_DESTINATIONS = [
+    "Início",
     "Painel",
     "Faturas",
     "Tickets",
+    "Pedidos",
+    "Domínios",
+    "Certificados SSL",
+    "Afiliados",
     "Base de Conhecimento",
     "Anúncios",
     "Procurar Domínio",
@@ -259,7 +294,8 @@ def test_flutter_drawer_navigates(app_page):
     _open_drawer(app_page)
     app_page.wait_for_timeout(800)
 
-    app_page.locator('[flt-semantics-identifier="drawer-destination-5"]').click()
+    # "Procurar Domínio" is the eleventh destination.
+    app_page.locator('[flt-semantics-identifier="drawer-destination-10"]').click()
     app_page.wait_for_timeout(2000)
 
     body = _semantics_text(app_page)
@@ -274,6 +310,28 @@ def test_flutter_bottom_bar_shows_the_primary_destinations(app_page):
     for label in ALL_DESTINATIONS[:4]:
         # The bottom bar renders its destinations as tabs with an aria-label.
         assert app_page.get_by_role("tab", name=label).count() >= 1, label
+
+
+def test_flutter_reaches_the_new_sections(app_page):
+    """The sections the PHP pages used to serve are now in the application."""
+    _login(app_page)
+    app_page.set_viewport_size({"width": 390, "height": 844})
+    app_page.wait_for_timeout(1000)
+
+    for index, label in [
+        (0, "Início"),
+        (4, "Pedidos"),
+        (5, "Domínios"),
+        (6, "Certificados SSL"),
+        (7, "Afiliados"),
+    ]:
+        _open_drawer(app_page)
+        app_page.wait_for_timeout(700)
+        app_page.locator(f'[flt-semantics-identifier="drawer-destination-{index}"]').click()
+        app_page.wait_for_timeout(1500)
+
+        body = _semantics_text(app_page)
+        assert label in body, f"{label} did not render: {body[:200]}"
 
 
 def test_flutter_has_no_horizontal_overflow_on_a_phone(app_page):

@@ -1,28 +1,21 @@
 """
-The authenticated pages of the PHP backend.
+The client-area data, now served by the API and rendered by the application.
 
-These routes are only reachable with a session, so they are invisible to an
-anonymous crawl — which is exactly how a missing import (a fatal error on
-`/affiliates.php`) can hide. This module logs in and visits every one.
+The PHP pages were retired in T025, so the assertions are about the *data*:
+each endpoint must return the rows of the `linuxkonect` table it names, and
+the ownership check must hold.
 """
 
 from __future__ import annotations
 
 import pytest
 
-from conftest import CLIENT_PASS, CLIENT_USER
+from conftest import CLIENT_PASS, CLIENT_USER, stack_is_up
 
-#: Routes that must render for an authenticated client.
-CLIENT_ROUTES = [
-    "/clientarea.php",
-    "/clientarea.php?action=invoices",
-    "/clientarea.php?action=orders",
-    "/affiliates.php",
-    "/domain.php",
-    "/ssl.php",
-    "/supporttickets.php",
-    "/viewinvoice.php?id=1",
-]
+#: A second client, used for the IDOR check. It owns none of the seeded
+#: invoices/tickets (those belong to `linuxkafe@linuxkafe.com`).
+OTHER_CLIENT_USER = "test@example.com"
+OTHER_CLIENT_PASS = "password"
 
 
 @pytest.fixture(autouse=True)
@@ -31,40 +24,188 @@ def _require_stack(stack_ready: bool):
         pytest.skip("xkhm stack not reachable — start it with `docker compose up -d`")
 
 
-def _login(page) -> None:
-    page.goto("/clientarea.php")
-    page.fill('input[name="email"], input[name="username"]', CLIENT_USER)
-    page.fill('input[name="password"]', CLIENT_PASS)
-    page.click('button[type="submit"], input[type="submit"]')
-    page.wait_for_url("**/clientarea.php", timeout=15_000)
+def _login(page, email: str = CLIENT_USER, password: str = CLIENT_PASS):
+    response = page.request.post(
+        "/api/v1/auth/login",
+        data={"email": email, "password": password},
+    )
+    assert response.status == 200, response.text()
+    return response.json()
 
 
-@pytest.mark.parametrize("route", CLIENT_ROUTES)
-def test_authenticated_route_renders(page, route: str):
+def test_the_summary_reports_the_client_and_the_counters(page):
     _login(page)
-    response = page.goto(route)
 
-    assert response is not None, f"no response for {route}"
-    assert response.status == 200, f"{route} returned {response.status}"
-    assert "Fatal error" not in page.content(), f"{route} raised a PHP error"
-    assert "Slim Application Error" not in page.content(), f"{route} raised an error"
+    response = page.request.get("/api/v1/client/summary")
+
+    assert response.status == 200
+    data = response.json()["data"]
+
+    assert data["client"]["email"] == CLIENT_USER
+    assert "creditBalance" in data["billing"]
+    assert "unpaidTotal" in data["billing"]
+    for counter in ("invoices", "unpaidInvoices", "tickets", "openTickets", "domains"):
+        assert counter in data["counts"], counter
 
 
-@pytest.mark.parametrize("route", CLIENT_ROUTES)
-def test_authenticated_route_is_styled(page, route: str):
+def test_the_home_screen_data_is_present(page):
     _login(page)
-    page.goto(route)
-    html = page.content()
 
-    assert 'class="site-header"' in html, f"{route} has no site header"
-    assert 'href="/templates/default/css/whmcs.css"' in html, f"{route} is unstyled"
+    response = page.request.get("/api/v1/home")
+
+    assert response.status == 200
+    data = response.json()["data"]
+
+    assert data["client"]["email"] == CLIENT_USER
+    assert "billing" in data
+    assert isinstance(data["announcements"], list)
+    assert isinstance(data["articles"], list)
 
 
-@pytest.mark.parametrize("route", CLIENT_ROUTES)
-def test_authenticated_route_has_no_console_errors(page, route: str):
+def test_the_invoice_list_is_not_empty(page):
+    """The seeded invoice belongs to the client — it must be visible."""
     _login(page)
-    page.goto(route)
 
-    assert page.page_errors == [], page.page_errors
-    app_errors = [e for e in page.console_errors if "Failed to load resource" not in e]
-    assert app_errors == [], app_errors
+    response = page.request.get("/api/v1/client/invoices")
+
+    assert response.status == 200
+    invoices = response.json()["data"]["invoices"]
+    assert len(invoices) > 0
+
+    invoice = invoices[0]
+    for field in ("id", "number", "status", "dateCreated", "dueDate", "total"):
+        assert field in invoice, field
+
+
+def test_the_invoice_detail_carries_its_items(page):
+    _login(page)
+
+    invoices = page.request.get("/api/v1/client/invoices").json()["data"]["invoices"]
+    invoice_id = invoices[0]["id"]
+
+    response = page.request.get(f"/api/v1/client/invoices/{invoice_id}")
+
+    assert response.status == 200
+    data = response.json()["data"]
+    assert data["invoice"]["id"] == invoice_id
+    assert len(data["items"]) > 0
+
+
+def test_the_order_list_is_not_empty(page):
+    _login(page)
+
+    response = page.request.get("/api/v1/client/orders")
+
+    assert response.status == 200
+    orders = response.json()["data"]["orders"]
+    assert len(orders) > 0
+    assert "total" in orders[0]
+    assert "status" in orders[0]
+
+
+def test_the_domain_list_is_not_empty(page):
+    _login(page)
+
+    response = page.request.get("/api/v1/client/domains")
+
+    assert response.status == 200
+    domains = response.json()["data"]["domains"]
+    assert len(domains) > 0
+    assert "domain" in domains[0]
+    assert "expiryDate" in domains[0]
+
+
+def test_the_ssl_certificates_follow_the_domains(page):
+    _login(page)
+
+    domains = page.request.get("/api/v1/client/domains").json()["data"]["domains"]
+    certificates = page.request.get("/api/v1/client/ssl").json()["data"]["certificates"]
+
+    assert len(certificates) == len(domains)
+    assert certificates[0]["domain"] == domains[0]["domain"]
+    assert "daysRemaining" in certificates[0]
+
+
+def test_the_affiliate_programme_is_readable(page):
+    _login(page)
+
+    response = page.request.get("/api/v1/client/affiliate")
+
+    assert response.status == 200
+    data = response.json()["data"]
+    assert "affiliate" in data
+    assert "referrals" in data
+
+
+def test_the_ticket_list_is_not_empty(page):
+    _login(page)
+
+    response = page.request.get("/api/v1/client/tickets")
+
+    assert response.status == 200
+    tickets = response.json()["data"]["tickets"]
+    assert len(tickets) > 0
+    assert "subject" in tickets[0]
+
+
+def test_a_ticket_can_be_created_and_is_then_listed(page):
+    _login(page)
+
+    before = page.request.get("/api/v1/client/tickets").json()["data"]["tickets"]
+
+    created = page.request.post(
+        "/api/v1/client/tickets",
+        data={
+            "subject": "Ticket de verificação E2E",
+            "message": "Criado pela suíte de testes.",
+        },
+    )
+    assert created.status == 201, created.text()
+
+    after = page.request.get("/api/v1/client/tickets").json()["data"]["tickets"]
+    assert len(after) == len(before) + 1
+
+
+def test_the_knowledgebase_is_public_and_not_empty(page):
+    response = page.request.get("/api/v1/knowledgebase")
+
+    assert response.status == 200
+    assert len(response.json()["data"]["articles"]) > 0
+
+
+def test_the_knowledgebase_categories_report_their_counts(page):
+    response = page.request.get("/api/v1/knowledgebase/categories")
+
+    assert response.status == 200
+    categories = response.json()["data"]["categories"]
+    assert len(categories) > 0
+    for category in categories:
+        assert isinstance(category["articleCount"], int), category
+        assert category["articleCount"] >= 0
+
+
+def test_the_announcements_are_public(page):
+    response = page.request.get("/api/v1/announcements")
+
+    assert response.status == 200
+    assert len(response.json()["data"]["announcements"]) > 0
+
+
+def test_the_server_status_is_public(page):
+    response = page.request.get("/api/v1/serverstatus")
+
+    assert response.status == 200
+    status = response.json()["data"]["status"]
+    assert "uptime" in status
+    assert "database" in status
+
+
+def test_a_client_only_sees_its_own_data(page):
+    """Ownership: a client must not read another client's rows."""
+    _login(page, OTHER_CLIENT_USER, OTHER_CLIENT_PASS)
+
+    invoices = page.request.get("/api/v1/client/invoices").json()["data"]["invoices"]
+    tickets = page.request.get("/api/v1/client/tickets").json()["data"]["tickets"]
+
+    assert invoices == []
+    assert tickets == []

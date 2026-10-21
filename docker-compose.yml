@@ -12,11 +12,15 @@ services:
       - DB_HOST=mysql
       - DB_NAME=linuxkonect
       - DB_USER=linuxkonect
-      - DB_PASSWORD=qm9W8amh5XV9A4Dr
+      # The local database's own password. configuration.php keeps the
+      # production one for the production deployment; the environment
+      # variable overrides it here.
+      - DB_PASSWORD=${XKHM_DB_PASSWORD:-xkhm-local-only}
     volumes:
       - ./public/uploads:/var/www/html/public/uploads
-      # The Flutter web build is served from the same origin as the API so
-      # the browser manages the session cookie natively (no CORS).
+      # The Flutter web build IS the client area. It is mounted at the
+      # document root, next to the API, so the browser manages the session
+      # cookie natively (no CORS) and the whole product is one origin.
       # Build it first with `make flutter-build`.
       - ./flutter/xkhm_app/build/web:/var/www/html/public/app:ro
     depends_on:
@@ -29,10 +33,14 @@ services:
   mysql:
     image: mysql:8.0
     environment:
-      - MYSQL_ROOT_PASSWORD=rootpassword
+      # The local database has its OWN credentials. They must never be the
+      # production ones: the production password is in configuration.php and
+      # in the git history, and a database published on 0.0.0.0 with a known
+      # password is an invitation (see aes/tickets/T027.md).
+      - MYSQL_ROOT_PASSWORD=${XKHM_DB_ROOT_PASSWORD:-xkhm-local-root}
       - MYSQL_DATABASE=linuxkonect
       - MYSQL_USER=linuxkonect
-      - MYSQL_PASSWORD=qm9W8amh5XV9A4Dr
+      - MYSQL_PASSWORD=${XKHM_DB_PASSWORD:-xkhm-local-only}
       # The init script is UTF-8 (pt-BR content). Without this the client
       # charset defaults to latin1 and every accented character is mangled.
       - MYSQL_INITDB_SKIP_TZINFO=1
@@ -43,7 +51,10 @@ services:
       - mysql_data:/var/lib/mysql
       - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "3306:3306"
+      # Published on the loopback ONLY. The application reaches the database
+      # over the Docker network, so there is no reason to expose it to the
+      # world — and doing so is what let a scanner find it.
+      - "127.0.0.1:3306:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "linuxkonect", "-pqm9W8amh5XV9A4Dr"]
       interval: 10s
