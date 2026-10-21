@@ -148,10 +148,6 @@ final class SchemaMap
             'currency' => 1,
             'dateadded' => null,
         ],
-        'tblclients' => [
-            'authmodule' => '',
-            'authdata' => '',
-        ],
     ];
 
     /**

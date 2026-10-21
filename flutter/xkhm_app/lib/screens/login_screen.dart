@@ -7,6 +7,10 @@ import '../widgets/lk_widgets.dart';
 import 'password_reset_screen.dart';
 
 /// The login screen (pt-BR).
+///
+/// When the client has a second factor and the device is **new**, the
+/// server answers the login with a challenge instead of a session. The
+/// screen then asks for the code from the authenticator app.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -18,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _codeController = TextEditingController();
 
   bool _busy = false;
   bool _obscure = true;
@@ -26,6 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _codeController.dispose();
     super.dispose();
   }
 
@@ -43,7 +49,38 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _busy = false);
 
     if (!ok) {
-      final message = context.read<LkSession>().error ?? 'Falha ao iniciar sessão.';
+      final session = context.read<LkSession>();
+
+      // A second factor was asked for: the screen changes, and there is
+      // no error to report — the user is simply one step further.
+      if (session.needsSecondFactor) {
+        return;
+      }
+
+      final message = session.error ?? 'Falha ao iniciar sessão.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+  }
+
+  /// The answer to the second factor.
+  Future<void> _submitCode() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    setState(() => _busy = true);
+
+    final ok = await context.read<LkSession>().submitSecondFactor(
+          _codeController.text.trim(),
+        );
+
+    if (!mounted) return;
+    setState(() => _busy = false);
+
+    if (!ok) {
+      final message =
+          context.read<LkSession>().error ?? 'Código inválido.';
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
@@ -53,6 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final needsCode = context.watch<LkSession>().needsSecondFactor;
 
     return Scaffold(
       body: Container(
@@ -89,88 +127,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 28),
                       LkCard(
-                        title: 'Iniciar Sessão',
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const SizedBox(height: 8),
-                            Semantics(
-                              identifier: 'login-email',
-                              container: true,
-                              explicitChildNodes: true,
-                              textField: true,
-                              child: TextFormField(
-                                key: const Key('login-email'),
-                                controller: _emailController,
-                                keyboardType: TextInputType.emailAddress,
-                                autofillHints: const [AutofillHints.email],
-                                decoration: const InputDecoration(
-                                  labelText: 'Email',
-                                ),
-                                validator: (value) {
-                                  final v = (value ?? '').trim();
-                                  if (v.isEmpty) return 'Indique o seu email';
-                                  if (!v.contains('@')) return 'Email inválido';
-                                  return null;
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Semantics(
-                              identifier: 'login-password',
-                              container: true,
-                              explicitChildNodes: true,
-                              textField: true,
-                              child: TextFormField(
-                                key: const Key('login-password'),
-                                controller: _passwordController,
-                                obscureText: _obscure,
-                                autofillHints: const [AutofillHints.password],
-                                onFieldSubmitted: (_) => _submit(),
-                                decoration: InputDecoration(
-                                  labelText: 'Senha',
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscure
-                                          ? Icons.visibility_outlined
-                                          : Icons.visibility_off_outlined,
-                                    ),
-                                    onPressed: () =>
-                                        setState(() => _obscure = !_obscure),
-                                  ),
-                                ),
-                                validator: (value) => (value ?? '').isEmpty
-                                    ? 'Indique a sua senha'
-                                    : null,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            ElevatedButton(
-                              key: const Key('login-submit'),
-                              onPressed: _busy ? null : _submit,
-                              child: _busy
-                                  ? SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: theme.colorScheme.onPrimary,
-                                      ),
-                                    )
-                                  : const Text('Entrar'),
-                            ),
-                            const SizedBox(height: 12),
-                            TextButton(
-                              key: const Key('login-forgot'),
-                              onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => const PasswordResetScreen(),
-                                ),
-                              ),
-                              child: const Text('Esqueci a senha?'),
-                            ),
-                          ],
-                        ),
+                        title: needsCode
+                            ? 'Verificação em dois passos'
+                            : 'Iniciar Sessão',
+                        child: needsCode
+                            ? _secondFactor(theme)
+                            : _credentials(theme),
                       ),
                       const SizedBox(height: 24),
                       Text(
@@ -188,6 +150,146 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  /// The email and the password.
+  Widget _credentials(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 8),
+        Semantics(
+          identifier: 'login-email',
+          container: true,
+          explicitChildNodes: true,
+          textField: true,
+          child: TextFormField(
+            key: const Key('login-email'),
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            autofillHints: const [AutofillHints.email],
+            decoration: const InputDecoration(
+              labelText: 'Email',
+            ),
+            validator: (value) {
+              final v = (value ?? '').trim();
+              if (v.isEmpty) return 'Indique o seu email';
+              if (!v.contains('@')) return 'Email inválido';
+              return null;
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+        Semantics(
+          identifier: 'login-password',
+          container: true,
+          explicitChildNodes: true,
+          textField: true,
+          child: TextFormField(
+            key: const Key('login-password'),
+            controller: _passwordController,
+            obscureText: _obscure,
+            autofillHints: const [AutofillHints.password],
+            onFieldSubmitted: (_) => _submit(),
+            decoration: InputDecoration(
+              labelText: 'Senha',
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                ),
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
+            ),
+            validator: (value) =>
+                (value ?? '').isEmpty ? 'Indique a sua senha' : null,
+          ),
+        ),
+        const SizedBox(height: 24),
+        ElevatedButton(
+          key: const Key('login-submit'),
+          onPressed: _busy ? null : _submit,
+          child: _busy
+              ? SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: theme.colorScheme.onPrimary,
+                  ),
+                )
+              : const Text('Entrar'),
+        ),
+        const SizedBox(height: 12),
+        TextButton(
+          key: const Key('login-forgot'),
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const PasswordResetScreen(),
+            ),
+          ),
+          child: const Text('Esqueci a senha?'),
+        ),
+      ],
+    );
+  }
+
+  /// The code from the authenticator app.
+  Widget _secondFactor(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 8),
+        Text(
+          'Este dispositivo ainda não é de confiança. Abra a aplicação de '
+          'autenticação e introduza o código de seis dígitos.',
+          style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
+        ),
+        const SizedBox(height: 20),
+        Semantics(
+          identifier: 'login-code',
+          container: true,
+          explicitChildNodes: true,
+          textField: true,
+          child: TextFormField(
+            key: const Key('login-code'),
+            controller: _codeController,
+            keyboardType: TextInputType.number,
+            autofillHints: const [AutofillHints.oneTimeCode],
+            onFieldSubmitted: (_) => _submitCode(),
+            decoration: const InputDecoration(
+              labelText: 'Código de verificação',
+            ),
+            validator: (value) {
+              final v = (value ?? '').trim();
+              if (v.isEmpty) return 'Indique o código';
+              if (v.length < 6) return 'O código tem seis dígitos';
+              return null;
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
+        ElevatedButton(
+          key: const Key('login-code-submit'),
+          onPressed: _busy ? null : _submitCode,
+          child: _busy
+              ? SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: theme.colorScheme.onPrimary,
+                  ),
+                )
+              : const Text('Verificar'),
+        ),
+        const SizedBox(height: 12),
+        TextButton(
+          key: const Key('login-code-cancel'),
+          onPressed: () => context.read<LkSession>().cancelSecondFactor(),
+          child: const Text('Voltar'),
+        ),
+      ],
     );
   }
 }

@@ -43,7 +43,9 @@ final class ApiV1Controller
         private OrderRepositoryInterface $orderRepository,
         private PasswordResetService $passwordResetService,
         private AdminPasswordResetService $adminPasswordResetService,
-        private ClientRepositoryInterface $clientRepository
+        private ClientRepositoryInterface $clientRepository,
+        private \Xkhm\Service\MfaService $mfaService,
+        private \Xkhm\Service\DeviceTrust $deviceTrust
     ) {
     }
 
@@ -69,6 +71,7 @@ final class ApiV1Controller
         $data = $request->getParsedBody();
         $email = (string)($data['email'] ?? $data['username'] ?? '');
         $password = (string)($data['password'] ?? '');
+        $deviceId = trim((string)($data['deviceId'] ?? ''));
 
         if ($email === '' || $password === '') {
             return JsonResponse::fail(
@@ -90,19 +93,244 @@ final class ApiV1Controller
             );
         }
 
-        session_regenerate_id(true);
-        $_SESSION['client_id'] = $client['id'];
-        $_SESSION['client'] = $client;
+        $clientId = (int)$client['id'];
+
+        // A client with a second factor, logging in from a device the
+        // server does not trust, gets a **challenge** — not a session.
+        if ($this->mfaService->isEnrolled($clientId)) {
+            $trusted = $this->deviceTrust->isTrusted(
+                $this->trustedDeviceCookie($request),
+                $deviceId
+            );
+
+            if (!$trusted) {
+                return JsonResponse::ok($response, [
+                    'mfaRequired' => true,
+                    'challenge' => $this->mfaService->createChallenge($clientId),
+                ]);
+            }
+        }
+
+        $this->openSession($response, $client);
 
         return JsonResponse::ok($response, [
             'client' => [
-                'id' => (int)$client['id'],
+                'id' => $clientId,
                 'firstname' => $client['firstname'] ?? '',
                 'lastname' => $client['lastname'] ?? '',
                 'email' => $client['email'] ?? '',
                 'status' => $client['status'] ?? '',
             ],
         ]);
+    }
+
+    /**
+     * POST /api/v1/auth/mfa
+     *
+     * The answer to a challenge: the code from the authenticator app.
+     */
+    public function mfaChallenge(Request $request, Response $response): Response
+    {
+        $data = $request->getParsedBody();
+        $challenge = trim((string)($data['challenge'] ?? ''));
+        $code = trim((string)($data['code'] ?? ''));
+        $deviceId = trim((string)($data['deviceId'] ?? ''));
+
+        if ($challenge === '' || $code === '') {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_BAD_REQUEST,
+                'Indique o código e o desafio.',
+                400
+            );
+        }
+
+        $clientId = $this->mfaService->resolveChallenge($challenge);
+
+        if ($clientId === null) {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_UNAUTHORIZED,
+                'O pedido expirou. Inicie sessão de novo.',
+                401
+            );
+        }
+
+        if (!$this->mfaService->verifyCode($clientId, $code)) {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_UNAUTHORIZED,
+                'Código inválido.',
+                401
+            );
+        }
+
+        $client = $this->clientRepository->findById($clientId);
+
+        if ($client === null) {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_UNAUTHORIZED,
+                'Utilizador ou senha inválidos.',
+                401
+            );
+        }
+
+        $this->openSession($response, $client);
+
+        // The device is now trusted: the next login from it does not
+        // ask for the code again.
+        if ($deviceId !== '') {
+            $this->issueTrust($response, $deviceId);
+        }
+
+        return JsonResponse::ok($response, [
+            'client' => [
+                'id' => $clientId,
+                'firstname' => $client['firstname'] ?? '',
+                'lastname' => $client['lastname'] ?? '',
+                'email' => $client['email'] ?? '',
+                'status' => $client['status'] ?? '',
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/v1/client/security
+     *
+     * Whether the client has a second factor, and when it was set up.
+     */
+    public function clientSecurity(Request $request, Response $response): Response
+    {
+        $session = $request->getAttribute('session');
+        $clientId = (int)($session['client_id'] ?? 0);
+
+        return JsonResponse::ok($response, [
+            'enrolled' => $this->mfaService->isEnrolled($clientId),
+        ]);
+    }
+
+    /**
+     * POST /api/v1/client/security/enrol
+     *
+     * A new secret, and the QR the authenticator app reads. The secret
+     * only becomes active once the client proves they can produce a
+     * code with it.
+     */
+    public function clientSecurityEnrol(Request $request, Response $response): Response
+    {
+        $session = $request->getAttribute('session');
+        $clientId = (int)($session['client_id'] ?? 0);
+        $client = $this->clientRepository->findById($clientId);
+
+        if ($client === null) {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_NOT_FOUND,
+                'Utilizador não encontrado.',
+                404
+            );
+        }
+
+        try {
+            $enrolment = $this->mfaService->startEnrolment(
+                $clientId,
+                (string)($client['email'] ?? '')
+            );
+        } catch (\RuntimeException $e) {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_BAD_REQUEST,
+                $e->getMessage(),
+                400
+            );
+        }
+
+        return JsonResponse::ok($response, $enrolment);
+    }
+
+    /**
+     * POST /api/v1/client/security/confirm
+     *
+     * The code from the authenticator app, proving the secret works.
+     */
+    public function clientSecurityConfirm(Request $request, Response $response): Response
+    {
+        $session = $request->getAttribute('session');
+        $clientId = (int)($session['client_id'] ?? 0);
+        $data = $request->getParsedBody();
+        $code = trim((string)($data['code'] ?? ''));
+
+        if ($code === '') {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_BAD_REQUEST,
+                'Indique o código.',
+                400
+            );
+        }
+
+        if (!$this->mfaService->confirmEnrolment($clientId, $code)) {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_BAD_REQUEST,
+                'Código inválido.',
+                400
+            );
+        }
+
+        return JsonResponse::ok($response, ['enrolled' => true]);
+    }
+
+    /**
+     * POST /api/v1/client/security/disable
+     */
+    public function clientSecurityDisable(Request $request, Response $response): Response
+    {
+        $session = $request->getAttribute('session');
+        $clientId = (int)($session['client_id'] ?? 0);
+
+        return JsonResponse::ok($response, [
+            'enrolled' => !$this->mfaService->disable($clientId),
+        ]);
+    }
+
+    /**
+     * Open the session of a client.
+     *
+     * @param array<string, mixed> $client
+     */
+    private function openSession(Response $response, array $client): void
+    {
+        session_regenerate_id(true);
+        $_SESSION['client_id'] = (int)$client['id'];
+        $_SESSION['client'] = $client;
+    }
+
+    /**
+     * The cookie of the trusted device, as the request carries it.
+     */
+    private function trustedDeviceCookie(Request $request): ?string
+    {
+        $cookies = $request->getCookieParams();
+
+        $value = $cookies[\Xkhm\Service\DeviceTrust::COOKIE] ?? null;
+
+        return is_string($value) ? $value : null;
+    }
+
+    /**
+     * Tell the browser that this device is trusted.
+     */
+    private function issueTrust(Response $response, string $deviceId): void
+    {
+        $options = $this->deviceTrust->cookieOptions();
+
+        setcookie(
+            \Xkhm\Service\DeviceTrust::COOKIE,
+            $this->deviceTrust->issue($deviceId),
+            $options
+        );
     }
 
     /**

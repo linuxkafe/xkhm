@@ -54,6 +54,10 @@ CSS_PATTERN = re.compile(
 )
 
 
+#: The marker that exempts a line from the check, with its reason.
+ALLOW_MARKER = "tokens-check: allow"
+
+
 def scan(directory: pathlib.Path, pattern: re.Pattern, allowed: set[str]) -> list[str]:
     offenders: list[str] = []
 
@@ -66,6 +70,16 @@ def scan(directory: pathlib.Path, pattern: re.Pattern, allowed: set[str]) -> lis
         for number, line in enumerate(
             path.read_text(encoding="utf-8").splitlines(), 1
         ):
+            # The escape hatch, for the rare case where a literal is
+            # not a brand decision but a **requirement** — a QR code
+            # has to be dark on a light background, or the phone cannot
+            # read it.
+            #
+            # The marker is in the source, next to the code that needs
+            # it, so every exemption is auditable.
+            if ALLOW_MARKER in line:
+                continue
+
             if pattern.search(line):
                 relative = path.relative_to(ROOT)
                 offenders.append(f"{relative}:{number}: {line.strip()}")

@@ -168,6 +168,23 @@ por e-mail (ou é entregue pelo administrador — ver `docs/DATABASE.md`).
 
 O botão «Esqueci a senha?» do ecrã de login abre este ecrã.
 
+### A verificação em dois passos
+
+O ecrã **Segurança** liga a verificação em dois passos: um QR que a
+aplicação de autenticação lê, e a confirmação com um código.
+
+A partir daí, um início de sessão **num dispositivo novo** pede o
+código de seis dígitos; nos dispositivos já conhecidos, não há nada
+a pedir.
+
+O segredo do segundo factor vive em `tblclients.authdata` — uma
+coluna que **já existia** (é onde o WHMCS 6/7 guarda o segredo do
+2FA). Nenhuma coluna nova, nenhuma tabela nova.
+
+A confiança de um dispositivo é um **cookie assinado** pelo servidor:
+não há lista de dispositivos, e revogar um dispositivo é o cookie
+expirar.
+
 ### O link do e-mail
 
 O e-mail da recuperação leva um link:

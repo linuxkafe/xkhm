@@ -13,6 +13,7 @@ import 'home_screen.dart';
 import 'invoices_screen.dart';
 import 'knowledgebase_screen.dart';
 import 'orders_screen.dart';
+import 'security_screen.dart';
 import 'server_status_screen.dart';
 import 'services_screen.dart';
 import 'ssl_screen.dart';
@@ -80,6 +81,11 @@ class _HomeShellState extends State<HomeShell> {
       label: 'Serviços',
       icon: Icons.dns_outlined,
       builder: (_) => const ServicesScreen(),
+    ),
+    LkDestination(
+      label: 'Segurança',
+      icon: Icons.shield_outlined,
+      builder: (_) => const SecurityScreen(),
     ),
     LkDestination(
       label: 'Pedidos',

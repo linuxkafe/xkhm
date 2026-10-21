@@ -180,13 +180,68 @@ class LkApiClient {
 
   // ─── Auth ──────────────────────────────────────────────────────────────────
 
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  /// The login.
+  ///
+  /// The answer is either the client — the session is open — or a
+  /// **challenge**: the client has a second factor, and this device is
+  /// not one it trusts.
+  Future<Map<String, dynamic>> login(
+    String email,
+    String password, {
+    String? deviceId,
+  }) async {
     final data = await _send('POST', '/auth/login', body: {
       'email': email,
       'password': password,
+      'deviceId': ?deviceId,
     });
+
+    if (data['mfaRequired'] == true) {
+      return data;
+    }
+
     final client = data['client'] as Map<String, dynamic>? ?? const {};
     return client;
+  }
+
+  /// The answer to a challenge: the code from the authenticator app.
+  Future<Map<String, dynamic>> mfa(
+    String challenge,
+    String code, {
+    String? deviceId,
+  }) async {
+    final data = await _send('POST', '/auth/mfa', body: {
+      'challenge': challenge,
+      'code': code,
+      'deviceId': ?deviceId,
+    });
+
+    return data['client'] as Map<String, dynamic>? ?? const {};
+  }
+
+  /// Whether the client has a second factor.
+  Future<bool> securityEnrolled() async {
+    final data = await _send('GET', '/client/security');
+    return data['enrolled'] == true;
+  }
+
+  /// A new secret, and the QR the authenticator app reads.
+  Future<Map<String, dynamic>> securityEnrol() =>
+      _send('POST', '/client/security/enrol');
+
+  /// The code that proves the secret works.
+  Future<bool> securityConfirm(String code) async {
+    final data = await _send('POST', '/client/security/confirm', body: {
+      'code': code,
+    });
+
+    return data['enrolled'] == true;
+  }
+
+  /// Turn the second factor off.
+  Future<bool> securityDisable() async {
+    final data = await _send('POST', '/client/security/disable');
+    return data['enrolled'] != true;
   }
 
   Future<Map<String, dynamic>> session() => _send('GET', '/auth/session');

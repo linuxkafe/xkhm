@@ -27,6 +27,7 @@ dependencies:
 
   # Persist the session cookie across app restarts.
   shared_preferences: ^2.3.2
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:

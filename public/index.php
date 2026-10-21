@@ -188,6 +188,29 @@ $adminAuthController = new AdminAuthController(
     $adminPasswordResetService
 );
 
+// ── O segundo factor ────────────────────────────────────────────────────────
+//
+// O segredo do segundo factor vive em `tblclients.authdata` — uma coluna
+// que JÁ EXISTE, e que o WHMCS 6/7 usa exactamente para isto. Nenhuma
+// coluna nova, nenhuma tabela nova: o esquema de produção não é tocado.
+//
+// A confiança do dispositivo não é uma lista: é um **cookie assinado**.
+// Quem tem o cookie e a assinatura certa é de confiança — e revogar um
+// dispositivo é o cookie expirar.
+//
+// A chave de assinatura é **derivada** do segredo partilhado com o
+// WHMCS: o mesmo segredo, um propósito diferente.
+$mfaSigningKey = hash_hmac(
+    'sha256',
+    'xkhm.mfa.v1',
+    (string)$config->getCcEncryptionHash()
+);
+
+$signedTokens = new \Xkhm\Service\SignedToken($mfaSigningKey);
+$deviceTrust = new \Xkhm\Service\DeviceTrust($signedTokens);
+$totpService = new \Xkhm\Service\TotpService();
+$mfaService = new \Xkhm\Service\MfaService($clientRepo, $totpService, $signedTokens);
+
 // ─── Versioned JSON API (/api/v1) — consumed by the Flutter application ─────
 
 $apiV1Controller = new \Xkhm\Http\Controller\Api\ApiV1Controller(
@@ -203,7 +226,9 @@ $apiV1Controller = new \Xkhm\Http\Controller\Api\ApiV1Controller(
     $orderRepo,
     $passwordResetService,
     $adminPasswordResetService,
-    $clientRepo
+    $clientRepo,
+    $mfaService,
+    $deviceTrust
 );
 
 $apiAuth = new \Xkhm\Http\Controller\Api\ApiAuthMiddleware();
@@ -218,6 +243,10 @@ $app->group('/api/v1', function ($group) use ($apiV1Controller, $apiAuth) {
     // The password reset is public by definition: it is for someone who
     // cannot log in.
     $group->post('/auth/forgot-password', [$apiV1Controller, 'forgotPassword']);
+
+    // O segundo factor. O `mfa` é público — é a resposta a um desafio,
+    // e o desafio é que prova que o pedido é legítimo.
+    $group->post('/auth/mfa', [$apiV1Controller, 'mfaChallenge']);
     $group->post('/auth/reset-password', [$apiV1Controller, 'resetPassword']);
     $group->post('/admin/auth/forgot-password', [$apiV1Controller, 'adminForgotPassword']);
     $group->post('/admin/auth/reset-password', [$apiV1Controller, 'adminResetPassword']);
@@ -239,6 +268,10 @@ $app->group('/api/v1', function ($group) use ($apiV1Controller, $apiAuth) {
     $group->get('/client/orders', [$apiV1Controller, 'clientOrders'])->add($apiAuth);
     $group->get('/client/domains', [$apiV1Controller, 'clientDomains'])->add($apiAuth);
     $group->get('/client/services', [$apiV1Controller, 'clientServices'])->add($apiAuth);
+    $group->get('/client/security', [$apiV1Controller, 'clientSecurity'])->add($apiAuth);
+    $group->post('/client/security/enrol', [$apiV1Controller, 'clientSecurityEnrol'])->add($apiAuth);
+    $group->post('/client/security/confirm', [$apiV1Controller, 'clientSecurityConfirm'])->add($apiAuth);
+    $group->post('/client/security/disable', [$apiV1Controller, 'clientSecurityDisable'])->add($apiAuth);
     $group->get('/client/ssl', [$apiV1Controller, 'clientSsl'])->add($apiAuth);
     $group->get('/client/affiliate', [$apiV1Controller, 'clientAffiliate'])->add($apiAuth);
     $group->get('/client/tickets', [$apiV1Controller, 'clientTickets'])->add($apiAuth);

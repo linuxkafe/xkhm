@@ -201,6 +201,16 @@ def upsert_admin(username: str, password: str) -> int:
 # ─── The sample data ─────────────────────────────────────────────────────────
 
 
+def reset_client_mfa(client_id: int) -> None:
+    """Clear the second factor of the development client.
+
+    The seed owns the development accounts: the enrolment is part of
+    their state, and a test that leaves it behind would make the next
+    login ask for a code.
+    """
+    mysql(f"UPDATE tblclients SET authdata = '' WHERE id = {client_id};")
+
+
 def seed_client_services(client_id: int) -> None:
     """Give the development client services of **different types**.
 
@@ -469,6 +479,7 @@ def main() -> int:
     try:
         seed_client_data(client_id)
         seed_client_services(client_id)
+        reset_client_mfa(client_id)
         print("  [OK]    dados do cliente (faturas, pedido, dominio, ticket)")
         seed_global_content()
         print("  [OK]    base de conhecimento e anuncios")

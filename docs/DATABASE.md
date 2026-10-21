@@ -470,6 +470,35 @@ exposição. Reescrever a história é o que a remove, e é uma operação
 destrutiva que afecta todos os clones: é uma decisão do operador, não
 uma decisão automática.
 
+## A verificação em dois passos
+
+O segredo do segundo factor vive em `tblclients.authdata` — a coluna
+que **já existia** na base de produção, e que o WHMCS 6/7 usa
+exactamente para o 2FA. **Nenhuma coluna nova, nenhuma tabela nova.**
+
+O `authdata` guarda um documento JSON com a nossa chave:
+
+```json
+{"xkhm_mfa": {"secret": "...", "enabled": true, "created": "..."}}
+```
+
+Um `authdata` que **não** é nosso (o módulo de autenticação do
+WHMCS) nunca é sobrescrito: a inscrição recusa com uma mensagem
+clara.
+
+A **confiança de um dispositivo** não é uma lista: é um cookie
+assinado (HMAC-SHA256, com uma chave derivada do `CC_ENCRYPTION_HASH`).
+Quem tem o cookie e a assinatura certa é de confiança; revogar um
+dispositivo é o cookie expirar.
+
+| Onde | O quê |
+|------|-------|
+| `POST /api/v1/client/security/enrol` | o segredo e o QR |
+| `POST /api/v1/client/security/confirm` | a confirmação, com o código |
+| `POST /api/v1/client/security/disable` | desativar |
+| `POST /api/v1/auth/login` | com `deviceId`; pode devolver um **desafio** |
+| `POST /api/v1/auth/mfa` | a resposta ao desafio |
+
 ## Formatos de senha
 
 A base de produção usa **dois** formatos. O verificador suporta ambos (e

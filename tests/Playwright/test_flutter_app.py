@@ -264,6 +264,7 @@ ALL_DESTINATIONS = [
     "Faturas",
     "Tickets",
     "Serviços",
+    "Segurança",
     "Pedidos",
     "Domínios",
     "Certificados SSL",
@@ -298,8 +299,8 @@ def test_flutter_drawer_navigates(app_page):
     _open_drawer(app_page)
     app_page.wait_for_timeout(800)
 
-    # "Procurar Domínio" is the twelfth destination.
-    app_page.locator('[flt-semantics-identifier="drawer-destination-11"]').click()
+    # "Procurar Domínio" is the thirteenth destination.
+    app_page.locator('[flt-semantics-identifier="drawer-destination-12"]').click()
     app_page.wait_for_timeout(2000)
 
     body = _semantics_text(app_page)
@@ -324,10 +325,10 @@ def test_flutter_reaches_the_new_sections(app_page):
 
     for index, label in [
         (0, "Início"),
-        (5, "Pedidos"),
-        (6, "Domínios"),
-        (7, "Certificados SSL"),
-        (8, "Afiliados"),
+        (6, "Pedidos"),
+        (7, "Domínios"),
+        (8, "Certificados SSL"),
+        (9, "Afiliados"),
     ]:
         _open_drawer(app_page)
         app_page.wait_for_timeout(700)
