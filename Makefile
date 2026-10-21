@@ -67,6 +67,9 @@ db-backup: ## Back up the local database
 	   > docker/backups/linuxkonect-$$(date +%Y%m%d-%H%M%S).sql && \
 	 echo "cópia em docker/backups/"
 
+db-test-accounts: ## Create the development test accounts (client + admin)
+	@python3 tools/seed_test_accounts.py
+
 db-seed: ## Re-seed the local database with the development fixture
 	@echo "ATENÇÃO: isto apaga os dados locais actuais."
 	@read -p "Continuar? [s/N] " answer; \

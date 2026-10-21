@@ -5,15 +5,26 @@ declare(strict_types=1);
 namespace Xkhm\Repository;
 
 use PDO;
+use Xkhm\Config;
 use Xkhm\Database\Connection;
 
+/**
+ * Reads and writes `tbltickets` and `tblticketreplies` using the real
+ * WHMCS 5.3.9 schema.
+ *
+ * The ticket subject is `title` and its priority is `urgency`; a reply's
+ * `adminreply` flag is `admin`.
+ */
 class TicketRepositoryPDO implements TicketRepositoryInterface
 {
+    private const TABLE = 'tbltickets';
+    private const REPLIES = 'tblticketreplies';
+
     private PDO $pdo;
 
     public function __construct(?PDO $pdo = null)
     {
-        $config = new \Xkhm\Config();
+        $config = new Config();
         $this->pdo = $pdo ?? Connection::get($config->getDbConfig());
     }
 
@@ -21,14 +32,22 @@ class TicketRepositoryPDO implements TicketRepositoryInterface
     {
         $stmt = $this->pdo->prepare('SELECT * FROM tbltickets WHERE id = ?');
         $stmt->execute([$id]);
-        return $stmt->fetch() ?: null;
+        $row = $stmt->fetch();
+
+        return $row ? SchemaMap::toCanonical(self::TABLE, $row) : null;
     }
 
     public function findByUserId(int $userId): array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM tbltickets WHERE userid = ? ORDER BY date DESC');
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM tbltickets WHERE userid = ? ORDER BY date DESC'
+        );
         $stmt->execute([$userId]);
-        return $stmt->fetchAll();
+
+        return array_map(
+            fn (array $row): array => SchemaMap::toCanonical(self::TABLE, $row),
+            $stmt->fetchAll()
+        );
     }
 
     public function findWithReplies(int $id): ?array
@@ -38,20 +57,26 @@ class TicketRepositoryPDO implements TicketRepositoryInterface
             return null;
         }
 
-        // WHMCS 5.3.x names the FK column `tid`, not `ticketid`.
         $stmt = $this->pdo->prepare('SELECT * FROM tblticketreplies WHERE tid = ? ORDER BY date');
         $stmt->execute([$id]);
-        $ticket['replies'] = $stmt->fetchAll();
+        $ticket['replies'] = array_map(
+            fn (array $row): array => SchemaMap::toCanonical(self::REPLIES, $row),
+            $stmt->fetchAll()
+        );
 
         return $ticket;
     }
 
     public function create(array $data): int
     {
+        $data = SchemaMap::withRequiredDefaults(self::TABLE, $data);
+
         $columns = implode(', ', array_keys($data));
         $placeholders = ':' . implode(', :', array_keys($data));
 
-        $stmt = $this->pdo->prepare("INSERT INTO tbltickets ($columns) VALUES ($placeholders)");
+        $stmt = $this->pdo->prepare(
+            "INSERT INTO tbltickets ($columns) VALUES ($placeholders)"
+        );
         $stmt->execute($data);
 
         return (int) $this->pdo->lastInsertId();
@@ -59,12 +84,15 @@ class TicketRepositoryPDO implements TicketRepositoryInterface
 
     public function addReply(int $ticketId, array $data): int
     {
-        // WHMCS 5.3.x names the FK column `tid`, not `ticketid`.
         $data['tid'] = $ticketId;
+        $data = SchemaMap::withRequiredDefaults(self::REPLIES, $data);
+
         $columns = implode(', ', array_keys($data));
         $placeholders = ':' . implode(', :', array_keys($data));
 
-        $stmt = $this->pdo->prepare("INSERT INTO tblticketreplies ($columns) VALUES ($placeholders)");
+        $stmt = $this->pdo->prepare(
+            "INSERT INTO tblticketreplies ($columns) VALUES ($placeholders)"
+        );
         $stmt->execute($data);
 
         return (int) $this->pdo->lastInsertId();
@@ -72,7 +100,13 @@ class TicketRepositoryPDO implements TicketRepositoryInterface
 
     public function getDepartments(): array
     {
-        $stmt = $this->pdo->query('SELECT * FROM tblticketdepartments ORDER BY sortorder');
-        return $stmt->fetchAll();
+        $stmt = $this->pdo->query(
+            'SELECT * FROM tblticketdepartments ORDER BY `order`'
+        );
+
+        return array_map(
+            fn (array $row): array => SchemaMap::toCanonical('tblticketdepartments', $row),
+            $stmt->fetchAll()
+        );
     }
 }

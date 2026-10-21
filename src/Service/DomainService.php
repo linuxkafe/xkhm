@@ -76,6 +76,8 @@ class DomainService
         $domainData = [
             'domain' => $domain,
             'userid' => $clientId,
+            // `orderid` is NOT NULL without a default in WHMCS 5.3.9.
+            'orderid' => 0,
             'period' => $period,
             'registrationdate' => date('Y-m-d'),
             'expirydate' => date('Y-m-d', strtotime("+{$period} years")),
@@ -131,6 +133,8 @@ class DomainService
         $domainData = [
             'domain' => $domain,
             'userid' => $clientId,
+            // `orderid` is NOT NULL without a default in WHMCS 5.3.9.
+            'orderid' => 0,
             'period' => $period,
             'registrationdate' => date('Y-m-d'),
             'expirydate' => date('Y-m-d', strtotime("+{$period} years")),

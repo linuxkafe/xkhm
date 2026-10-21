@@ -19,15 +19,25 @@ class AnnouncementRepositoryPDO implements AnnouncementRepositoryInterface
 
     public function getPublished(int $limit = 5): array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM tblannouncements WHERE published = 1 ORDER BY date DESC LIMIT ?');
+        $stmt = $this->pdo->prepare(
+            "SELECT * FROM tblannouncements WHERE published IN ('1', 'on', 'yes') ORDER BY date DESC LIMIT ?"
+        );
         $stmt->execute([$limit]);
-        return $stmt->fetchAll();
+
+        return array_map(
+            fn (array $row): array => SchemaMap::toCanonical('tblannouncements', $row),
+            $stmt->fetchAll()
+        );
     }
 
     public function findById(int $id): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM tblannouncements WHERE id = ? AND published = 1');
+        $stmt = $this->pdo->prepare(
+            "SELECT * FROM tblannouncements WHERE id = ? AND published IN ('1', 'on', 'yes')"
+        );
         $stmt->execute([$id]);
-        return $stmt->fetch() ?: null;
+        $row = $stmt->fetch();
+
+        return $row ? SchemaMap::toCanonical('tblannouncements', $row) : null;
     }
 }

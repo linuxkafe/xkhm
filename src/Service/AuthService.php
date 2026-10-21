@@ -6,67 +6,74 @@ namespace Xkhm\Service;
 
 use Xkhm\Repository\ClientRepositoryInterface;
 
+/**
+ * Client authentication.
+ *
+ * The password verification itself lives in {@see PasswordHasher}, which
+ * knows every format the production WHMCS database carries.
+ */
 class AuthService
 {
-    private ClientRepositoryInterface $clientRepository;
+    private PasswordHasher $hasher;
 
-    public function __construct(ClientRepositoryInterface $clientRepository)
+    public function __construct(private ClientRepositoryInterface $clientRepository)
     {
-        $this->clientRepository = $clientRepository;
+        $this->hasher = new PasswordHasher();
     }
 
     /**
-     * Verify WHMCS 5.3.9 password.
+     * Verify a password against the stored hash.
      *
-     * WHMCS 5.3.9 password format: salt (2 chars) + md5($password . $salt)
-     * The stored hash is 34 chars: first 2 chars are the salt, remaining 32 are the MD5.
-     *
-     * NOTE: Actual WHMCS 5.3.x may use a different format. This needs to be
-     * verified against the live database. For now, this implementation is
-     * self-consistent and can be adjusted to match WHMCS's exact algorithm.
+     * @return array<string, mixed>|null the client row, or null when the
+     *         credentials do not match
      */
     public function verifyPassword(string $email, string $password): ?array
     {
+        $email = trim($email);
+        if ($email === '' || $password === '') {
+            return null;
+        }
+
         $client = $this->clientRepository->findByEmail($email);
         if (!$client) {
             return null;
         }
 
-        $storedHash = (string) ($client['password'] ?? '');
-        if ($storedHash === '') {
+        // A suspended client cannot log in (WHMCS behaviour).
+        if (($client['status'] ?? '') !== '' && $client['status'] !== 'Active') {
             return null;
         }
 
-        // Handle both 32-char (plain md5) and 34-char (salt + md5) formats
-        if (strlen($storedHash) === 34) {
-            // Format: salt + md5(password.salt)
-            $salt = substr($storedHash, 0, 2);
-            $hash = substr($storedHash, 2);
-            $computedHash = md5($password . $salt);
-        } elseif (strlen($storedHash) === 32) {
-            // Format: pure md5(password) — no salt
-            $computedHash = md5($password);
-            $hash = $storedHash;
-        } else {
+        $stored = (string)($client['password'] ?? '');
+        if ($stored === '') {
             return null;
         }
 
-        if (hash_equals($hash, $computedHash)) {
-            return $client;
-        }
-
-        return null;
+        return $this->hasher->matches($stored, $password) ? $client : null;
     }
 
     /**
-     * Hash a password for storage.
-     * Format: salt (2 chars) + md5($password . $salt)
+     * Does the stored hash correspond to the given password?
+     */
+    public function matches(string $stored, string $password): bool
+    {
+        return $this->hasher->matches($stored, $password);
+    }
+
+    /**
+     * Hash a new password. Always bcrypt.
      */
     public function hashPassword(string $password): string
     {
-        $salt = bin2hex(random_bytes(1)); // 2 hex chars
-        $hash = md5($password . $salt);
-        return $salt . $hash; // 34 chars total
+        return $this->hasher->hash($password);
+    }
+
+    /**
+     * The format of a stored hash — for the diagnostics.
+     */
+    public function describeHash(string $stored): string
+    {
+        return $this->hasher->describe($stored);
     }
 
     /**
@@ -74,6 +81,6 @@ class AuthService
      */
     public function generateRememberToken(): string
     {
-        return bin2hex(random_bytes(32)); // 64 chars
+        return bin2hex(random_bytes(32));
     }
 }

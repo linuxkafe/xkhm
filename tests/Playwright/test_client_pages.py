@@ -12,10 +12,10 @@ import pytest
 
 from conftest import CLIENT_PASS, CLIENT_USER, stack_is_up
 
-#: A second client, used for the IDOR check. It owns none of the seeded
-#: invoices/tickets (those belong to `linuxkafe@linuxkafe.com`).
-OTHER_CLIENT_USER = "test@example.com"
-OTHER_CLIENT_PASS = "password"
+#: A second development client, used for the IDOR check. It owns none of
+#: the first client's data.
+OTHER_CLIENT_USER = "xkhm-test2@example.com"
+OTHER_CLIENT_PASS = "xkhm-test-2026"
 
 
 @pytest.fixture(autouse=True)
@@ -127,6 +127,11 @@ def test_the_ssl_certificates_follow_the_domains(page):
 
 
 def test_the_affiliate_programme_is_readable(page):
+    """The affiliate feature answers even when the client has no programme.
+
+    The WHMCS 5.3.9 affiliate tables are empty in production, so "no
+    programme" is the real answer, not an error.
+    """
     _login(page)
 
     response = page.request.get("/api/v1/client/affiliate")
@@ -135,6 +140,12 @@ def test_the_affiliate_programme_is_readable(page):
     data = response.json()["data"]
     assert "affiliate" in data
     assert "referrals" in data
+
+    if data["affiliate"] is None:
+        # No programme: the programme's terms are still advertised.
+        assert data["program"]["commissionRate"] > 0
+    else:
+        assert "refCode" in data["affiliate"]
 
 
 def test_the_ticket_list_is_not_empty(page):

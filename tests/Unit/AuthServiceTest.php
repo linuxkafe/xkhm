@@ -6,80 +6,126 @@ namespace Xkhm\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use Xkhm\Service\AuthService;
-use Xkhm\Repository\ClientRepositoryInterface;
 
+/**
+ * The verifier must accept every format the production database carries.
+ *
+ * The real `linuxkonect` holds **bcrypt** hashes for the admin and
+ * **38-character** WHMCS 5.x hashes for the clients. Both are covered here,
+ * together with the older schemes, so a deployment at any WHMCS version
+ * authenticates.
+ */
 class AuthServiceTest extends TestCase
 {
     private AuthService $authService;
 
-    /** @var \PHPUnit\Framework\MockObject\MockObject&ClientRepositoryInterface */
-    private $mockRepository;
-
     protected function setUp(): void
     {
-        $this->mockRepository = $this->createMock(ClientRepositoryInterface::class);
-        $this->authService = new AuthService($this->mockRepository);
+        $this->authService = new AuthService(
+            new class implements \Xkhm\Repository\ClientRepositoryInterface {
+                public function findById(int $id): ?array
+                {
+                    return null;
+                }
+
+                public function findByEmail(string $email): ?array
+                {
+                    return null;
+                }
+
+                public function create(array $data): int
+                {
+                    return 0;
+                }
+
+                public function update(int $id, array $data): bool
+                {
+                    return true;
+                }
+            }
+        );
     }
 
-    public function testVerifyPasswordValid(): void
+    // ─── The formats the real database uses ─────────────────────────────────
+
+    public function testVerifiesABcryptHash(): void
     {
-        // WHMCS 5.3.9: salt = first 2 chars of stored hash
-        // So if we generate the hash first, the salt is embedded in the hash itself
-        $password = 'test123';
-        $storedHash = $this->authService->hashPassword($password); // generates md5(password . salt) with embedded salt
-        $salt = substr($storedHash, 0, 2);
+        // The production admin table: `$2y$10$…`, 60 characters.
+        $hash = password_hash('admin123', PASSWORD_BCRYPT);
 
-        $client = ['id' => 1, 'email' => 'test@example.com', 'password' => $storedHash];
-
-        $this->mockRepository->method('findByEmail')
-            ->with('test@example.com')
-            ->willReturn($client);
-
-        $result = $this->authService->verifyPassword('test@example.com', $password);
-
-        $this->assertNotNull($result);
-        $this->assertEquals(1, $result['id']);
+        $this->assertTrue($this->authService->matches($hash, 'admin123'));
+        $this->assertFalse($this->authService->matches($hash, 'wrong'));
     }
 
-    public function testVerifyPasswordInvalid(): void
+    public function testVerifiesTheWhmcs5DoubleMd5(): void
     {
-        $password = 'test123';
-        $storedHash = $this->authService->hashPassword($password);
+        // WHMCS 5.x: salt(6) + md5(md5(password) . salt) — 38 characters.
+        $password = 'cliente123';
+        $salt = 'd6978f';
+        $hash = $salt . md5(md5($password) . $salt);
 
-        $client = ['id' => 1, 'email' => 'test@example.com', 'password' => $storedHash];
-
-        $this->mockRepository->method('findByEmail')
-            ->with('test@example.com')
-            ->willReturn($client);
-
-        $result = $this->authService->verifyPassword('test@example.com', 'wrongpassword');
-
-        $this->assertNull($result);
+        $this->assertSame(38, strlen($hash));
+        $this->assertTrue($this->authService->matches($hash, $password));
+        $this->assertFalse($this->authService->matches($hash, 'wrong'));
     }
 
-    public function testVerifyPasswordNonExistentUser(): void
+    public function testVerifiesTheAlternativeWhmcs5Orderings(): void
     {
-        $this->mockRepository->method('findByEmail')
-            ->with('nonexistent@example.com')
-            ->willReturn(null);
+        // The sibling arrangements are covered too: a wrong guess would
+        // reproduce the "the login never works" symptom.
+        $password = 'cliente123';
+        $salt = 'a4413f';
 
-        $result = $this->authService->verifyPassword('nonexistent@example.com', 'anypassword');
+        $variants = [
+            $salt . md5(md5($password) . $salt),
+            $salt . md5(md5($password) . '.' . $salt),
+            $salt . md5($salt . md5($password)),
+            $salt . md5($password . $salt),
+            $salt . md5($salt . $password),
+        ];
 
-        $this->assertNull($result);
+        foreach ($variants as $index => $hash) {
+            $this->assertTrue(
+                $this->authService->matches($hash, $password),
+                "variant {$index} was not accepted"
+            );
+        }
     }
 
-    public function testVerifyPasswordEmptyStoredHash(): void
+    public function testVerifiesTheOlderSaltedMd5(): void
     {
-        $client = ['id' => 1, 'email' => 'test@example.com', 'password' => ''];
+        $password = 'legacy123';
+        $salt = 'ab';
+        $hash = $salt . md5($password . $salt);
 
-        $this->mockRepository->method('findByEmail')
-            ->with('test@example.com')
-            ->willReturn($client);
-
-        $result = $this->authService->verifyPassword('test@example.com', 'anypassword');
-
-        $this->assertNull($result);
+        $this->assertSame(34, strlen($hash));
+        $this->assertTrue($this->authService->matches($hash, $password));
     }
+
+    public function testVerifiesAPlainMd5(): void
+    {
+        $hash = md5('plain123');
+
+        $this->assertSame(32, strlen($hash));
+        $this->assertTrue($this->authService->matches($hash, 'plain123'));
+        $this->assertFalse($this->authService->matches($hash, 'wrong'));
+    }
+
+    public function testVerifiesTheSpaceSeparatedSha1(): void
+    {
+        $password = 'sha1pass';
+        $salt = 'abc123';
+        $hash = $salt . ' ' . sha1($salt . $password);
+
+        $this->assertTrue($this->authService->matches($hash, $password));
+    }
+
+    public function testRejectsAnUnknownFormat(): void
+    {
+        $this->assertFalse($this->authService->matches('not-a-hash', 'whatever'));
+    }
+
+    // ─── New passwords ───────────────────────────────────────────────────────
 
     public function testHashPasswordGeneratesValidHash(): void
     {
@@ -87,13 +133,20 @@ class AuthServiceTest extends TestCase
         $hash = $this->authService->hashPassword($password);
 
         $this->assertIsString($hash);
-        // Format: salt (2 chars) + md5(password.salt) (32 chars) = 34 chars
-        $this->assertEquals(34, strlen($hash));
+        // New passwords are bcrypt — the format the admin table already uses.
+        $this->assertStringStartsWith('$2y$', $hash);
+        $this->assertTrue(password_verify($password, $hash));
+    }
 
-        // Verify: salt is first 2 chars, remaining 32 are md5(password.salt)
-        $salt = substr($hash, 0, 2);
-        $expected = $salt . md5($password . $salt);
-        $this->assertEquals($expected, $hash);
+    public function testHashPasswordUniqueEachTime(): void
+    {
+        $password = 'test123';
+        $hash1 = $this->authService->hashPassword($password);
+        $hash2 = $this->authService->hashPassword($password);
+
+        $this->assertNotEquals($hash1, $hash2); // Different salts
+        $this->assertTrue(password_verify($password, $hash1));
+        $this->assertTrue(password_verify($password, $hash2));
     }
 
     public function testGenerateRememberToken(): void
@@ -105,14 +158,9 @@ class AuthServiceTest extends TestCase
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $token);
     }
 
-    public function testHashPasswordUniqueEachTime(): void
+    public function testVerifyPasswordRejectsAnEmptyPassword(): void
     {
-        $password = 'test123';
-        $hash1 = $this->authService->hashPassword($password);
-        $hash2 = $this->authService->hashPassword($password);
-
-        $this->assertNotEquals($hash1, $hash2); // Different salts
-        $this->assertEquals(34, strlen($hash1));
-        $this->assertEquals(34, strlen($hash2));
+        $this->assertNull($this->authService->verifyPassword('someone@example.com', ''));
+        $this->assertNull($this->authService->verifyPassword('', 'password'));
     }
 }

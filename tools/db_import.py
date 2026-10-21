@@ -141,6 +141,21 @@ def open_dump(path: pathlib.Path):
     return path.open("r", encoding="utf-8", errors="replace")
 
 
+def open_dump_bytes(path: pathlib.Path):
+    """Open a dump in binary mode, for streaming.
+
+    A production dump is hundreds of megabytes; it is copied to the
+    container byte for byte, so the bytes must not be re-encoded.
+    """
+    if path.suffix == ".gz":
+        return gzip.open(path, "rb")
+    if path.suffix == ".bz2":
+        return bz2.open(path, "rb")
+    if path.suffix == ".xz":
+        return lzma.open(path, "rb")
+    return path.open("rb")
+
+
 def backup_current(label: str) -> pathlib.Path | None:
     """Dump the current local database so the import is reversible."""
     if not shutil.which("mysqldump"):
@@ -182,30 +197,43 @@ def import_dump(path: pathlib.Path) -> None:
     )
 
     # The dump is copied into the container first: a production dump can be
-    # hundreds of megabytes, which does not belong on a command line.
-    with open_dump(path) as handle:
-        payload = handle.read()
-
+    # hundreds of megabytes, which does not belong on a command line. It is
+    # streamed — a 372 MB dump must never be held in memory.
     container_path = "/tmp/xkhm-import.sql"
-    copy = subprocess.run(
+
+    copy = subprocess.Popen(
         ["docker", "exec", "-i", CONTAINER, "sh", "-c", f"cat > {container_path}"],
-        input=payload.encode("utf-8", errors="replace"),
-        capture_output=True,
-        timeout=3600,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
     )
+    try:
+        with open_dump_bytes(path) as handle:
+            while True:
+                chunk = handle.read(1024 * 1024)
+                if not chunk:
+                    break
+                copy.stdin.write(chunk)
+    finally:
+        if copy.stdin:
+            copy.stdin.close()
+    copy.wait(timeout=3600)
     if copy.returncode != 0:
-        raise RuntimeError(copy.stderr.decode("utf-8", "replace")[:400])
+        raise RuntimeError(copy.stderr.read().decode("utf-8", "replace")[:400])
+
+    print("  Dump copiado para o contentor. A aplicar…", flush=True)
 
     apply = subprocess.run(
         [
             "docker", "exec", CONTAINER, "sh", "-c",
-            f"mysql -u{DB_USER} -p{DB_PASS} {DB_NAME} < {container_path}",
+            f"mysql --default-character-set=utf8mb4 "
+            f"-u{DB_USER} -p{DB_PASS} {DB_NAME} < {container_path}",
         ],
         capture_output=True,
         timeout=3600,
     )
     if apply.returncode != 0:
-        raise RuntimeError(apply.stderr.decode("utf-8", "replace")[:800])
+        raise RuntimeError(apply.stderr.decode("utf-8", "replace")[:2000])
 
     run(["docker", "exec", CONTAINER, "rm", "-f", container_path])
 

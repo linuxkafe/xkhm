@@ -220,8 +220,10 @@ def test_flutter_navigates_to_the_invoices(app_page):
     app_page.set_viewport_size({"width": 1280, "height": 900})
     app_page.wait_for_timeout(800)
 
-    body = _navigate(app_page, "Faturas", "Fatura #1")
+    # The invoice number comes from the real `tblinvoices` rows.
+    body = _navigate(app_page, "Faturas", "Fatura #")
     assert "fatura" in body.lower()
+    assert "unpaid" in body.lower() or "paid" in body.lower()
 
 
 def test_flutter_navigates_to_the_knowledgebase(app_page):

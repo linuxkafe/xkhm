@@ -6,21 +6,26 @@ namespace Xkhm\Service;
 
 use Xkhm\Repository\AdminRepositoryInterface;
 
+/**
+ * Admin authentication.
+ *
+ * The production admin table holds **bcrypt** hashes (`$2y$…`) — the format
+ * the WHMCS upgrade wrote. The older WHMCS schemes are supported too,
+ * because a deployment that was never upgraded still carries them.
+ *
+ * The verification itself lives in {@see PasswordHasher}.
+ */
 class AdminAuthService
 {
-    private AdminRepositoryInterface $repository;
+    private PasswordHasher $hasher;
 
-    public function __construct(AdminRepositoryInterface $repository)
+    public function __construct(private AdminRepositoryInterface $repository)
     {
-        $this->repository = $repository;
+        $this->hasher = new PasswordHasher();
     }
 
     /**
      * Verify admin credentials.
-     * Supports WHMCS 5.3.x hash formats:
-     * - Plain MD5 (32 chars): md5(password)
-     * - Salted MD5 (34 chars): salt(2) + md5(password.salt)
-     * - Also tries common passwords for compatibility
      */
     public function verifyCredentials(string $username, string $password): ?array
     {
@@ -29,44 +34,25 @@ class AdminAuthService
             return null;
         }
 
-        $storedHash = $admin['password'] ?? '';
-
-        // Try salt-based verification (34 chars: salt + md5)
-        if (strlen($storedHash) >= 34) {
-            $salt = substr($storedHash, 0, 2);
-            $hash = substr($storedHash, 2);
-            if (hash_equals($hash, md5($password . $salt))) {
-                return $admin;
-            }
+        $stored = (string)($admin['password'] ?? '');
+        if ($stored === '') {
+            return null;
         }
 
-        // Try plain MD5 (32 chars)
-        if (strlen($storedHash) === 32) {
-            if (hash_equals($storedHash, md5($password))) {
-                return $admin;
-            }
+        // A disabled admin cannot log in.
+        if (isset($admin['disabled']) && (int)$admin['disabled'] === 1) {
+            return null;
         }
 
-        // Try with common variations for compatibility
-        $variations = [
-            $password,
-            strtolower($password),
-            ucfirst($password),
-        ];
-        foreach ($variations as $variant) {
-            if (strlen($storedHash) === 32 && hash_equals($storedHash, md5($variant))) {
-                return $admin;
-            }
-            if (strlen($storedHash) >= 34) {
-                $salt = substr($storedHash, 0, 2);
-                $hash = substr($storedHash, 2);
-                if (hash_equals($hash, md5($variant . $salt))) {
-                    return $admin;
-                }
-            }
-        }
+        return $this->hasher->matches($stored, $password) ? $admin : null;
+    }
 
-        return null;
+    /**
+     * The format of a stored hash — for the diagnostics.
+     */
+    public function describeHash(string $stored): string
+    {
+        return $this->hasher->describe($stored);
     }
 
     /**

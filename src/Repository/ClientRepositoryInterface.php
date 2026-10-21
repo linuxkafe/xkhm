@@ -10,5 +10,4 @@ interface ClientRepositoryInterface
     public function findByEmail(string $email): ?array;
     public function create(array $data): int;
     public function update(int $id, array $data): bool;
-    public function verifyPassword(string $email, string $password): ?array;
 }

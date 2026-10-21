@@ -120,8 +120,24 @@ class MigrationValidationTest extends TestCase
         $hash = $stmt->fetchColumn();
 
         $this->assertNotFalse($hash);
-        // WHMCS 5.3.9 uses either 32-char plain md5 or 34-char salt+md5
-        $this->assertMatchesRegularExpression('/^[a-f0-9]{32}$|^[a-f0-9]{2}[a-f0-9]{32}$/', $hash);
+        // The production clients use the WHMCS 5.x format: a 32-character
+        // MD5, a colon, and a 5-character salt — 38 characters in total.
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{32}:.{5}$/', $hash);
+    }
+
+    public function testAdminPasswordFormat(): void
+    {
+        if (!$this->dbAvailable) {
+            $this->markTestSkipped('DB not available');
+        }
+
+        $pdo = Connection::get($this->config->getDbConfig());
+        $stmt = $pdo->query('SELECT password FROM tbladmins WHERE password IS NOT NULL AND password != "" LIMIT 1');
+        $hash = $stmt->fetchColumn();
+
+        $this->assertNotFalse($hash);
+        // The admin table was upgraded to bcrypt.
+        $this->assertMatchesRegularExpression('/^\$2[axy]\$/', $hash);
     }
 
     public function testDomainPricingAvailable(): void

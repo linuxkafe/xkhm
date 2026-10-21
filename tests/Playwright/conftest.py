@@ -25,11 +25,14 @@ from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
 
 BASE_URL = os.getenv("XKHM_BASE_URL", "http://localhost:8083").rstrip("/")
 
-ADMIN_USER = os.getenv("XKHM_ADMIN_USER", "admin")
-ADMIN_PASS = os.getenv("XKHM_ADMIN_PASS", "admin123")
+# The development test accounts, created by `make db-test-accounts`.
+# The production accounts (the `linuxkafe` admin and the real clients) are
+# never touched by the test suite.
+ADMIN_USER = os.getenv("XKHM_ADMIN_USER", "xkhm-test")
+ADMIN_PASS = os.getenv("XKHM_ADMIN_PASS", "xkhm-test-2026")
 
-CLIENT_USER = os.getenv("XKHM_CLIENT_USER", "linuxkafe@linuxkafe.com")
-CLIENT_PASS = os.getenv("XKHM_CLIENT_PASS", "linuxkafe123")
+CLIENT_USER = os.getenv("XKHM_CLIENT_USER", "xkhm-test@example.com")
+CLIENT_PASS = os.getenv("XKHM_CLIENT_PASS", "xkhm-test-2026")
 
 ARTIFACTS_DIR = pathlib.Path(__file__).parent / "artifacts"
 

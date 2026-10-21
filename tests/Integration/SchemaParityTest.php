@@ -52,8 +52,10 @@ class SchemaParityTest extends TestCase
         return [
             'admins' => ['tbladmins'],
             'affiliates' => ['tblaffiliates'],
-            'affiliate clients' => ['tblaffiliatesclients'],
-            'affiliate payouts' => ['tblaffiliatespayouts'],
+            'affiliate history' => ['tblaffiliateshistory'],
+            'affiliate withdrawals' => ['tblaffiliateswithdrawals'],
+            'affiliate pending' => ['tblaffiliatespending'],
+            'affiliate accounts' => ['tblaffiliatesaccounts'],
             'announcements' => ['tblannouncements'],
             'clients' => ['tblclients'],
             'domain pricing' => ['tbldomainpricing'],
@@ -99,8 +101,12 @@ class SchemaParityTest extends TestCase
     {
         $repository = new ClientRepositoryPDO($this->pdo);
 
-        $client = $repository->findById(1);
-        $this->assertIsArray($client, 'tblclients row 1 must be readable');
+        // The first client that exists in the real database.
+        $id = (int) $this->pdo->query('SELECT MIN(id) FROM tblclients')->fetchColumn();
+        $this->assertGreaterThan(0, $id, 'tblclients must not be empty');
+
+        $client = $repository->findById($id);
+        $this->assertIsArray($client, "tblclients row {$id} must be readable");
 
         $byEmail = $repository->findByEmail((string)$client['email']);
         $this->assertIsArray($byEmail);
@@ -111,8 +117,13 @@ class SchemaParityTest extends TestCase
     {
         $repository = new \Xkhm\Repository\AdminRepositoryPDO($this->pdo);
 
-        $admin = $repository->findByUsername('admin');
-        $this->assertIsArray($admin, 'tbladmins row "admin" must be readable');
+        $username = (string) $this->pdo->query('SELECT MIN(username) FROM tbladmins')->fetchColumn();
+        $this->assertNotSame('', $username, 'tbladmins must not be empty');
+
+        $admin = $repository->findByUsername($username);
+        $this->assertIsArray($admin, "tbladmins row '{$username}' must be readable");
+        // The display name is synthesised from the two name columns.
+        $this->assertArrayHasKey('fullname', $admin);
     }
 
     public function testDomainRepositoryReads(): void
@@ -205,9 +216,10 @@ class SchemaParityTest extends TestCase
     public function testTicketRepositoryWrites(): void
     {
         $repository = new TicketRepositoryPDO($this->pdo);
+        $clientId = (int) $this->pdo->query('SELECT MIN(id) FROM tblclients')->fetchColumn();
 
         $ticketId = $repository->create([
-            'userid' => 1,
+            'userid' => $clientId,
             'name' => 'Schema Parity',
             'email' => 'parity@example.com',
             'subject' => 'Schema parity probe',
@@ -221,7 +233,7 @@ class SchemaParityTest extends TestCase
         $this->assertGreaterThan(0, (int)$ticketId);
 
         $replyId = $repository->addReply($ticketId, [
-            'userid' => 1,
+            'userid' => $clientId,
             'name' => 'Schema Parity',
             'email' => 'parity@example.com',
             'message' => 'Reply from SchemaParityTest.',
@@ -237,8 +249,9 @@ class SchemaParityTest extends TestCase
     public function testDomainRepositoryWrites(): void
     {
         $repository = new DomainRepositoryPDO($this->pdo);
+        $clientId = (int) $this->pdo->query('SELECT MIN(id) FROM tblclients')->fetchColumn();
 
-        $domainId = $repository->register(1, 'schema-parity-probe.example', 1);
+        $domainId = $repository->register($clientId, 'schema-parity-probe.example', 1);
         $this->assertGreaterThan(0, (int)$domainId);
 
         $this->pdo->prepare('DELETE FROM tbldomains WHERE id = ?')->execute([$domainId]);
@@ -248,7 +261,13 @@ class SchemaParityTest extends TestCase
     {
         $service = new \Xkhm\Service\DomainService(new DomainRepositoryPDO($this->pdo));
 
-        $result = $service->registerDomain('schema-parity-service.example', 1, ['period' => 1]);
+        $clientId = (int) $this->pdo->query('SELECT MIN(id) FROM tblclients')->fetchColumn();
+
+        $result = $service->registerDomain(
+            'schema-parity-service.example',
+            $clientId,
+            ['period' => 1]
+        );
 
         $this->assertTrue($result[0], 'registerDomain must succeed: ' . $result[1]);
         $this->assertGreaterThan(0, (int)$result[2]);
@@ -260,8 +279,10 @@ class SchemaParityTest extends TestCase
     {
         $service = new \Xkhm\Service\TicketService(new TicketRepositoryPDO($this->pdo));
 
+        $clientId = (int) $this->pdo->query('SELECT MIN(id) FROM tblclients')->fetchColumn();
+
         $ticketId = $service->createTicket([
-            'userid' => 1,
+            'userid' => $clientId,
             'name' => 'Schema Parity',
             'email' => 'parity@example.com',
             'subject' => 'Service probe',
@@ -280,8 +301,10 @@ class SchemaParityTest extends TestCase
 
         // `tbltickets.priority` is an ENUM: an unknown value would abort the
         // INSERT under STRICT_TRANS_TABLES.
+        $clientId = (int) $this->pdo->query('SELECT MIN(id) FROM tblclients')->fetchColumn();
+
         $ticketId = $service->createTicket([
-            'userid' => 1,
+            'userid' => $clientId,
             'name' => 'Schema Parity',
             'email' => 'parity@example.com',
             'subject' => 'Invalid priority probe',

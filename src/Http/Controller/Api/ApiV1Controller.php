@@ -528,6 +528,8 @@ final class ApiV1Controller
         if ($affiliate === null) {
             return JsonResponse::ok($response, [
                 'affiliate' => null,
+                // The contract is stable: the list is there, empty.
+                'referrals' => [],
                 'program' => [
                     'commissionRate' => 10.0,
                     'name' => 'Programa de Afiliados LINUXKAFÉ',

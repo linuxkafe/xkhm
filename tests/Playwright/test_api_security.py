@@ -28,10 +28,10 @@ CLIENT_SCOPED_ENDPOINTS = [
     "/api/v1/client/tickets/1",
 ]
 
-#: A second client, used for the IDOR check. It owns none of the seeded
-#: invoices/tickets (those belong to `linuxkafe@linuxkafe.com`).
-OTHER_CLIENT_USER = "test@example.com"
-OTHER_CLIENT_PASS = "password"
+#: A second development client, used for the IDOR check. It owns none of
+#: the first client's data.
+OTHER_CLIENT_USER = "xkhm-test2@example.com"
+OTHER_CLIENT_PASS = "xkhm-test-2026"
 
 
 @pytest.fixture(autouse=True)
