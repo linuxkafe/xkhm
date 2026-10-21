@@ -68,7 +68,9 @@ class ClientController extends AdminController
             ];
         }
 
-        $body = AdminLayout::header('Clientes', ['Novo' => '/admin/clients.php'])
+        // No "new client" button: there is no creation form yet, and a
+        // button that goes nowhere is worse than no button at all.
+        $body = AdminLayout::header('Clientes')
             . $this->filters('/admin/clients.php', $search, null, self::STATUSES, 'Nome ou email')
             . $this->table(
                 [
