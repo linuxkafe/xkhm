@@ -51,6 +51,18 @@ final class StylesheetMiddleware implements MiddlewareInterface
             return $response;
         }
 
+        // A page that brings its own chrome says so. The administration
+        // panel has its own header, its own navigation and its own
+        // footer: the public header above it would be a second menu,
+        // pointing at the pages of the client area.
+        if ($response->getHeaderLine('X-Xkhm-Chrome') === 'none') {
+            return $response->withBody(
+                (new StreamFactory())->createStream(
+                    $this->injectStylesheets($this->injectViewport((string) $response->getBody()))
+                )
+            );
+        }
+
         $body = (string) $response->getBody();
         if ($body === '') {
             return $response;

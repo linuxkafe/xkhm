@@ -159,17 +159,28 @@ def stack_ready(base_url: str) -> bool:
 
 
 @pytest.fixture(scope="session")
-def _browser() -> Browser:
+def browser() -> Browser:
+    """
+    The browser, for the whole session.
+
+    A test that needs its **own** contexts — a phone viewport, a
+    different colour scheme — asks for this one and makes the contexts
+    it needs.
+
+    It is a session fixture on purpose: the sync API of Playwright
+    cannot run inside an asyncio loop, and `pytest-asyncio` opens one
+    once another test has used it. Sharing the browser avoids that.
+    """
     with sync_playwright() as p:
-        browser = p.chromium.launch(args=["--no-sandbox"])
-        yield browser
-        browser.close()
+        instance = p.chromium.launch(args=["--no-sandbox"])
+        yield instance
+        instance.close()
 
 
 @pytest.fixture
-def context(_browser: Browser) -> BrowserContext:
+def context(browser: Browser) -> BrowserContext:
     """A fresh context per test: isolated cookies, isolated storage."""
-    ctx = _browser.new_context(
+    ctx = browser.new_context(
         base_url=BASE_URL,
         viewport={"width": 1280, "height": 900},
         ignore_https_errors=True,

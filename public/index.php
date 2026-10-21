@@ -287,12 +287,31 @@ $app->get('/api.php', [$apiController, 'handleApi']);
 $app->get('/admin/login.php', [$adminAuthController, 'showLogin']);
 $app->post('/admin/login.php', [$adminAuthController, 'login']);
 $app->get('/admin/logout.php', [$adminAuthController, 'logout']);
-$app->get('/admin', function (Request $request, Response $response) {
-    $html = '<h1>Admin Panel</h1>';
-    $html .= '<p><a href="/admin/logout.php">Terminar sessão</a></p>';
-    $response->getBody()->write(Layout::render('Admin Panel', $html));
-    return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
-})->add($adminAuthMiddleware);
+
+// The panel itself. Every route is behind the administrator's session:
+// an unauthenticated request is sent to the login form, never to the
+// data.
+$adminPanel = new \Xkhm\Repository\AdminPanelRepositoryPDO();
+
+$adminDashboard = new \Xkhm\Http\Controller\Admin\DashboardController($adminPanel);
+$adminClients = new \Xkhm\Http\Controller\Admin\ClientController($adminPanel);
+$adminInvoices = new \Xkhm\Http\Controller\Admin\InvoiceController($adminPanel);
+$adminOrders = new \Xkhm\Http\Controller\Admin\OrderController($adminPanel);
+$adminTickets = new \Xkhm\Http\Controller\Admin\TicketController($adminPanel, $ticketService);
+$adminDomains = new \Xkhm\Http\Controller\Admin\DomainController($adminPanel);
+
+$app->get('/admin', [$adminDashboard, 'index'])->add($adminAuthMiddleware);
+// One route per path: the list and the detail share it, and the
+// `id` in the URL is what tells them apart.
+$app->get('/admin/clients.php', [$adminClients, 'index'])->add($adminAuthMiddleware);
+$app->get('/admin/invoices.php', [$adminInvoices, 'index'])->add($adminAuthMiddleware);
+$app->get('/admin/orders.php', [$adminOrders, 'index'])->add($adminAuthMiddleware);
+$app->get('/admin/tickets.php', [$adminTickets, 'index'])->add($adminAuthMiddleware);
+$app->post('/admin/tickets.php', [$adminTickets, 'reply'])->add($adminAuthMiddleware);
+$app->get('/admin/domains.php', [$adminDomains, 'index'])->add($adminAuthMiddleware);
+$app->get('/admin/affiliates.php', [$adminDomains, 'affiliates'])->add($adminAuthMiddleware);
+$app->get('/admin/search.php', [$adminDashboard, 'search'])->add($adminAuthMiddleware);
+$app->get('/admin/config.php', [$adminDashboard, 'config'])->add($adminAuthMiddleware);
 
 // Redirect /admin/ to /admin
 $app->get('/admin/', function (Request $request, Response $response) {

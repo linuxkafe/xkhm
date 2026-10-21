@@ -506,3 +506,423 @@ footer {
         color: var(--color-text);
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   O PAINEL DE ADMINISTRAÇÃO
+   ═══════════════════════════════════════════════════════════════════════════
+
+   O painel vive em PHP, mas usa a mesma folha de tokens: por isso segue o
+   esquema de cor do sistema, e fica legível no telemóvel como o resto.
+
+   A navegação é uma barra lateral num ecrã largo, e uma barra que rola
+   na horizontal num ecrã estreito. O painel tem de servir de um
+   telemóvel, porque é de lá que o operador o usa muitas vezes.
+   */
+
+.admin-body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-base);
+    margin: 0;
+    padding: 0;
+}
+
+/* ── O cabeçalho ─────────────────────────────────────────────────────────── */
+
+.admin-header {
+    background: var(--color-header);
+    color: var(--color-on-header);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.admin-header-inner {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    margin: 0 auto;
+    max-width: var(--width-max);
+    padding: 10px 16px;
+}
+
+.admin-brand {
+    color: var(--color-on-header);
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-decoration: none;
+}
+
+.admin-header-title {
+    color: var(--color-on-header);
+    font-size: 13px;
+    opacity: 0.7;
+}
+
+.admin-header-right {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.admin-user {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+/* ── A navegação ─────────────────────────────────────────────────────────── */
+
+.admin-nav {
+    background: var(--color-header);
+    border-top: 1px solid var(--color-border);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.admin-nav ul {
+    display: flex;
+    gap: 2px;
+    list-style: none;
+    margin: 0 auto;
+    max-width: var(--width-max);
+    padding: 0 8px;
+}
+
+.admin-nav li {
+    flex: 0 0 auto;
+}
+
+.admin-nav a {
+    border-bottom: 3px solid transparent;
+    color: var(--color-on-header);
+    display: block;
+    font-size: 14px;
+    opacity: 0.8;
+    padding: 10px 12px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.admin-nav a:hover {
+    opacity: 1;
+}
+
+.admin-nav a.active {
+    border-bottom-color: var(--color-primary);
+    opacity: 1;
+}
+
+/* ── O conteúdo ──────────────────────────────────────────────────────────── */
+
+.admin-main {
+    margin: 0 auto;
+    max-width: var(--width-max);
+    padding: 20px 16px 60px;
+}
+
+.admin-page-head {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+
+.admin-page-head h1 {
+    font-family: var(--font-heading);
+    font-size: 22px;
+    margin: 0;
+}
+
+.admin-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* ── Os números do painel ────────────────────────────────────────────────── */
+
+.admin-stats {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    margin-bottom: 22px;
+}
+
+.admin-stat {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    display: block;
+    padding: 14px 16px;
+}
+
+.admin-stat-label {
+    color: var(--color-text-light);
+    display: block;
+    font-size: 12px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.admin-stat-value {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: 28px;
+    line-height: 1.2;
+    margin: 4px 0;
+}
+
+.admin-stat a {
+    text-decoration: none;
+}
+
+.admin-stat-lines {
+    color: var(--color-text-light);
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+}
+
+.admin-stat-line {
+    display: block;
+}
+
+/* ── As colunas ──────────────────────────────────────────────────────────── */
+
+.admin-columns {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+}
+
+.admin-columns .panel {
+    margin: 0 0 16px;
+}
+
+/* ── Os filtros ──────────────────────────────────────────────────────────── */
+
+.admin-filters {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.admin-filters input[type="search"] {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    color: var(--color-text);
+    flex: 1 1 220px;
+    font-family: inherit;
+    font-size: 15px;
+    min-height: var(--touch-target-min);
+    padding: 10px 12px;
+}
+
+.admin-filters select {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: 15px;
+    min-height: var(--touch-target-min);
+    padding: 10px 12px;
+}
+
+.admin-filters .btn {
+    margin: 0;
+}
+
+/* ── As tabelas ──────────────────────────────────────────────────────────── */
+
+.table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll .table {
+    margin: 0;
+    min-width: 480px;
+}
+
+.table th.numeric,
+.table td.numeric {
+    text-align: right;
+}
+
+.table td {
+    vertical-align: top;
+}
+
+.table a {
+    text-decoration: none;
+}
+
+.table a:hover {
+    text-decoration: underline;
+}
+
+/* ── Os estados ──────────────────────────────────────────────────────────── */
+
+.badge {
+    background: var(--color-neutral-bg);
+    border-radius: 999px;
+    color: var(--color-neutral-fg);
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    white-space: nowrap;
+}
+
+.badge-ok {
+    background: var(--color-success-bg);
+    color: var(--color-success-fg);
+}
+
+.badge-warn {
+    background: var(--color-warning-bg);
+    color: var(--color-warning-fg);
+}
+
+.badge-bad {
+    background: var(--color-danger-bg);
+    color: var(--color-danger-fg);
+}
+
+/* ── Os detalhes ─────────────────────────────────────────────────────────── */
+
+.admin-details {
+    display: grid;
+    gap: 12px 20px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    margin: 0;
+}
+
+.admin-details div {
+    min-width: 0;
+}
+
+.admin-details dt {
+    color: var(--color-text-light);
+    font-size: 12px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+.admin-details dd {
+    margin: 2px 0 0;
+    overflow-wrap: anywhere;
+}
+
+/* ── As mensagens ────────────────────────────────────────────────────────── */
+
+.admin-message {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+    padding: 12px 14px;
+    white-space: pre-wrap;
+}
+
+.admin-message-reply {
+    margin-bottom: 10px;
+}
+
+.admin-message-head {
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+
+/* ── O paginador ─────────────────────────────────────────────────────────── */
+
+.admin-pager {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 18px 0;
+}
+
+.admin-pager .btn {
+    margin: 0;
+}
+
+.admin-pager-info {
+    color: var(--color-text-light);
+    font-size: 13px;
+}
+
+/* ── Os formulários ──────────────────────────────────────────────────────── */
+
+.admin-form textarea {
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.6;
+    resize: vertical;
+    width: 100%;
+}
+
+.admin-form .btn {
+    margin: 0;
+}
+
+/* ── O telemóvel ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 576px) {
+    /* O nome do administrador e o botao disputam o espaco num ecra
+       estreito: o nome sai primeiro, o botao fica. */
+    .admin-user {
+        display: none;
+    }
+
+    .admin-brand {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-header-inner {
+        padding: 8px 12px;
+    }
+
+    .admin-header-title {
+        display: none;
+    }
+
+    .admin-main {
+        padding: 16px 12px 48px;
+    }
+
+    .admin-page-head h1 {
+        font-size: 19px;
+    }
+
+    .admin-stats {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+
+    .admin-stat-value {
+        font-size: 22px;
+    }
+
+    .admin-nav a {
+        padding: 12px 10px;
+    }
+
+    .admin-filters input[type="search"],
+    .admin-filters select,
+    .admin-filters .btn {
+        flex: 1 1 100%;
+    }
+}
