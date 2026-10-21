@@ -192,12 +192,42 @@ class AdminPanelRepositoryPDO implements AdminPanelRepositoryInterface
         );
     }
 
-    public function clientHosting(int $clientId): array
+    public function clientServices(int $clientId): array
     {
-        $rows = $this->all(
-            'SELECT * FROM tblhosting WHERE userid = ? ORDER BY id DESC',
-            [$clientId]
-        );
+        return $this->services('WHERE h.userid = ?', [$clientId]);
+    }
+
+    public function findService(int $id): ?array
+    {
+        $services = $this->services('WHERE h.id = ?', [$id]);
+
+        return $services[0] ?? null;
+    }
+
+    /**
+     * The services, with the product and the group they belong to.
+     *
+     * The **group** is the label the WHMCS shows the client
+     * («Web Hosting», «Backup», «Servidores Virtuais»); the raw `type`
+     * is `hostingaccount`, `other` or `server`, which is what the
+     * machine understands. Both travel, and the interface decides.
+     *
+     * @param list<mixed> $parameters
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function services(string $where, array $parameters): array
+    {
+        $sql = 'SELECT h.*, '
+            . 'p.name AS productname, p.type AS producttype, '
+            . 'g.name AS groupname, g.id AS groupid '
+            . 'FROM tblhosting h '
+            . 'LEFT JOIN tblproducts p ON p.id = h.packageid '
+            . 'LEFT JOIN tblproductgroups g ON g.id = p.gid '
+            . $where
+            . ' ORDER BY h.id DESC';
+
+        $rows = $this->all($sql, $parameters);
 
         return array_map(
             fn (array $row): array => SchemaMap::toCanonical(self::HOSTING, $row),

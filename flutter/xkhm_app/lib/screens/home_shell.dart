@@ -14,6 +14,7 @@ import 'invoices_screen.dart';
 import 'knowledgebase_screen.dart';
 import 'orders_screen.dart';
 import 'server_status_screen.dart';
+import 'services_screen.dart';
 import 'ssl_screen.dart';
 import 'tickets_screen.dart';
 
@@ -74,6 +75,11 @@ class _HomeShellState extends State<HomeShell> {
       label: 'Tickets',
       icon: Icons.support_agent_outlined,
       builder: (_) => const TicketsScreen(),
+    ),
+    LkDestination(
+      label: 'Serviços',
+      icon: Icons.dns_outlined,
+      builder: (_) => const ServicesScreen(),
     ),
     LkDestination(
       label: 'Pedidos',

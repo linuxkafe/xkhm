@@ -201,6 +201,67 @@ def upsert_admin(username: str, password: str) -> int:
 # ─── The sample data ─────────────────────────────────────────────────────────
 
 
+def seed_client_services(client_id: int) -> None:
+    """Give the development client services of **different types**.
+
+    `tblhosting` holds every service — the web hosting, the backups, the
+    servers. The product says which is which, and the group is the label
+    the client sees.
+
+    The development client gets one of each, so that the difference is
+    visible — and so that the tests have something to check.
+    """
+    if mysql(f"SELECT COUNT(*) FROM tblhosting WHERE userid = {client_id};") != "0":
+        return
+
+    # The products that exist in the real catalogue, by group.
+    packages = [
+        # (packageid, the domain, the description of what it is)
+        (21, 'xkhm-teste.example.com', 'Alojamento'),
+        (24, '', 'Backup'),
+    ]
+
+    for package_id, domain, kind in packages:
+        values = schema_defaults('tblhosting')
+        values.update({
+            'userid': client_id,
+            'orderid': 0,
+            'packageid': package_id,
+            'server': 1 if kind == 'Alojamento' else 0,
+            'regdate': datetime.date.today().isoformat(),
+            'domain': domain,
+            'paymentmethod': 'banktransfer',
+            'firstpaymentamount': '0.00',
+            'amount': '24.99' if kind == 'Alojamento' else '12.00',
+            'billingcycle': 'Annually',
+            'nextduedate': (
+                datetime.date.today() + datetime.timedelta(days=365)
+            ).isoformat(),
+            'nextinvoicedate': (
+                datetime.date.today() + datetime.timedelta(days=350)
+            ).isoformat(),
+            'domainstatus': 'Active',
+            'username': 'xkhm' if kind == 'Alojamento' else '',
+            'password': 'desenvolvimento',
+            'notes': f'Serviço de desenvolvimento ({kind})',
+            'subscriptionid': '',
+            'promoid': 0,
+            'suspendreason': '',
+            'overideautosuspend': '',
+            'dedicatedip': '',
+            'assignedips': '',
+            'ns1': 'ns1.linuxkafe.com' if kind == 'Alojamento' else '',
+            'ns2': 'ns2.linuxkafe.com' if kind == 'Alojamento' else '',
+            'diskusage': 1024 if kind == 'Alojamento' else 0,
+            'disklimit': 10240 if kind == 'Alojamento' else 0,
+            'bwusage': 512 if kind == 'Alojamento' else 0,
+            'bwlimit': 10240 if kind == 'Alojamento' else 0,
+            'lastupdate': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        })
+
+        mysql(build_insert('tblhosting', values))
+
+
 def seed_client_data(client_id: int) -> None:
     """Give the development client something to look at.
 
@@ -393,6 +454,7 @@ def main() -> int:
         reset_client_id = upsert_client(
             RESET_CLIENT_EMAIL, RESET_CLIENT_PASS, 'Xkhm'
         )
+
         reset_admin_id = upsert_admin(RESET_ADMIN_USER, RESET_ADMIN_PASS)
     except RuntimeError as exc:
         print(f"  [FALHA] {exc}")
@@ -406,6 +468,7 @@ def main() -> int:
 
     try:
         seed_client_data(client_id)
+        seed_client_services(client_id)
         print("  [OK]    dados do cliente (faturas, pedido, dominio, ticket)")
         seed_global_content()
         print("  [OK]    base de conhecimento e anuncios")

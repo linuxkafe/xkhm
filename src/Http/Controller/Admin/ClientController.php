@@ -93,6 +93,89 @@ class ClientController extends AdminController
     }
 
     /**
+     * The services of a client, **grouped by type**.
+     *
+     * `tblhosting` holds every service — the web hosting, the backups,
+     * the servers. What tells them apart is the product they belong to,
+     * and the label the WHMCS shows the client is the product's
+     * **group**.
+     */
+    private function servicesSection(array $services): string
+    {
+        if ($services === []) {
+            return '<section class="panel"><div class="panel-heading">Serviços</div>'
+                . '<div class="panel-body">'
+                . '<p class="text-muted">Este cliente não tem serviços.</p>'
+                . '</div></section>';
+        }
+
+        // Agrupados pela familia do produto.
+        $groups = [];
+        foreach ($services as $service) {
+            $group = trim((string)($service['groupname'] ?? ''));
+
+            if ($group === '') {
+                $group = (string)($service['producttype'] ?? '');
+            }
+
+            $groups[$group][] = $service;
+        }
+
+        ksort($groups);
+
+        $html = '<h2 class="admin-subtitle">Serviços</h2>';
+
+        foreach ($groups as $group => $groupServices) {
+            $rows = [];
+
+            foreach ($groupServices as $service) {
+                $rows[] = [
+                    'service' => sprintf(
+                        '<a href="/admin/services.php?id=%d">%s</a>',
+                        (int)$service['id'],
+                        $this->e($this->serviceName($service))
+                    ),
+                    'type' => $this->e($group),
+                    'domain' => $this->e($service['domain'] ?? ''),
+                    'amount' => $this->money($service['amount'] ?? 0),
+                    'next' => $this->date($service['nextduedate'] ?? null),
+                    'status' => $this->badge((string)($service['domainstatus'] ?? '')),
+                ];
+            }
+
+            $html .= '<section class="panel"><div class="panel-heading">'
+                . $this->e($group) . '</div><div class="panel-body">'
+                . $this->table(
+                    [
+                        ['label' => 'Serviço', 'value' => 'service'],
+                        ['label' => 'Tipo', 'value' => 'type'],
+                        ['label' => 'Domínio', 'value' => 'domain'],
+                        ['label' => 'Valor', 'value' => 'amount', 'numeric' => true],
+                        ['label' => 'Próxima renovação', 'value' => 'next'],
+                        ['label' => 'Estado', 'value' => 'status'],
+                    ],
+                    $rows
+                )
+                . '</div></section>';
+        }
+
+        return $html;
+    }
+
+    /**
+     * The name of a service.
+     *
+     * The product's name is the real one («LINUXKONECT XK10»). A
+     * service without a product falls back to its identifier.
+     */
+    private function serviceName(array $service): string
+    {
+        $name = trim((string)($service['productname'] ?? ''));
+
+        return $name !== '' ? $name : '#' . (int)($service['id'] ?? 0);
+    }
+
+    /**
      * GET /admin/clients.php?id=N
      */
     public function detail(Request $request, Response $response): Response
@@ -273,31 +356,8 @@ class ClientController extends AdminController
             )
             . '</div></section>';
 
-        // ── O hosting ──
-        $rows = [];
-        foreach ($this->repository->clientHosting($id) as $hosting) {
-            $rows[] = [
-                'domain' => $this->e($hosting['domain'] ?? ''),
-                'username' => $this->e($hosting['username'] ?? ''),
-                'server' => $this->e($hosting['server'] ?? ''),
-                'amount' => $this->money($hosting['amount'] ?? 0),
-                'status' => $this->badge((string)($hosting['domainstatus'] ?? '')),
-            ];
-        }
-
-        $body .= '<section class="panel"><div class="panel-heading">Alojamento</div><div class="panel-body">'
-            . $this->table(
-                [
-                    ['label' => 'Domínio', 'value' => 'domain'],
-                    ['label' => 'Utilizador', 'value' => 'username'],
-                    ['label' => 'Servidor', 'value' => 'server'],
-                    ['label' => 'Valor', 'value' => 'amount', 'numeric' => true],
-                    ['label' => 'Estado', 'value' => 'status'],
-                ],
-                $rows,
-                'Este cliente não tem alojamentos.'
-            )
-            . '</div></section>';
+        // ── Os servicos ──
+        $body .= $this->servicesSection($this->repository->clientServices($id));
 
         return $this->render(
             $response,

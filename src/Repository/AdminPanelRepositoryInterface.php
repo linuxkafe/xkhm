@@ -71,9 +71,19 @@ interface AdminPanelRepositoryInterface
     public function clientTransactions(int $clientId, int $limit = 25): array;
 
     /**
+     * The services of a client, with the product and the group.
+     *
+     * `tblhosting` holds **every** service, not only the web hosting:
+     * what tells a backup from a hosting is the product it belongs to.
+     *
      * @return list<array<string, mixed>>
      */
-    public function clientHosting(int $clientId): array;
+    public function clientServices(int $clientId): array;
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findService(int $id): ?array;
 
     // ─── Invoices ───────────────────────────────────────────────────────────
 

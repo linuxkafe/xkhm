@@ -6,6 +6,7 @@ namespace Xkhm\Http\Controller\Api;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Xkhm\Repository\ClientRepositoryInterface;
 use Xkhm\Repository\OrderRepositoryInterface;
 use Xkhm\Service\AdminPasswordResetService;
 use Xkhm\Service\AffiliateService;
@@ -41,7 +42,8 @@ final class ApiV1Controller
         private AffiliateService $affiliateService,
         private OrderRepositoryInterface $orderRepository,
         private PasswordResetService $passwordResetService,
-        private AdminPasswordResetService $adminPasswordResetService
+        private AdminPasswordResetService $adminPasswordResetService,
+        private ClientRepositoryInterface $clientRepository
     ) {
     }
 
@@ -459,6 +461,55 @@ final class ApiV1Controller
     /**
      * GET /api/v1/client/orders
      */
+    /**
+     * GET /api/v1/client/services
+     *
+     * The services the client has, with the **type** of each: the
+     * product's group is the label the WHMCS shows ("Web Hosting",
+     * "Backup"), and the raw type travels beside it.
+     */
+    public function clientServices(Request $request, Response $response): Response
+    {
+        $session = $request->getAttribute('session');
+        $clientId = (int)($session['client_id'] ?? 0);
+
+        $services = $this->clientRepository->services($clientId);
+
+        return JsonResponse::ok($response, [
+            'services' => array_map(
+                static function (array $service): array {
+                    $group = trim((string)($service['groupname'] ?? ''));
+
+                    if ($group === '') {
+                        $group = (string)($service['producttype'] ?? '');
+                    }
+
+                    $name = trim((string)($service['productname'] ?? ''));
+
+                    return [
+                        'id' => (int)($service['id'] ?? 0),
+                        'name' => $name !== '' ? $name : ('#' . (int)($service['id'] ?? 0)),
+                        'type' => $group,
+                        'rawType' => (string)($service['producttype'] ?? ''),
+                        'domain' => (string)($service['domain'] ?? ''),
+                        'username' => (string)($service['username'] ?? ''),
+                        'server' => (string)($service['server'] ?? ''),
+                        'status' => (string)($service['domainstatus'] ?? ''),
+                        'amount' => (float)($service['amount'] ?? 0),
+                        'billingCycle' => (string)($service['billingcycle'] ?? ''),
+                        'nextDueDate' => (string)($service['nextduedate'] ?? ''),
+                        'registrationDate' => (string)($service['regdate'] ?? ''),
+                        'diskUsage' => (int)($service['diskusage'] ?? 0),
+                        'diskLimit' => (int)($service['disklimit'] ?? 0),
+                        'bandwidthUsage' => (int)($service['bwusage'] ?? 0),
+                        'bandwidthLimit' => (int)($service['bwlimit'] ?? 0),
+                    ];
+                },
+                $services
+            ),
+        ]);
+    }
+
     public function clientOrders(Request $request, Response $response): Response
     {
         $session = $request->getAttribute('session');

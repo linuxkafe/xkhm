@@ -112,6 +112,25 @@ class ClientRepositoryPDO implements ClientRepositoryInterface
     /**
      * Clear the reset token — it is single-use.
      */
+    public function services(int $clientId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT h.*, '
+            . 'p.name AS productname, p.type AS producttype, '
+            . 'g.name AS groupname '
+            . 'FROM tblhosting h '
+            . 'LEFT JOIN tblproducts p ON p.id = h.packageid '
+            . 'LEFT JOIN tblproductgroups g ON g.id = p.gid '
+            . 'WHERE h.userid = ? ORDER BY h.id DESC'
+        );
+        $stmt->execute([$clientId]);
+
+        return array_map(
+            fn (array $row): array => SchemaMap::toCanonical('tblhosting', $row),
+            $stmt->fetchAll()
+        );
+    }
+
     public function clearResetToken(int $id): bool
     {
         $stmt = $this->pdo->prepare(

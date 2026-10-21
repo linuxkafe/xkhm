@@ -644,6 +644,15 @@ footer {
     gap: 8px;
 }
 
+.admin-subtitle {
+    color: var(--color-text-light);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    margin: 24px 0 10px;
+    text-transform: uppercase;
+}
+
 /* ── Os números do painel ────────────────────────────────────────────────── */
 
 .admin-stats {

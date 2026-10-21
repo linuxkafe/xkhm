@@ -30,4 +30,14 @@ interface ClientRepositoryInterface
      * Clear the reset token — it is single-use.
      */
     public function clearResetToken(int $id): bool;
+
+    /**
+     * The services of the client, with the product and the group.
+     *
+     * `tblhosting` holds **every** service — the web hosting, the
+     * backups, the servers. The product says which is which.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function services(int $clientId): array;
 }

@@ -239,6 +239,13 @@ class LkApiClient {
   Future<Map<String, dynamic>> clientInvoice(int id) =>
       _send('GET', '/client/invoices/$id');
 
+  /// The services the client has, with their type.
+  Future<List<Map<String, dynamic>>> clientServices() async {
+    final data = await _send('GET', '/client/services');
+    return (data['services'] as List<dynamic>? ?? const [])
+        .cast<Map<String, dynamic>>();
+  }
+
   Future<List<Map<String, dynamic>>> clientDomains() async {
     final data = await _send('GET', '/client/domains');
     return (data['domains'] as List<dynamic>? ?? const [])

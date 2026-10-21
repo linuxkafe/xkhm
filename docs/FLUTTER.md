@@ -135,6 +135,7 @@ real** com credenciais reais e afirma sobre os dados reais da tabela
 | Anúncios | `GET /api/v1/announcements` |
 | Procurar Domínio | `GET /api/v1/domains/check` |
 | Estado do Servidor | `GET /api/v1/serverstatus` |
+| Serviços | `GET /api/v1/client/services` |
 | Redefinir senha | `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password` |
 
 A interface é **pt-BR** em todos os ecrãs.

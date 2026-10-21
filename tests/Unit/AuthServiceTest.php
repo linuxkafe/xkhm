@@ -57,6 +57,11 @@ class AuthServiceTest extends TestCase
                 {
                     return true;
                 }
+
+                public function services(int $clientId): array
+                {
+                    return [];
+                }
             }
         );
     }

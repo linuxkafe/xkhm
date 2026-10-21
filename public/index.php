@@ -202,7 +202,8 @@ $apiV1Controller = new \Xkhm\Http\Controller\Api\ApiV1Controller(
     $affiliateService,
     $orderRepo,
     $passwordResetService,
-    $adminPasswordResetService
+    $adminPasswordResetService,
+    $clientRepo
 );
 
 $apiAuth = new \Xkhm\Http\Controller\Api\ApiAuthMiddleware();
@@ -237,6 +238,7 @@ $app->group('/api/v1', function ($group) use ($apiV1Controller, $apiAuth) {
     $group->get('/client/invoices/{id:[0-9]+}', [$apiV1Controller, 'clientInvoice'])->add($apiAuth);
     $group->get('/client/orders', [$apiV1Controller, 'clientOrders'])->add($apiAuth);
     $group->get('/client/domains', [$apiV1Controller, 'clientDomains'])->add($apiAuth);
+    $group->get('/client/services', [$apiV1Controller, 'clientServices'])->add($apiAuth);
     $group->get('/client/ssl', [$apiV1Controller, 'clientSsl'])->add($apiAuth);
     $group->get('/client/affiliate', [$apiV1Controller, 'clientAffiliate'])->add($apiAuth);
     $group->get('/client/tickets', [$apiV1Controller, 'clientTickets'])->add($apiAuth);
@@ -299,6 +301,7 @@ $adminInvoices = new \Xkhm\Http\Controller\Admin\InvoiceController($adminPanel);
 $adminOrders = new \Xkhm\Http\Controller\Admin\OrderController($adminPanel);
 $adminTickets = new \Xkhm\Http\Controller\Admin\TicketController($adminPanel, $ticketService);
 $adminDomains = new \Xkhm\Http\Controller\Admin\DomainController($adminPanel);
+$adminServices = new \Xkhm\Http\Controller\Admin\ServiceController($adminPanel);
 
 $app->get('/admin', [$adminDashboard, 'index'])->add($adminAuthMiddleware);
 // One route per path: the list and the detail share it, and the
@@ -308,6 +311,7 @@ $app->get('/admin/invoices.php', [$adminInvoices, 'index'])->add($adminAuthMiddl
 $app->get('/admin/orders.php', [$adminOrders, 'index'])->add($adminAuthMiddleware);
 $app->get('/admin/tickets.php', [$adminTickets, 'index'])->add($adminAuthMiddleware);
 $app->post('/admin/tickets.php', [$adminTickets, 'reply'])->add($adminAuthMiddleware);
+$app->get('/admin/services.php', [$adminServices, 'index'])->add($adminAuthMiddleware);
 $app->get('/admin/domains.php', [$adminDomains, 'index'])->add($adminAuthMiddleware);
 $app->get('/admin/affiliates.php', [$adminDomains, 'affiliates'])->add($adminAuthMiddleware);
 $app->get('/admin/search.php', [$adminDashboard, 'search'])->add($adminAuthMiddleware);

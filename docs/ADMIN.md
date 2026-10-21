@@ -21,6 +21,7 @@ esquema de cor do sistema e é utilizável num ecrã de telemóvel.
 | `/admin/orders.php` | Pedidos: lista e detalhe |
 | `/admin/tickets.php` | Tickets: lista e filtro por estado |
 | `/admin/tickets.php?id=N` | Detalhe com as respostas, e a caixa para responder |
+| `/admin/services.php?id=N` | O detalhe de um serviço: domínio, utilizador, limites, datas |
 | `/admin/domains.php` | Domínios |
 | `/admin/affiliates.php` | Afiliados |
 | `/admin/search.php` | Pesquisa global: clientes, faturas, tickets, domínios, pedidos |
