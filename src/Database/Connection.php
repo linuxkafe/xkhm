@@ -14,9 +14,11 @@ final class Connection
     public static function get(array $config): PDO
     {
         if (self::$connection === null) {
+            $port = (int)($config['port'] ?? 3306);
             $dsn = sprintf(
-                'mysql:host=%s;dbname=%s;charset=%s',
+                'mysql:host=%s;port=%d;dbname=%s;charset=%s',
                 $config['host'],
+                $port,
                 $config['name'],
                 $config['charset']
             );

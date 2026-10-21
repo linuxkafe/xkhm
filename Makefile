@@ -21,6 +21,7 @@ test: vendor/autoload.php ## Run test suite
 	 XKHM_DB_NAME=$${XKHM_DB_NAME:-linuxkonect} \
 	 XKHM_DB_USER=$${XKHM_DB_USER:-linuxkonect} \
 	 XKHM_DB_PASS=$${XKHM_DB_PASS:-$${XKHM_DB_PASSWORD:-xkhm-local-only}} \
+	 XKHM_DB_PORT=$${XKHM_DB_PORT:-13306} \
 	 ./vendor/bin/phpunit --configuration phpunit.xml.dist
 
 lint: vendor/autoload.php ## Lint source code

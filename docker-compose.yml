@@ -51,10 +51,15 @@ services:
       - mysql_data:/var/lib/mysql
       - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      # Published on the loopback ONLY. The application reaches the database
-      # over the Docker network, so there is no reason to expose it to the
-      # world — and doing so is what let a scanner find it.
-      - "127.0.0.1:3306:3306"
+      # Published on a **distinct** loopback port, and only so that the
+      # test suite on the host can reach the database.
+      #
+      # It is deliberately NOT 3306: this host already runs a MySQL server
+      # of its own on 127.0.0.1:3306 (the Plex database), and two services
+      # fighting for the same port is a conflict waiting to break one of
+      # them. The application itself reaches the database over the Docker
+      # network and needs no published port at all.
+      - "127.0.0.1:13306:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "linuxkonect", "-pqm9W8amh5XV9A4Dr"]
       interval: 10s

@@ -89,6 +89,7 @@ class Config
         // and continues to point at the production database.
         return [
             'host' => $this->env('XKHM_DB_HOST') ?? $this->get('db_host', 'localhost'),
+            'port' => (int)($this->env('XKHM_DB_PORT') ?? $this->get('db_port', '3306')),
             'name' => $this->env('XKHM_DB_NAME') ?? $this->get('db_name', 'whmcs'),
             'user' => $this->env('XKHM_DB_USER') ?? $this->get('db_username', 'whmcs'),
             'pass' => $this->env('XKHM_DB_PASS') ?? $this->get('db_password', ''),

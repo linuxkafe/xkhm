@@ -52,6 +52,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T027 | Exposição do MySQL: incidente e correcção | standard | done |
 | T028 | Alinhar com o esquema WHMCS 5.3.9 real + formatos de senha | high | done |
 | T029 | Rever a exposição dos restantes contentores (ollama, searxng) | medium | pending |
+| T030 | Repor a senha do administrador `linuxkafe` na base de produção | medium | pending |
 
 > **Note on numbering.** T020 was originally reserved for "Performance & load
 > testing". The Flutter conversion was planned as **T022** and the Playwright

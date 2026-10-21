@@ -193,6 +193,20 @@ são **preservadas** na importação mas ainda não são usadas pela aplicação
 
 ---
 
+## A porta da base de dados
+
+A base local **não** ocupa a porta 3306 do host — este host tem um MySQL
+próprio (`mariadb.service`) que a usa. O contentor publica a porta
+**13306**, apenas no loopback, e só para a suíte de testes:
+
+```yaml
+ports:
+  - "127.0.0.1:13306:3306"
+```
+
+A aplicação fala com a base pela rede do Docker (`host=mysql`), sem porta
+publicada. A suíte de testes corre no host e usa `XKHM_DB_PORT=13306`.
+
 ## Comandos
 
 | Comando | O que faz |
