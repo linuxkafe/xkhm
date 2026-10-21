@@ -4,11 +4,27 @@ import '../theme/lk_theme.dart';
 import '../theme/tokens.dart';
 
 /// The LINUXKAFE site header — a dark bar with the yellow brand.
+///
+/// The colours come from the theme so the widget repaints when the system
+/// switches between light and dark mode.
 class LkAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const LkAppBar({super.key, this.title, this.actions, this.showBrand = true});
+  const LkAppBar({
+    super.key,
+    this.title,
+    this.actions,
+    this.leading,
+    this.showBrand = true,
+  });
 
   final String? title;
   final List<Widget>? actions;
+
+  /// The button in the leading slot (the navigation drawer on a phone).
+  ///
+  /// `automaticallyImplyLeading` is disabled so that Flutter does not insert
+  /// a *second* drawer button of its own.
+  final Widget? leading;
+
   final bool showBrand;
 
   @override
@@ -16,16 +32,22 @@ class LkAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final onHeader = theme.colorScheme.onSurface;
+
     return AppBar(
-      backgroundColor: LkColors.header,
+      backgroundColor: theme.appBarTheme.backgroundColor,
+      foregroundColor: onHeader,
+      automaticallyImplyLeading: false,
+      leading: leading,
       titleSpacing: 16,
       title: Row(
         children: [
           if (showBrand) ...[
-            const Text(
+            Text(
               'LINUXKAFÉ',
               style: TextStyle(
-                color: LkColors.primary,
+                color: theme.colorScheme.primary,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
                 fontSize: 18,
@@ -38,7 +60,7 @@ class LkAppBar extends StatelessWidget implements PreferredSizeWidget {
               child: Text(
                 title!,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white, fontSize: 16),
+                style: TextStyle(color: onHeader, fontSize: 16),
               ),
             ),
         ],
@@ -63,16 +85,18 @@ class LkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       decoration: BoxDecoration(
-        color: LkColors.bgCard,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(LkLayout.borderRadius),
-        border: Border.all(color: LkColors.border),
-        boxShadow: const [
+        border: Border.all(color: theme.dividerColor),
+        boxShadow: [
           BoxShadow(
-            color: LkSemantic.shadow,
+            color: LkSemantic.light.shadow,
             blurRadius: 6,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -82,17 +106,17 @@ class LkCard extends StatelessWidget {
           if (title != null)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: const BoxDecoration(
-                color: LkColors.header,
-                borderRadius: BorderRadius.only(
+              decoration: BoxDecoration(
+                color: theme.appBarTheme.backgroundColor,
+                borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(LkLayout.borderRadius),
                   topRight: Radius.circular(LkLayout.borderRadius),
                 ),
               ),
               child: Text(
                 title!,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: theme.appBarTheme.foregroundColor,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -113,7 +137,7 @@ class LkStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effective = tone ?? _toneFor(label);
+    final effective = tone ?? _toneFor(label, Theme.of(context));
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -132,35 +156,39 @@ class LkStatusBadge extends StatelessWidget {
     );
   }
 
-  static LkBadgeTone _toneFor(String label) {
+  static LkBadgeTone _toneFor(String label, ThemeData theme) {
+    final semantic = theme.brightness == Brightness.dark
+        ? LkSemantic.dark
+        : LkSemantic.light;
+
     switch (label.toLowerCase()) {
       case 'paid':
       case 'active':
       case 'ok':
       case 'connected':
-        return const LkBadgeTone(
-          background: LkSemantic.successBg,
-          foreground: LkSemantic.successFg,
+        return LkBadgeTone(
+          background: semantic.successBg,
+          foreground: semantic.successFg,
         );
       case 'unpaid':
       case 'open':
       case 'pending':
-        return const LkBadgeTone(
-          background: LkSemantic.warningBg,
-          foreground: LkSemantic.warningFg,
+        return LkBadgeTone(
+          background: semantic.warningBg,
+          foreground: semantic.warningFg,
         );
       case 'cancelled':
       case 'closed':
       case 'error':
       case 'disconnected':
-        return const LkBadgeTone(
-          background: LkSemantic.dangerBg,
-          foreground: LkSemantic.dangerFg,
+        return LkBadgeTone(
+          background: semantic.dangerBg,
+          foreground: semantic.dangerFg,
         );
       default:
-        return const LkBadgeTone(
-          background: LkSemantic.neutralBg,
-          foreground: LkSemantic.neutralFg,
+        return LkBadgeTone(
+          background: semantic.neutralBg,
+          foreground: semantic.neutralFg,
         );
     }
   }
@@ -190,6 +218,8 @@ class LkStatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return LkCard(
       child: InkWell(
         onTap: onTap,
@@ -199,7 +229,7 @@ class LkStatTile extends StatelessWidget {
           child: Row(
             children: [
               if (icon != null) ...[
-                Icon(icon, color: LkColors.primary, size: 28),
+                Icon(icon, color: theme.colorScheme.primary, size: 28),
                 const SizedBox(width: 12),
               ],
               Expanded(
@@ -208,13 +238,12 @@ class LkStatTile extends StatelessWidget {
                   children: [
                     Text(
                       value,
-                      style: const TextStyle(
-                        fontSize: 22,
+                      style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: LkColors.text,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
-                    Text(label, style: LkTheme.muted),
+                    Text(label, style: LkTheme.muted(context)),
                   ],
                 ),
               ),
@@ -242,7 +271,7 @@ class LkSectionTitle extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: LkTheme.heading.copyWith(fontSize: 18),
+              style: LkTheme.heading(context).copyWith(fontSize: 18),
             ),
           ),
           ?trailing,
@@ -267,18 +296,20 @@ class LkEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 48, color: LkColors.textLight),
+            Icon(icon, size: 48, color: theme.hintColor),
             const SizedBox(height: 12),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: LkTheme.muted,
+              style: LkTheme.muted(context),
             ),
             if (action != null) ...[const SizedBox(height: 16), action!],
           ],
@@ -297,13 +328,19 @@ class LkErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: LkSemantic.error),
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: theme.colorScheme.error,
+            ),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             if (onRetry != null) ...[
@@ -327,10 +364,10 @@ class LkLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(32),
-        child: CircularProgressIndicator(color: LkColors.primary),
+        padding: const EdgeInsets.all(32),
+        child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
       ),
     );
   }

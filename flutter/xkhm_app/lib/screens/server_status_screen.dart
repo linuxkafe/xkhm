@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../models/models.dart';
 import '../services/api_client.dart';
-import '../theme/tokens.dart';
 import '../widgets/lk_widgets.dart';
 
 /// The server status page.
@@ -88,12 +87,19 @@ class _ServerStatusScreenState extends State<ServerStatusScreen> {
   }
 
   Widget _row(String label, String value) {
+    final theme = Theme.of(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           Expanded(
-            child: Text(label, style: const TextStyle(color: LkColors.textLight)),
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.hintColor,
+              ),
+            ),
           ),
           Text(
             value.isEmpty ? '—' : value,

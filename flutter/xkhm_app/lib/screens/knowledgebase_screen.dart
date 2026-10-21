@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../models/models.dart';
 import '../services/api_client.dart';
-import '../theme/tokens.dart';
 import '../widgets/lk_widgets.dart';
 
 /// The knowledge base: categories, search and article list.
@@ -77,6 +76,8 @@ class _KnowledgebaseScreenState extends State<KnowledgebaseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     if (_loading) return const LkLoading();
     if (_error != null) return LkErrorView(message: _error!, onRetry: _load);
 
@@ -100,7 +101,9 @@ class _KnowledgebaseScreenState extends State<KnowledgebaseScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'Categoria: ${article.categoryTitle}  •  Atualizado: ${article.lastUpdated}',
-                  style: const TextStyle(color: LkColors.textLight, fontSize: 12),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.hintColor,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(article.content),
@@ -139,14 +142,14 @@ class _KnowledgebaseScreenState extends State<KnowledgebaseScreen> {
             ChoiceChip(
               label: const Text('Todos'),
               selected: _selectedCategoryId == null,
-              selectedColor: LkColors.primary,
+              selectedColor: theme.colorScheme.primary,
               onSelected: (_) => _selectCategory(null),
             ),
             for (final category in _categories)
               ChoiceChip(
                 label: Text('${category.title} (${category.articleCount})'),
                 selected: _selectedCategoryId == category.id,
-                selectedColor: LkColors.primary,
+                selectedColor: theme.colorScheme.primary,
                 onSelected: (_) => _selectCategory(category.id),
               ),
           ],
@@ -168,15 +171,17 @@ class _KnowledgebaseScreenState extends State<KnowledgebaseScreen> {
                   children: [
                     Text(
                       article.title,
-                      style: const TextStyle(
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: LkColors.text,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       article.description,
-                      style: const TextStyle(color: LkColors.textLight),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.hintColor,
+                      ),
                     ),
                   ],
                 ),

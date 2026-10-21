@@ -110,6 +110,15 @@ def _login(page) -> None:
     page.wait_for_timeout(3000)
 
 
+def _open_drawer(page) -> None:
+    """Open the navigation drawer on a narrow screen.
+
+    The button carries a stable semantics identifier; the tappable node is
+    the button *inside* it.
+    """
+    page.locator('[flt-semantics-identifier="nav-drawer"] [role="button"]').click()
+
+
 def _navigate(page, label: str, expected: str, attempts: int = 3) -> str:
     """Click a navigation-rail entry and wait for the destination to render.
 
@@ -210,3 +219,69 @@ def test_flutter_navigates_to_the_domain_checker(app_page):
 
     body = _navigate(app_page, "Procurar Domínio", "Verificar").lower()
     assert "domínio" in body
+
+
+# ─── Mobile ──────────────────────────────────────────────────────────────────
+
+#: Every destination of the client area. None of them may be unreachable on
+#: a phone — the bottom bar only has room for four.
+ALL_DESTINATIONS = [
+    "Painel",
+    "Faturas",
+    "Tickets",
+    "Base de Conhecimento",
+    "Anúncios",
+    "Procurar Domínio",
+    "Status do Servidor",
+]
+
+
+def test_flutter_drawer_reaches_every_destination(app_page):
+    """On a narrow screen the drawer holds all seven destinations."""
+    _login(app_page)
+    app_page.set_viewport_size({"width": 390, "height": 844})
+    app_page.wait_for_timeout(1000)
+
+    _open_drawer(app_page)
+    app_page.wait_for_timeout(1000)
+
+    for index, label in enumerate(ALL_DESTINATIONS):
+        item = app_page.locator(f'[flt-semantics-identifier="drawer-destination-{index}"]')
+        assert item.count() == 1, f"{label} is missing from the drawer"
+        assert label in item.inner_text()
+
+
+def test_flutter_drawer_navigates(app_page):
+    _login(app_page)
+    app_page.set_viewport_size({"width": 390, "height": 844})
+    app_page.wait_for_timeout(1000)
+
+    _open_drawer(app_page)
+    app_page.wait_for_timeout(800)
+
+    app_page.locator('[flt-semantics-identifier="drawer-destination-5"]').click()
+    app_page.wait_for_timeout(2000)
+
+    body = _semantics_text(app_page)
+    assert "Verificar" in body, body[:300]
+
+
+def test_flutter_bottom_bar_shows_the_primary_destinations(app_page):
+    _login(app_page)
+    app_page.set_viewport_size({"width": 390, "height": 844})
+    app_page.wait_for_timeout(1000)
+
+    for label in ALL_DESTINATIONS[:4]:
+        # The bottom bar renders its destinations as tabs with an aria-label.
+        assert app_page.get_by_role("tab", name=label).count() >= 1, label
+
+
+def test_flutter_has_no_horizontal_overflow_on_a_phone(app_page):
+    _login(app_page)
+    app_page.set_viewport_size({"width": 360, "height": 640})
+    app_page.wait_for_timeout(1200)
+
+    overflow = app_page.evaluate(
+        "() => document.documentElement.scrollWidth - document.documentElement.clientWidth"
+    )
+    assert overflow <= 1, f"the application overflows by {overflow}px"

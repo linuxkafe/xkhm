@@ -38,7 +38,6 @@ final class StylesheetMiddleware implements MiddlewareInterface
     {
         $this->stylesheets = $stylesheets !== [] ? $stylesheets : [
             '/templates/default/css/tokens.css',
-            '/templates/default/css/bootstrap.css',
             '/templates/default/css/whmcs.css',
         ];
     }
@@ -74,7 +73,7 @@ final class StylesheetMiddleware implements MiddlewareInterface
             return $body;
         }
 
-        $meta = '<meta name="viewport" content="width=device-width, initial-scale=1">' . "\n";
+        $meta = '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">' . "\n";
 
         return str_replace('</head>', $meta . '</head>', $body);
     }

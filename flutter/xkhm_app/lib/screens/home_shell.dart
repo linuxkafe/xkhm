@@ -25,8 +25,12 @@ class LkDestination {
   final WidgetBuilder builder;
 }
 
-/// The authenticated shell: a navigation rail on wide screens, a bottom bar
-/// on narrow ones.
+/// The authenticated shell.
+///
+/// * **Wide screens** — a navigation rail with every destination.
+/// * **Narrow screens** — a bottom navigation bar with the four primary
+///   destinations plus a *drawer* holding all of them. The drawer is what
+///   guarantees that no destination is unreachable on a phone.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -36,6 +40,14 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+
+  /// The Scaffold lives *below* this state, so `Scaffold.of(context)` cannot
+  /// find it (it looks up the tree). The key is the way to reach it.
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  /// The destinations shown in the bottom navigation bar. The rest live in
+  /// the drawer.
+  static const List<int> _primaryDestinations = [0, 1, 2, 3];
 
   static final List<LkDestination> _destinations = [
     LkDestination(
@@ -75,15 +87,31 @@ class _HomeShellState extends State<HomeShell> {
     ),
   ];
 
+  void _select(int index) {
+    setState(() => _index = index);
+  }
+
   @override
   Widget build(BuildContext context) {
     final destination = _destinations[_index];
-    final wide = MediaQuery.sizeOf(context).width >= 900;
+    final theme = Theme.of(context);
+    final width = MediaQuery.sizeOf(context).width;
+    final wide = width >= LkBreakpoints.breakpointLg;
 
     final content = Column(
       children: [
         LkAppBar(
           title: destination.label,
+          leading: wide
+              ? null
+              : Semantics(
+                  identifier: 'nav-drawer',
+                  child: IconButton(
+                    tooltip: 'Abrir menu de navegação',
+                    icon: const Icon(Icons.menu),
+                    onPressed: () => _openDrawer(context),
+                  ),
+                ),
           actions: [
             IconButton(
               tooltip: 'Terminar sessão',
@@ -94,9 +122,12 @@ class _HomeShellState extends State<HomeShell> {
           ],
         ),
         Expanded(
-          child: LkContentWidth(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-            child: destination.builder(context),
+          child: SafeArea(
+            top: false,
+            child: LkContentWidth(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              child: destination.builder(context),
+            ),
           ),
         ),
       ],
@@ -109,13 +140,13 @@ class _HomeShellState extends State<HomeShell> {
             NavigationRail(
               selectedIndex: _index,
               labelType: NavigationRailLabelType.all,
-              onDestinationSelected: (i) => setState(() => _index = i),
-              leading: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+              onDestinationSelected: _select,
+              leading: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Text(
                   'LINUXKAFÉ',
                   style: TextStyle(
-                    color: LkColors.header,
+                    color: theme.appBarTheme.backgroundColor,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                   ),
@@ -137,19 +168,88 @@ class _HomeShellState extends State<HomeShell> {
     }
 
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: _buildDrawer(context),
       body: content,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        backgroundColor: LkColors.bgCard,
-        indicatorColor: LkColors.primary,
+        selectedIndex: _primaryDestinations.indexOf(_index).clamp(0, 3),
+        onDestinationSelected: (i) => _select(_primaryDestinations[i]),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        indicatorColor: Theme.of(context).colorScheme.primary,
         destinations: [
-          for (final d in _destinations.take(4))
+          for (final index in _primaryDestinations)
             NavigationDestination(
-              icon: Icon(d.icon),
-              label: d.label,
+              icon: Icon(_destinations[index].icon),
+              label: _destinations[index].label,
             ),
         ],
+      ),
+    );
+  }
+
+  void _openDrawer(BuildContext context) {
+    _scaffoldKey.currentState?.openDrawer();
+  }
+
+  /// The drawer holds **every** destination, so none is unreachable on a
+  /// narrow screen.
+  Widget _buildDrawer(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Drawer(
+      child: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            Container(
+              color: theme.appBarTheme.backgroundColor,
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.dns_outlined,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'LINUXKAFÉ',
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            for (var i = 0; i < _destinations.length; i++)
+              Semantics(
+                identifier: 'drawer-destination-$i',
+                child: ListTile(
+                  leading: Icon(_destinations[i].icon),
+                  title: Text(_destinations[i].label),
+                  selected: i == _index,
+                  selectedTileColor: theme.colorScheme.primary,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _select(i);
+                  },
+                ),
+              ),
+            const Divider(),
+            Semantics(
+              identifier: 'drawer-logout',
+              child: ListTile(
+                leading: const Icon(Icons.logout),
+                title: const Text('Terminar sessão'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  context.read<LkSession>().logout();
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

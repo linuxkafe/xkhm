@@ -134,7 +134,6 @@ class InvoiceController
 <head>
     <meta charset="utf-8">
     <title>Aviso Nº{$invoice['id']} - LINUXKAFE</title>
-    <link href="/templates/default/css/bootstrap.css" rel="stylesheet">
     <link href="/templates/default/css/whmcs.css" rel="stylesheet">
 </head>
 <body>
@@ -197,7 +196,6 @@ HTML;
 <head>
     <meta charset="utf-8">
     <title>Minhas Faturas - LINUXKAFE</title>
-    <link href="/templates/default/css/bootstrap.css" rel="stylesheet">
     <link href="/templates/default/css/whmcs.css" rel="stylesheet">
 </head>
 <body>

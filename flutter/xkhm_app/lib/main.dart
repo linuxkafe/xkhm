@@ -7,7 +7,6 @@ import 'screens/login_screen.dart';
 import 'services/api_client.dart';
 import 'services/session.dart';
 import 'theme/lk_theme.dart';
-import 'theme/tokens.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +48,10 @@ class _XkhmAppState extends State<XkhmApp> {
         title: 'LINUXKAFE',
         debugShowCheckedModeBanner: false,
         theme: LkTheme.light(),
+        darkTheme: LkTheme.dark(),
+        // The operating system decides: the application follows the system
+        // preference and repaints when it changes.
+        themeMode: ThemeMode.system,
         locale: const Locale('pt', 'BR'),
         supportedLocales: const [Locale('pt', 'BR')],
         localizationsDelegates: const [
@@ -82,8 +85,10 @@ class _SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: LkColors.header,
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: theme.appBarTheme.backgroundColor,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -91,19 +96,19 @@ class _SplashScreen extends StatelessWidget {
             Text(
               'LINUXKAFÉ',
               style: TextStyle(
-                color: LkColors.primary,
+                color: theme.colorScheme.primary,
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1,
               ),
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             SizedBox(
               height: 28,
               width: 28,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: LkColors.primary,
+                color: theme.colorScheme.primary,
               ),
             ),
           ],

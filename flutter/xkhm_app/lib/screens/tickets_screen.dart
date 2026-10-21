@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../models/models.dart';
 import '../services/api_client.dart';
-import '../theme/tokens.dart';
 import '../widgets/lk_widgets.dart';
 
 /// The support ticket list, with a "new ticket" action.
@@ -57,7 +56,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
     final created = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: LkColors.bg,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       builder: (_) => const NewTicketSheet(),
     );
 
@@ -70,6 +69,8 @@ class _TicketsScreenState extends State<TicketsScreen> {
   Widget build(BuildContext context) {
     if (_loading) return const LkLoading();
     if (_error != null) return LkErrorView(message: _error!, onRetry: _load);
+
+    final theme = Theme.of(context);
 
     return Column(
       children: [
@@ -103,17 +104,16 @@ class _TicketsScreenState extends State<TicketsScreen> {
                               children: [
                                 Text(
                                   '#${ticket.number} — ${ticket.subject}',
-                                  style: const TextStyle(
+                                  style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
-                                    color: LkColors.text,
+                                    color: theme.colorScheme.onSurface,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   'Criado: ${ticket.date}  •  Prioridade: ${ticket.priority}',
-                                  style: const TextStyle(
-                                    color: LkColors.textLight,
-                                    fontSize: 12,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.hintColor,
                                   ),
                                 ),
                               ],
@@ -179,11 +179,14 @@ class _NewTicketSheetState extends State<NewTicketSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
         top: 20,
+        // The virtual keyboard must never cover the form.
         bottom: MediaQuery.viewInsetsOf(context).bottom + 20,
       ),
       child: Form(
@@ -212,12 +215,12 @@ class _NewTicketSheetState extends State<NewTicketSheet> {
               key: const Key('ticket-submit'),
               onPressed: _busy ? null : _submit,
               child: _busy
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: LkColors.text,
+                        color: theme.colorScheme.onPrimary,
                       ),
                     )
                   : const Text('Enviar Ticket'),

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../services/session.dart';
 import '../theme/lk_theme.dart';
-import '../theme/tokens.dart';
 import '../widgets/lk_widgets.dart';
 
 /// The login screen (pt-BR).
@@ -52,9 +51,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       body: Container(
-        color: LkColors.bg,
+        color: theme.colorScheme.surface,
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -66,11 +67,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
+                      Text(
                         'LINUXKAFÉ',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: LkColors.header,
+                          // The wordmark sits on the page background, so it
+                          // uses the *text* colour — the header colour would
+                          // be invisible in dark mode.
+                          color: theme.colorScheme.onSurface,
                           fontSize: 30,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1,
@@ -80,7 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text(
                         'Área do Cliente',
                         textAlign: TextAlign.center,
-                        style: LkTheme.muted,
+                        style: LkTheme.muted(context),
                       ),
                       const SizedBox(height: 28),
                       LkCard(
@@ -144,12 +148,12 @@ class _LoginScreenState extends State<LoginScreen> {
                               key: const Key('login-submit'),
                               onPressed: _busy ? null : _submit,
                               child: _busy
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       height: 20,
                                       width: 20,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: LkColors.text,
+                                        color: theme.colorScheme.onPrimary,
                                       ),
                                     )
                                   : const Text('Entrar'),
@@ -163,12 +167,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      const Text(
+                      Text(
                         'Servidores, Software Livre e Soberania Digital',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: LkColors.textLight,
-                          fontSize: 12,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.hintColor,
                         ),
                       ),
                     ],

@@ -17,7 +17,6 @@ final class Layout
 {
     public const STYLESHEETS = [
         '/templates/default/css/tokens.css',
-        '/templates/default/css/bootstrap.css',
         '/templates/default/css/whmcs.css',
     ];
 
@@ -61,7 +60,10 @@ final class Layout
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141414">
+<meta name="color-scheme" content="light dark">
 <title>{$titleEsc} - LINUXKAFE</title>
 {$head}</head>
 <body>

@@ -9,9 +9,12 @@
  */
 
 :root {
+	/* Tell the browser to theme the scrollbars and form controls. */
+	color-scheme: light dark;
 
 	/* Cores */
 	--color-primary: #f8b400; /* Amarelo LinuxKafé */
+	--color-on-primary: #212121;
 	--color-text: #212121;
 	--color-text-light: #555555;
 	--color-bg: #ffffff;
@@ -43,4 +46,50 @@
 	--width-max: 1100px;
 	--border-radius: 8px;
 	--shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+	/* Mobile */
+	--touch-target-min: 44px;
+	--breakpoint-sm: 576px;
+	--breakpoint-md: 768px;
+	--breakpoint-lg: 992px;
+	--breakpoint-xl: 1200px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+  	/* Cores */
+  	--color-primary: #f8b400; /* Amarelo LinuxKafé */
+  	--color-on-primary: #1a1a1a;
+  	--color-text: #e8e8e8;
+  	--color-text-light: #a0a0a0;
+  	--color-bg: #141414;
+  	--color-bg-card: #1e1e1e;
+  	--color-header: #0d0d0d;
+  	--color-border: #333333;
+  	--color-link: #66b2ff;
+
+  	/* Cores semânticas */
+  	--color-success-bg: #16351f;
+  	--color-success-fg: #7ee2a8;
+  	--color-warning-bg: #3a2f10;
+  	--color-warning-fg: #f0c674;
+  	--color-danger-bg: #3d1a1a;
+  	--color-danger-fg: #f28b82;
+  	--color-neutral-bg: #2a2a2a;
+  	--color-neutral-fg: #c8c8c8;
+  	--color-error: #f28b82;
+  	--color-info-bg: #12303a;
+  	--color-info-fg: #7fd1e8;
+  	--color-shadow: rgba(0, 0, 0, 0.4);
+
+  	/* Tipografia */
+  	--font-base: "Inter, system-ui, -apple-system, sans-serif";
+  	--font-heading: "Poppins, Inter, system-ui, -apple-system, sans-serif";
+  	--font-mono: "Fira Code, monospace";
+
+  	/* Layout */
+  	--width-max: 1100px;
+  	--border-radius: 8px;
+  	--shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
 }

@@ -28,8 +28,7 @@ class PasswordResetController
             <head>
                 <meta charset="utf-8">
                 <title>Recuperar a password perdida - LINUXKAFE</title>
-                <link href="/templates/default/css/bootstrap.css" rel="stylesheet">
-                <link href="/templates/default/css/whmcs.css" rel="stylesheet">
+                            <link href="/templates/default/css/whmcs.css" rel="stylesheet">
             </head>
             <body>
                 <div class="whmcscontainer">
@@ -85,8 +84,7 @@ class PasswordResetController
             <head>
                 <meta charset="utf-8">
                 <title>Instruções enviadas - LINUXKAFE</title>
-                <link href="/templates/default/css/bootstrap.css" rel="stylesheet">
-                <link href="/templates/default/css/whmcs.css" rel="stylesheet">
+                            <link href="/templates/default/css/whmcs.css" rel="stylesheet">
             </head>
             <body>
                 <div class="whmcscontainer">

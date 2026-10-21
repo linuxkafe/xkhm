@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../models/models.dart';
 import '../services/api_client.dart';
-import '../theme/tokens.dart';
 import '../widgets/lk_widgets.dart';
 
 /// The invoice list, with a detail sheet.
@@ -64,6 +63,8 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
       );
     }
 
+    final theme = Theme.of(context);
+
     return ListView.separated(
       itemCount: _invoices.length,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
@@ -78,17 +79,16 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                   children: [
                     Text(
                       'Fatura #${invoice.number}',
-                      style: const TextStyle(
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: LkColors.text,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Emitida: ${invoice.dateCreated}  •  Vencimento: ${invoice.dueDate}',
-                      style: const TextStyle(
-                        color: LkColors.textLight,
-                        fontSize: 12,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.hintColor,
                       ),
                     ),
                   ],
@@ -100,10 +100,10 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                 children: [
                   Text(
                     '\$ ${invoice.total.toStringAsFixed(2)}',
-                    style: const TextStyle(
+                    style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: LkColors.text,
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 6),

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../models/models.dart';
 import '../services/api_client.dart';
-import '../theme/tokens.dart';
 import '../widgets/lk_widgets.dart';
 
 /// The domain availability checker.
@@ -88,12 +87,12 @@ class _DomainCheckerScreenState extends State<DomainCheckerScreen> {
                 key: const Key('domain-check'),
                 onPressed: _loading ? null : _check,
                 child: _loading
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: LkColors.text,
+                          color: Theme.of(context).colorScheme.onPrimary,
                         ),
                       )
                     : const Text('Verificar'),
@@ -102,7 +101,9 @@ class _DomainCheckerScreenState extends State<DomainCheckerScreen> {
                 const SizedBox(height: 12),
                 Text(
                   _error!,
-                  style: const TextStyle(color: LkSemantic.dangerFg),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                 ),
               ],
             ],
@@ -118,23 +119,14 @@ class _DomainCheckerScreenState extends State<DomainCheckerScreen> {
                   Expanded(
                     child: Text(
                       result.domain,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w600,
-                        color: LkColors.text,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),
                   LkStatusBadge(
                     label: result.available ? 'Disponível' : 'Registado',
-                    tone: result.available
-                        ? const LkBadgeTone(
-                            background: LkSemantic.successBg,
-                            foreground: LkSemantic.successFg,
-                          )
-                        : const LkBadgeTone(
-                            background: LkSemantic.dangerBg,
-                            foreground: LkSemantic.dangerFg,
-                          ),
                   ),
                 ],
               ),

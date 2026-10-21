@@ -14,7 +14,6 @@ from conftest import HTML_ROUTES, PROTECTED_ROUTES
 
 REQUIRED_STYLESHEETS = [
     "/templates/default/css/tokens.css",
-    "/templates/default/css/bootstrap.css",
     "/templates/default/css/whmcs.css",
 ]
 

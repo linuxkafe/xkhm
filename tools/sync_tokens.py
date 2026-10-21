@@ -11,6 +11,12 @@ scheme". Two hand-maintained token lists provably drift the first time
 somebody edits one of them. A generator makes the drift *detectable*
 (`make tokens-check` diffs the regenerated output against the committed one).
 
+The palette is a **function of the mode**: the source holds a light and a
+dark palette with identical keys, and the generator emits both — the CSS as
+a `@media (prefers-color-scheme: dark)` block, the Dart as a parallel set of
+constants. There is exactly one writer for both halves, so the two clients
+cannot drift apart in either mode.
+
 Usage:
     python3 tools/sync_tokens.py            # write the outputs
     python3 tools/sync_tokens.py --check    # fail if the outputs are stale
@@ -49,6 +55,9 @@ BANNER_DART = """// GENERATED FILE — do not edit by hand.
 """
 
 
+# ─── Naming ──────────────────────────────────────────────────────────────────
+
+
 def camel(name: str) -> str:
     """`color-text-light` -> `colorTextLight`; `width-max` -> `widthMax`."""
     parts = name.split("-")
@@ -67,42 +76,7 @@ def css_var(name: str) -> str:
     return name if name.startswith("--") else "--" + name
 
 
-def load_tokens() -> dict:
-    if not SOURCE.exists():
-        sys.exit(f"error: token source not found: {SOURCE}")
-    with SOURCE.open(encoding="utf-8") as fh:
-        return json.load(fh)
-
-
-def render_css(tokens: dict) -> str:
-    colors = tokens["colors"]
-    semantic = tokens.get("semantic", {})
-    typography = tokens["typography"]
-    layout = tokens["layout"]
-    url = tokens["source"]["url"]
-
-    out = [BANNER_CSS.format(url=url), "\n:root {\n"]
-    out.append("\n\t/* Cores */\n")
-    for key, value in colors.items():
-        comment = " /* Amarelo LinuxKafé */" if key == "color-primary" else ""
-        out.append(f"\t{css_var(key)}: {value};{comment}\n")
-
-    if semantic:
-        out.append("\n\t/* Cores semânticas */\n")
-        for key, value in semantic.items():
-            out.append(f"\t{css_var(key)}: {css_color(value)};\n")
-
-    out.append("\n\t/* Tipografia */\n")
-    for key, value in typography.items():
-        out.append(f'\t{css_var(key)}: "{value}";\n')
-
-    out.append("\n\t/* Layout */\n")
-    out.append(f'\t{css_var("width-max")}: {layout["width-max"]}px;\n')
-    out.append(f'\t{css_var("border-radius")}: {layout["border-radius"]}px;\n')
-    out.append(f'\t{css_var("shadow-card")}: {layout["shadow-card"]};\n')
-    out.append("}\n")
-
-    return "".join(out)
+# ─── Colours ─────────────────────────────────────────────────────────────────
 
 
 def dart_color(value: str) -> str:
@@ -132,12 +106,112 @@ def css_color(value: str) -> str:
     return "#" + value.lower()
 
 
-def render_dart(tokens: dict) -> str:
-    colors = tokens["colors"]
-    semantic = tokens.get("semantic", {})
+# ─── Renderers ───────────────────────────────────────────────────────────────
+
+
+def _css_block(tokens: dict, *, dark: bool) -> str:
+    """The body of a `:root` rule, for one mode."""
+    colors = tokens["darkColors" if dark else "colors"]
+    semantic = tokens.get("darkSemantic" if dark else "semantic", {})
     typography = tokens["typography"]
     layout = tokens["layout"]
+    mobile = tokens.get("mobile", {})
+
+    indent = "  " if dark else ""
+    body: list[str] = []
+
+    body.append("\t/* Cores */\n")
+    for key, value in colors.items():
+        comment = " /* Amarelo LinuxKafé */" if key == "color-primary" else ""
+        body.append(f"\t{css_var(key)}: {css_color(value)};{comment}\n")
+
+    if semantic:
+        body.append("\n\t/* Cores semânticas */\n")
+        for key, value in semantic.items():
+            body.append(f"\t{css_var(key)}: {css_color(value)};\n")
+
+    body.append("\n\t/* Tipografia */\n")
+    for key, value in typography.items():
+        body.append(f'\t{css_var(key)}: "{value}";\n')
+
+    body.append("\n\t/* Layout */\n")
+    body.append(f'\t{css_var("width-max")}: {layout["width-max"]}px;\n')
+    body.append(f'\t{css_var("border-radius")}: {layout["border-radius"]}px;\n')
+    body.append(f'\t{css_var("shadow-card")}: {layout["shadow-card"]};\n')
+
+    if mobile and not dark:
+        body.append("\n\t/* Mobile */\n")
+        body.append(f'\t{css_var("touch-target-min")}: {mobile["touch-target-min"]}px;\n')
+        for key in ("breakpoint-sm", "breakpoint-md", "breakpoint-lg", "breakpoint-xl"):
+            body.append(f'\t{css_var(key)}: {mobile[key]}px;\n')
+
+    # Indent every non-empty line of the rule body.
+    rendered = "".join(
+        (indent + line if line.strip() else line)
+        for line in "".join(body).splitlines(keepends=True)
+    )
+
+    if dark:
+        return f"@media (prefers-color-scheme: dark) {{\n  :root {{\n{rendered}  }}\n}}\n"
+
+    return f":root {{\n{rendered}}}\n"
+
+
+def render_css(tokens: dict) -> str:
     url = tokens["source"]["url"]
+
+    # `color-scheme` tells the browser to theme the scrollbars and the form
+    # controls; it belongs to the light block, outside the media query.
+    light = _css_block(tokens, dark=False)
+    light = light.replace(
+        ":root {\n",
+        ":root {\n\t/* Tell the browser to theme the scrollbars and form controls. */\n"
+        "\tcolor-scheme: light dark;\n\n",
+        1,
+    )
+
+    return "".join(
+        [
+            BANNER_CSS.format(url=url),
+            "\n",
+            light,
+            "\n",
+            _css_block(tokens, dark=True),
+        ]
+    )
+
+
+def _dart_palette(palette_type: str, holder: str, light: dict, dark: dict) -> str:
+    """A palette value type with a light and a dark instance."""
+    out = [f"/// The {palette_type} palette — one instance per mode.\n"]
+    out.append("@immutable\n")
+    out.append(f"class {palette_type} {{\n")
+    out.append(f"  const {palette_type}({{\n")
+    for key in light:
+        out.append(f"    required this.{dart_name(key)},\n")
+    out.append("  });\n\n")
+    for key in light:
+        out.append(f"  final Color {dart_name(key)};\n")
+    out.append("}\n\n")
+
+    out.append(f"/// The {palette_type} values for each mode.\n")
+    out.append(f"abstract final class {holder} {{\n")
+    out.append(f"  static const {palette_type} light = {palette_type}(\n")
+    for key, value in light.items():
+        out.append(f"    {dart_name(key)}: Color({dart_color(value)}),\n")
+    out.append("  );\n\n")
+    out.append(f"  static const {palette_type} dark = {palette_type}(\n")
+    for key, value in dark.items():
+        out.append(f"    {dart_name(key)}: Color({dart_color(value)}),\n")
+    out.append("  );\n")
+    out.append("}\n\n")
+
+    return "".join(out)
+
+
+def render_dart(tokens: dict) -> str:
+    url = tokens["source"]["url"]
+    mobile = tokens.get("mobile", {})
 
     out = [BANNER_DART.format(url=url), "\n"]
     out.append("import 'package:flutter/material.dart';\n\n")
@@ -145,34 +219,56 @@ def render_dart(tokens: dict) -> str:
     out.append("///\n")
     out.append("/// Generated from `assets/design_tokens.json`. Never edit by hand —\n")
     out.append("/// run `make tokens` instead.\n")
-    out.append("abstract final class LkColors {\n")
-    for key, value in colors.items():
-        out.append(f"  static const Color {dart_name(key)} = Color({dart_color(value)});\n")
-    out.append("}\n\n")
+    out.append("///\n")
+    out.append("/// The palette is a function of the mode: every palette type has a\n")
+    out.append("/// `light` and a `dark` instance, and the theme picks the one the\n")
+    out.append("/// operating system asks for.\n\n")
 
-    if semantic:
-        out.append("/// Semantic colours (success / warning / danger / info).\n")
-        out.append("abstract final class LkSemantic {\n")
-        for key, value in semantic.items():
-            out.append(
-                f"  static const Color {dart_name(key)} = Color({dart_color(value)});\n"
-            )
-        out.append("}\n\n")
+    out.append(
+        _dart_palette(
+            "LkPalette",
+            "LkColors",
+            tokens["colors"],
+            tokens["darkColors"],
+        )
+    )
+    out.append(
+        _dart_palette(
+            "LkSemanticPalette",
+            "LkSemantic",
+            tokens.get("semantic", {}),
+            tokens.get("darkSemantic", {}),
+        )
+    )
 
     out.append("/// Typography families, matching the CSS `--font-*` tokens.\n")
     out.append("abstract final class LkFonts {\n")
-    out.append(f'  static const String base = "{typography["font-base"]}";\n')
-    out.append(f'  static const String heading = "{typography["font-heading"]}";\n')
-    out.append(f'  static const String mono = "{typography["font-mono"]}";\n')
+    out.append(f'  static const String base = "{tokens["typography"]["font-base"]}";\n')
+    out.append(f'  static const String heading = "{tokens["typography"]["font-heading"]}";\n')
+    out.append(f'  static const String mono = "{tokens["typography"]["font-mono"]}";\n')
     out.append("}\n\n")
 
     out.append("/// Layout tokens, matching the CSS layout block.\n")
     out.append("abstract final class LkLayout {\n")
-    out.append(f"  static const double widthMax = {layout['width-max']};\n")
-    out.append(f"  static const double borderRadius = {layout['border-radius']};\n")
+    out.append(f"  static const double widthMax = {tokens['layout']['width-max']};\n")
+    out.append(f"  static const double borderRadius = {tokens['layout']['border-radius']};\n")
+    if mobile:
+        out.append(
+            f"  static const double touchTargetMin = {mobile['touch-target-min']};\n"
+        )
     out.append("}\n")
 
+    if mobile:
+        out.append("\n/// Responsive breakpoints, matching the CSS `--breakpoint-*` tokens.\n")
+        out.append("abstract final class LkBreakpoints {\n")
+        for key in ("breakpoint-sm", "breakpoint-md", "breakpoint-lg", "breakpoint-xl"):
+            out.append(f"  static const double {camel(key)} = {mobile[key]};\n")
+        out.append("}\n")
+
     return "".join(out)
+
+
+# ─── Driver ──────────────────────────────────────────────────────────────────
 
 
 def write_or_check(path: pathlib.Path, content: str, check: bool) -> bool:
@@ -215,6 +311,29 @@ def main() -> int:
 
     print("\nOK: design tokens are in sync")
     return 0
+
+
+def load_tokens() -> dict:
+    if not SOURCE.exists():
+        sys.exit(f"error: token source not found: {SOURCE}")
+    with SOURCE.open(encoding="utf-8") as fh:
+        tokens = json.load(fh)
+
+    # The dark palette must cover exactly the same keys as the light one —
+    # a missing key would silently fall back to the light value.
+    for light_key, dark_key in (("colors", "darkColors"), ("semantic", "darkSemantic")):
+        light = set(tokens.get(light_key, {}).keys())
+        dark = set(tokens.get(dark_key, {}).keys())
+        if light != dark:
+            missing = sorted(light - dark)
+            extra = sorted(dark - light)
+            sys.exit(
+                f"error: '{dark_key}' must define the same keys as '{light_key}'.\n"
+                f"  missing: {missing}\n"
+                f"  extra:   {extra}"
+            )
+
+    return tokens
 
 
 if __name__ == "__main__":

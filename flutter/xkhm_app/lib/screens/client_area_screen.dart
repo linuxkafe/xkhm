@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../models/models.dart';
 import '../services/api_client.dart';
-import '../theme/tokens.dart';
 import '../widgets/lk_widgets.dart';
 
 /// The client-area dashboard: identity, billing summary and counters.
@@ -61,6 +60,7 @@ class _ClientAreaScreenState extends State<ClientAreaScreen> {
     if (summary == null) return const LkEmptyState(message: 'Sem dados.');
 
     final counts = summary.counts;
+    final theme = Theme.of(context);
 
     return ListView(
       children: [
@@ -74,10 +74,10 @@ class _ClientAreaScreenState extends State<ClientAreaScreen> {
                 summary.client.fullName.isEmpty
                     ? 'Cliente'
                     : summary.client.fullName,
-                style: const TextStyle(
+                style: theme.textTheme.titleLarge?.copyWith(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: LkColors.text,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 4),

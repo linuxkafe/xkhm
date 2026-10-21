@@ -12,31 +12,127 @@ import 'package:flutter/material.dart';
 ///
 /// Generated from `assets/design_tokens.json`. Never edit by hand —
 /// run `make tokens` instead.
-abstract final class LkColors {
-  static const Color primary = Color(0xFFF8B400);
-  static const Color text = Color(0xFF212121);
-  static const Color textLight = Color(0xFF555555);
-  static const Color bg = Color(0xFFFFFFFF);
-  static const Color bgCard = Color(0xFFFFFFFF);
-  static const Color header = Color(0xFF2D2D2D);
-  static const Color border = Color(0xFFE0E0E0);
-  static const Color link = Color(0xFF0056B3);
+///
+/// The palette is a function of the mode: every palette type has a
+/// `light` and a `dark` instance, and the theme picks the one the
+/// operating system asks for.
+
+/// The LkPalette palette — one instance per mode.
+@immutable
+class LkPalette {
+  const LkPalette({
+    required this.primary,
+    required this.onPrimary,
+    required this.text,
+    required this.textLight,
+    required this.bg,
+    required this.bgCard,
+    required this.header,
+    required this.border,
+    required this.link,
+  });
+
+  final Color primary;
+  final Color onPrimary;
+  final Color text;
+  final Color textLight;
+  final Color bg;
+  final Color bgCard;
+  final Color header;
+  final Color border;
+  final Color link;
 }
 
-/// Semantic colours (success / warning / danger / info).
+/// The LkPalette values for each mode.
+abstract final class LkColors {
+  static const LkPalette light = LkPalette(
+    primary: Color(0xFFF8B400),
+    onPrimary: Color(0xFF212121),
+    text: Color(0xFF212121),
+    textLight: Color(0xFF555555),
+    bg: Color(0xFFFFFFFF),
+    bgCard: Color(0xFFFFFFFF),
+    header: Color(0xFF2D2D2D),
+    border: Color(0xFFE0E0E0),
+    link: Color(0xFF0056B3),
+  );
+
+  static const LkPalette dark = LkPalette(
+    primary: Color(0xFFF8B400),
+    onPrimary: Color(0xFF1A1A1A),
+    text: Color(0xFFE8E8E8),
+    textLight: Color(0xFFA0A0A0),
+    bg: Color(0xFF141414),
+    bgCard: Color(0xFF1E1E1E),
+    header: Color(0xFF0D0D0D),
+    border: Color(0xFF333333),
+    link: Color(0xFF66B2FF),
+  );
+}
+
+/// The LkSemanticPalette palette — one instance per mode.
+@immutable
+class LkSemanticPalette {
+  const LkSemanticPalette({
+    required this.successBg,
+    required this.successFg,
+    required this.warningBg,
+    required this.warningFg,
+    required this.dangerBg,
+    required this.dangerFg,
+    required this.neutralBg,
+    required this.neutralFg,
+    required this.error,
+    required this.infoBg,
+    required this.infoFg,
+    required this.shadow,
+  });
+
+  final Color successBg;
+  final Color successFg;
+  final Color warningBg;
+  final Color warningFg;
+  final Color dangerBg;
+  final Color dangerFg;
+  final Color neutralBg;
+  final Color neutralFg;
+  final Color error;
+  final Color infoBg;
+  final Color infoFg;
+  final Color shadow;
+}
+
+/// The LkSemanticPalette values for each mode.
 abstract final class LkSemantic {
-  static const Color successBg = Color(0xFFD4EDDA);
-  static const Color successFg = Color(0xFF155724);
-  static const Color warningBg = Color(0xFFFFF3CD);
-  static const Color warningFg = Color(0xFF856404);
-  static const Color dangerBg = Color(0xFFF8D7DA);
-  static const Color dangerFg = Color(0xFF721C24);
-  static const Color neutralBg = Color(0xFFE9ECEF);
-  static const Color neutralFg = Color(0xFF383D41);
-  static const Color error = Color(0xFFDC3545);
-  static const Color infoBg = Color(0xFFD1ECF1);
-  static const Color infoFg = Color(0xFF0C5460);
-  static const Color shadow = Color(0x1A000000);
+  static const LkSemanticPalette light = LkSemanticPalette(
+    successBg: Color(0xFFD4EDDA),
+    successFg: Color(0xFF155724),
+    warningBg: Color(0xFFFFF3CD),
+    warningFg: Color(0xFF856404),
+    dangerBg: Color(0xFFF8D7DA),
+    dangerFg: Color(0xFF721C24),
+    neutralBg: Color(0xFFE9ECEF),
+    neutralFg: Color(0xFF383D41),
+    error: Color(0xFFDC3545),
+    infoBg: Color(0xFFD1ECF1),
+    infoFg: Color(0xFF0C5460),
+    shadow: Color(0x1A000000),
+  );
+
+  static const LkSemanticPalette dark = LkSemanticPalette(
+    successBg: Color(0xFF16351F),
+    successFg: Color(0xFF7EE2A8),
+    warningBg: Color(0xFF3A2F10),
+    warningFg: Color(0xFFF0C674),
+    dangerBg: Color(0xFF3D1A1A),
+    dangerFg: Color(0xFFF28B82),
+    neutralBg: Color(0xFF2A2A2A),
+    neutralFg: Color(0xFFC8C8C8),
+    error: Color(0xFFF28B82),
+    infoBg: Color(0xFF12303A),
+    infoFg: Color(0xFF7FD1E8),
+    shadow: Color(0x66000000),
+  );
 }
 
 /// Typography families, matching the CSS `--font-*` tokens.
@@ -50,4 +146,13 @@ abstract final class LkFonts {
 abstract final class LkLayout {
   static const double widthMax = 1100;
   static const double borderRadius = 8;
+  static const double touchTargetMin = 44;
+}
+
+/// Responsive breakpoints, matching the CSS `--breakpoint-*` tokens.
+abstract final class LkBreakpoints {
+  static const double breakpointSm = 576;
+  static const double breakpointMd = 768;
+  static const double breakpointLg = 992;
+  static const double breakpointXl = 1200;
 }
