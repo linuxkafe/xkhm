@@ -54,6 +54,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T029 | Rever a exposição dos restantes contentores (ollama, searxng) | medium | pending |
 | T030 | Repor a senha do administrador `linuxkafe` na base de produção | medium | pending |
 | T031 | Sistema de recuperação de credenciais (cliente + admin) | high | done |
+| T032 | Rodar a senha do MySQL + entrega de correio pelo Postfix local | high | done |
 
 > **Note on numbering.** T020 was originally reserved for "Performance & load
 > testing". The Flutter conversion was planned as **T022** and the Playwright
@@ -74,6 +75,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T027 | Exposição do MySQL | done | porta no loopback, credenciais locais próprias |
 | T028 | Esquema WHMCS 5.3.9 real + formatos de senha | done | 89 PHPUnit + 141 Playwright contra a base **real** |
 | T031 | Recuperação de credenciais | done | 103 PHPUnit + 152 Playwright; fluxo completo de cliente e admin, **sem alterar o esquema** |
+| T032 | Rotação do MySQL + correio | done | senhas fora do repositório, healthcheck que autentica, tokens entregues por correio |
 
 ### Open decisions
 
@@ -90,15 +92,30 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 
 ### ⚠ Outstanding action for the operator
 
-The **production database password is compromised**. It is in
+The **production database password was compromised**: it was in
 `configuration.php` and in the git history, and it was the password of a
-MySQL instance published on the public internet (T027). It must be
-rotated, and the local database must never use it again.
+MySQL instance published on the public internet (T027).
+
+Since T032:
+
+- it is **out of every versioned file** — the repository now holds the
+  *shape* of the configuration (`${XKHM_DB_PASSWORD:?...}`), never a
+  value;
+- the **local** database has its own rotated, strong credentials, in an
+  untracked `.env` (mode 0600);
+- the tool that rotates the production password is written and tested:
+  `python3 tools/rotate_db_password.py --host 10.0.3.1 --user linuxkonect --apply`.
+
+What is **left**: the production server (`10.0.3.1`) is not reachable
+from this machine, so the rotation itself has to be run where it is.
+Rewriting the git history — which would remove the old value from the
+commits — is a destructive operation on every clone, and is the
+operator's call.
 
 ### Test gates (all green)
 
 ```
-make test            # 103 PHPUnit tests — contra a base real
+make test            # 111 PHPUnit tests — contra a base real
 make lint            # PHPStan level 5, 0 errors
 make e2e             # 152 Playwright tests (API + Flutter) — dados reais
 make flutter-test    # 45 Flutter unit + widget tests
@@ -109,4 +126,7 @@ make db-test-accounts  # contas de desenvolvimento
 make db-reset-tokens   # tokens de recuperação à espera de entrega
 make db-reset-client   # repõe a senha de um cliente
 make db-reset-admin    # repõe a senha do administrador
+make db-env            # cria o .env local com senhas fortes (não versionado)
+make db-rotate         # roda a senha da base, verificando o resultado
+make db-mail-send      # entrega os tokens de recuperação por correio
 ```

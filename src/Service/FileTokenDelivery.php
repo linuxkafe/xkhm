@@ -5,15 +5,20 @@ declare(strict_types=1);
 namespace Xkhm\Service;
 
 /**
- * Writes the reset token to a local file, so that there is **always** a
- * way in.
+ * Writes the reset token to a local file: the **queue**.
  *
- * The deployment has no SMTP credentials. A flow that says "check your
- * e-mail" and sends nothing is worse than no flow at all: the person is
- * locked out and told to wait for an e-mail that will never arrive.
+ * The file is what makes the delivery possible when the application
+ * cannot reach the mail server — which is the case here: the
+ * application runs in a container and the host's firewall does not let
+ * it reach the host's Postfix.
  *
- * The file is written with mode 0600, in a directory outside the document
- * root, and it is only readable by the administrator.
+ * The file is therefore written **first**, always. If the application
+ * manages to deliver the token by e-mail, the file is removed
+ * ({@see forget()}); if it does not, the file stays and the host's
+ * mailer delivers it.
+ *
+ * The file lives outside the document root and the token expires in an
+ * hour.
  */
 class FileTokenDelivery implements TokenDelivery
 {
@@ -21,20 +26,25 @@ class FileTokenDelivery implements TokenDelivery
     {
     }
 
-    public function deliver(string $recipient, string $token, string $purpose): bool
-    {
+    public function deliver(
+        string $recipient,
+        string $token,
+        string $purpose,
+        string $account = ''
+    ): bool {
         $directory = rtrim($this->directory, '/');
 
         if (!is_dir($directory) && !@mkdir($directory, 0700, true) && !is_dir($directory)) {
             return false;
         }
 
-        $file = sprintf('%s/%s-%s.txt', $directory, $purpose, substr($token, 0, 16));
+        $file = $this->path($purpose, $token);
 
         $payload = sprintf(
-            "purpose: %s\nrecipient: %s\ntoken: %s\ncreated: %s\n",
+            "purpose: %s\nrecipient: %s\naccount: %s\ntoken: %s\ncreated: %s\n",
             $purpose,
             $recipient,
+            $account !== '' ? $account : $recipient,
             $token,
             date('c')
         );
@@ -54,5 +64,30 @@ class FileTokenDelivery implements TokenDelivery
     public function describe(): string
     {
         return sprintf('gravado em %s (leia com `make db-reset-tokens`)', $this->directory);
+    }
+
+    /**
+     * The token is no longer pending — it was delivered by another
+     * channel.
+     */
+    public function forget(string $token, string $purpose): bool
+    {
+        $file = $this->path($purpose, $token);
+
+        if (!is_file($file)) {
+            return false;
+        }
+
+        return @unlink($file);
+    }
+
+    private function path(string $purpose, string $token): string
+    {
+        return sprintf(
+            '%s/%s-%s.txt',
+            rtrim($this->directory, '/'),
+            $purpose,
+            substr($token, 0, 16)
+        );
     }
 }

@@ -39,3 +39,8 @@ docker/dumps/
 docker/backups/
 storage/*.tmp
 storage/reset-tokens/
+storage/mailer.log
+
+# Python
+__pycache__/
+*.pyc

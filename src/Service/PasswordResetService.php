@@ -63,7 +63,7 @@ class PasswordResetService
             time() + self::TTL
         );
 
-        $this->delivery->deliver($email, $token, 'cliente');
+        $this->delivery->deliver($email, $token, 'cliente', $email);
         $this->lastToken = $token;
 
         return true;

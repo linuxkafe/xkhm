@@ -61,7 +61,13 @@ class AdminPasswordResetService
             'expires' => time() + self::TTL,
         ]);
 
-        $this->delivery->deliver($username, $token, 'admin');
+        // The delivery goes to the administrator's **e-mail address** —
+        // the user name is not an address. The account travels with the
+        // token so that the message says whose it is.
+        $email = trim((string)($admin['email'] ?? ''));
+        $recipient = $email !== '' ? $email : $username;
+
+        $this->delivery->deliver($recipient, $token, 'admin', $username);
         $this->lastToken = $token;
 
         return true;

@@ -33,6 +33,11 @@ import subprocess
 import sys
 import time
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from load_env import load_env  # noqa: E402
+
+load_env()
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DUMP_DIR = ROOT / "docker" / "dumps"
 BACKUP_DIR = ROOT / "docker" / "backups"
@@ -42,8 +47,8 @@ DB_NAME = os.getenv("XKHM_DB_NAME", "linuxkonect")
 DB_USER = os.getenv("XKHM_DB_USER", "linuxkonect")
 # The LOCAL database's password. It is deliberately not the production one:
 # see aes/tickets/T027.md.
-DB_PASS = os.getenv("XKHM_DB_PASSWORD", "xkhm-local-only")
-DB_ROOT_PASS = os.getenv("XKHM_DB_ROOT_PASSWORD", "xkhm-local-root")
+DB_PASS = os.getenv("XKHM_DB_PASSWORD", "")
+DB_ROOT_PASS = os.getenv("XKHM_DB_ROOT_PASSWORD", "")
 
 #: The tables the application actually reads. Anything else in the dump is
 #: kept (it is production data) but is not used by xkhm yet.

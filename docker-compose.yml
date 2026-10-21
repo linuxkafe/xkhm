@@ -18,7 +18,14 @@ services:
       # The local database's own password. configuration.php keeps the
       # production one for the production deployment; the environment
       # variable overrides it here.
-      - DB_PASSWORD=${XKHM_DB_PASSWORD:-xkhm-local-only}
+      # There is NO default. A password in the repository is a password
+      # in the git history; the value comes from the `.env`, which is
+      # not versioned. If it is missing, `docker compose` refuses to
+      # start rather than inventing one.
+      - DB_PASSWORD=${XKHM_DB_PASSWORD:?defina XKHM_DB_PASSWORD no .env (make db-env)}
+      # The shared WHMCS encryption hash. It must be the SAME value the
+      # WHMCS uses, or the encrypted data in the database is unreadable.
+      - CC_ENCRYPTION_HASH=${CC_ENCRYPTION_HASH:?defina CC_ENCRYPTION_HASH no .env (make db-env)}
     volumes:
       - ./public/uploads:/var/www/html/public/uploads
       # The credential-recovery tokens (there is no SMTP in this deployment).
@@ -42,10 +49,10 @@ services:
       # production ones: the production password is in configuration.php and
       # in the git history, and a database published on 0.0.0.0 with a known
       # password is an invitation (see aes/tickets/T027.md).
-      - MYSQL_ROOT_PASSWORD=${XKHM_DB_ROOT_PASSWORD:-xkhm-local-root}
+      - MYSQL_ROOT_PASSWORD=${XKHM_DB_ROOT_PASSWORD:?defina XKHM_DB_ROOT_PASSWORD no .env (make db-env)}
       - MYSQL_DATABASE=linuxkonect
       - MYSQL_USER=linuxkonect
-      - MYSQL_PASSWORD=${XKHM_DB_PASSWORD:-xkhm-local-only}
+      - MYSQL_PASSWORD=${XKHM_DB_PASSWORD:?defina XKHM_DB_PASSWORD no .env (make db-env)}
       # The init script is UTF-8 (pt-BR content). Without this the client
       # charset defaults to latin1 and every accented character is mangled.
       - MYSQL_INITDB_SKIP_TZINFO=1
@@ -66,7 +73,18 @@ services:
       # network and needs no published port at all.
       - "127.0.0.1:13306:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "linuxkonect", "-pqm9W8amh5XV9A4Dr"]
+      # This one **authenticates**.
+      #
+      # `mysqladmin ping` returns success even when the password is
+      # wrong — the server answered, and that is all it checks. It said
+      # "healthy" through a whole wrong password, which is a healthcheck
+      # that means nothing. `mysql -e "SELECT 1"` really does log in.
+      #
+      # `MYSQL_PWD` keeps the password out of the command line, where it
+      # would be visible to every `ps` on the host.
+      test:
+        - CMD-SHELL
+        - MYSQL_PWD="$$MYSQL_PASSWORD" mysql -h 127.0.0.1 -u "$$MYSQL_USER" -e "SELECT 1" >/dev/null 2>&1
       interval: 10s
       timeout: 5s
       retries: 5

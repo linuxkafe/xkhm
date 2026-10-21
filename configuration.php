@@ -4,18 +4,30 @@ $cfg = array();
 
 $cfg['db_host'] = 'mysql';
 $cfg['db_username'] = 'linuxkonect';
-// The environment variable wins, so the local Docker stack can use its own
-// database password. The value below is the PRODUCTION one and is only used
-// when no environment variable is set.
+
+// The password comes from the environment. There is **no fallback**.
 //
-// It is also in the git history — it must be rotated. See
-// aes/tickets/T027.md.
-$cfg['db_password'] = getenv('DB_PASSWORD') ?: 'qm9W8amh5XV9A4Dr';
+// A password in this file is a password in the git history, and this
+// one was: it was published on 0.0.0.0:3306 with the production
+// database (see aes/tickets/T027.md). The environment is the only place
+// a credential belongs.
+//
+// The file does not stop the process when the variable is missing:
+// `Config` raises the error, at the point where a connection is really
+// needed, with a message that says what to do.
+$cfg['db_password'] = (string)(getenv('DB_PASSWORD') ?: '');
 $cfg['db_name'] = 'linuxkonect';
 $cfg['db_port'] = '3306';
 $cfg['mysql_charset'] = 'utf8mb4';
 
-$cfg['cc_encryption_hash'] = 'fu6RHD3GlqaSEOPeuK1nuxSG82puHHmN2iuAMo6YF7G9Lme5X5jht1NrU3LsBX5t';
+// The WHMCS encryption hash. It is a **shared** secret: the application
+// and the WHMCS must agree on it, or the data the WHMCS encrypted in
+// the database becomes unreadable.
+//
+// It comes from the environment for the same reason as the password, but
+// it cannot simply be rotated: doing so needs a migration of the
+// encrypted data. It is listed here as a known debt.
+$cfg['cc_encryption_hash'] = (string)(getenv('CC_ENCRYPTION_HASH') ?: '');
 
 $cfg['templates_compiledir'] = 'templates_c/';
 $cfg['customadminpath'] = 'admin';

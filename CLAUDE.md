@@ -25,8 +25,8 @@ Reverse-engineer the live WHMCS 5.3.x service at `xk.linuxkafe.com` and reimplem
   - DB host: `10.0.3.1`
   - DB name: `linuxkonect`
   - DB user: `linuxkonect`
-  - DB pass: `qm9W8amh5XV9A4Dr`
-  - CC encryption hash: `fu6RHD3GlqaSEOPeuK1nuxSG82puHHmN2iuAMo6YF7G9Lme5X5jht1NrU3LsBX5t`
+  - DB pass: `<a senha de produção — rodada; ver aes/tickets/T032.md>`
+  - CC encryption hash: `<o hash de encriptação do WHMCS — partilhado, no ambiente>`
 - Live service: `https://xk.linuxkafe.com/` (Apache + PHP 5.6 + ionCube Loader 15.5.0)
 - MySQL container: `whmcs-mysql` (empty `whmcs` DB — live DB is separate)
 

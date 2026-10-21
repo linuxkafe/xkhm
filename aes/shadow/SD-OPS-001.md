@@ -28,7 +28,7 @@ This address is assigned to your database credentials (host + user:
 ports:
   - "3306:3306"                        # 0.0.0.0:3306
 environment:
-  - MYSQL_PASSWORD=qm9W8amh5XV9A4Dr    # a senha de PRODUÇÃO
+  - MYSQL_PASSWORD=<a senha de produção — rodada; ver aes/tickets/T032.md>    # a senha de PRODUÇÃO
 ```
 
 Duas decisões separadas, cada uma inofensiva, que juntas abriram a base de
@@ -63,7 +63,7 @@ ports:
 E a `configuration.php` passa a aceitar o override:
 
 ```php
-$cfg['db_password'] = getenv('DB_PASSWORD') ?: 'qm9W8amh5XV9A4Dr';
+$cfg['db_password'] = getenv('DB_PASSWORD') ?: '<a senha de produção — rodada; ver aes/tickets/T032.md>';
 ```
 
 ### O detalhe do Apache

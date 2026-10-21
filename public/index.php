@@ -159,20 +159,26 @@ $fileDelivery = new \Xkhm\Service\FileTokenDelivery(
 
 $smtpDelivery = \Xkhm\Service\SmtpTokenDelivery::fromEnvironment();
 
-$clientDelivery = $smtpDelivery ?? $fileDelivery;
-$adminDelivery = $smtpDelivery ?? $fileDelivery;
+// The rule of ownership: the file is the queue and is always written;
+// the e-mail, when the application can reach a server, is a channel on
+// top and removes the token from the queue once it is delivered.
+//
+// In this deployment the application runs in a container that cannot
+// reach the host's Postfix, so `$smtpDelivery` is null and the host's
+// mailer (`tools/mail_pending_tokens.py`) does the delivery.
+$delivery = new \Xkhm\Service\TokenDispatcher($fileDelivery, $smtpDelivery);
 
 $passwordHasher = new \Xkhm\Service\PasswordHasher();
 
 $passwordResetService = new \Xkhm\Service\PasswordResetService(
     $clientRepo,
-    $clientDelivery,
+    $delivery,
     $passwordHasher
 );
 
 $adminPasswordResetService = new \Xkhm\Service\AdminPasswordResetService(
     new \Xkhm\Repository\AdminRepositoryPDO(),
-    $adminDelivery,
+    $delivery,
     $passwordHasher,
     $resetTokenDirectory . '/admin'
 );

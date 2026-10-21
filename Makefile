@@ -4,6 +4,21 @@ PHP=php
 PHP_VERSION=$(shell php -r "echo PHP_VERSION;")
 COMPOSER=composer
 
+# The local credentials live in the `.env`, which is **not** versioned.
+# Including it here makes `make test` and `docker compose` agree on
+# them; the repository holds the shape of the configuration, never the
+# value.
+ifneq (,$(wildcard .env))
+include .env
+export XKHM_DB_HOST
+export XKHM_DB_NAME
+export XKHM_DB_USER
+export XKHM_DB_PASSWORD
+export XKHM_DB_ROOT_PASSWORD
+export XKHM_DB_PORT
+export CC_ENCRYPTION_HASH
+endif
+
 # Flutter SDK — override with `make FLUTTER=/path/to/flutter ...`
 FLUTTER ?= $(shell command -v flutter 2>/dev/null || echo /opt/flutter/bin/flutter)
 
@@ -20,8 +35,9 @@ test: vendor/autoload.php ## Run test suite
 	@XKHM_DB_HOST=$${XKHM_DB_HOST:-127.0.0.1} \
 	 XKHM_DB_NAME=$${XKHM_DB_NAME:-linuxkonect} \
 	 XKHM_DB_USER=$${XKHM_DB_USER:-linuxkonect} \
-	 XKHM_DB_PASS=$${XKHM_DB_PASS:-$${XKHM_DB_PASSWORD:-xkhm-local-only}} \
+	 XKHM_DB_PASS=$${XKHM_DB_PASS:-$${XKHM_DB_PASSWORD:?defina XKHM_DB_PASSWORD no .env (make db-env)}} \
 	 XKHM_DB_PORT=$${XKHM_DB_PORT:-13306} \
+	 CC_ENCRYPTION_HASH="$${CC_ENCRYPTION_HASH:-$${XKHM_CC_ENCRYPTION_HASH:-}}" \
 	 ./vendor/bin/phpunit --configuration phpunit.xml.dist
 
 lint: vendor/autoload.php ## Lint source code
@@ -63,7 +79,7 @@ db-import: ## Import a database dump into the local MySQL (FILE=dump.sql)
 
 db-backup: ## Back up the local database
 	@mkdir -p docker/backups && \
-	 docker exec xkhm-mysql-1 mysqldump -ulinuxkonect -p$${XKHM_DB_PASSWORD:-xkhm-local-only} \
+	 docker exec xkhm-mysql-1 mysqldump -ulinuxkonect -p"$${XKHM_DB_PASSWORD:?defina XKHM_DB_PASSWORD no .env (make db-env)}" \
 	   --single-transaction --default-character-set=utf8mb4 linuxkonect \
 	   > docker/backups/linuxkonect-$$(date +%Y%m%d-%H%M%S).sql && \
 	 echo "cópia em docker/backups/"
@@ -79,6 +95,15 @@ db-reset-client: ## Reset a client's password (EMAIL=... PASSWORD=...)
 
 db-reset-tokens: ## List the pending credential-recovery tokens (CLEAR=1 removes the expired ones)
 	@python3 tools/list_reset_tokens.py
+
+db-mail-send: ## Deliver the pending credential-recovery tokens by e-mail
+	@python3 tools/mail_pending_tokens.py
+
+db-env: ## Create the local .env with strong passwords (REGEN=1 to replace)
+	@python3 tools/setup_local_env.py
+
+db-rotate: ## Rotate the database password, verifying the result
+	@python3 tools/rotate_db_password.py
 
 db-seed: ## Re-seed the local database with the development fixture
 	@echo "ATENÇÃO: isto apaga os dados locais actuais."

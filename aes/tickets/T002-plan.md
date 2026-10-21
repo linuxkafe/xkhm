@@ -83,9 +83,9 @@ blocked_by: ''
 |----------|-------|
 | `$db_host` | `10.0.3.1` |
 | `$db_username` | `linuxkonect` |
-| `$db_password` | `qm9W8amh5XV9A4Dr` |
+| `$db_password` | `<a senha de produção — rodada; ver aes/tickets/T032.md>` |
 | `$db_name` | `linuxkonect` |
-| `$cc_encryption_hash` | `fu6RHD3GlqaSEOPeuK1nuxSG82puHHmN2iuAMo6YF7G9Lme5X5jht1NrU3LsBX5t` |
+| `$cc_encryption_hash` | `<o hash de encriptação do WHMCS — partilhado, no ambiente>` |
 | `$templates_compiledir` | `templates_c/` |
 | `$mysql_charset` | `utf8` |
 | `$display_errors` | `false` |

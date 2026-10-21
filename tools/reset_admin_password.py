@@ -18,14 +18,20 @@ from __future__ import annotations
 
 import getpass
 import os
+import pathlib
 import subprocess
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from load_env import load_env  # noqa: E402
+
+load_env()
 
 DB_CONTAINER = "xkhm-mysql-1"
 APP_CONTAINER = "xkhm-app-1"
 DB_NAME = os.getenv("XKHM_DB_NAME", "linuxkonect")
 DB_USER = os.getenv("XKHM_DB_USER", "linuxkonect")
-DB_PASS = os.getenv("XKHM_DB_PASSWORD", "xkhm-local-only")
+DB_PASS = os.getenv("XKHM_DB_PASSWORD", "")
 
 
 def mysql(sql: str) -> str:

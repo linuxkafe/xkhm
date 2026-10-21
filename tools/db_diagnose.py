@@ -27,7 +27,17 @@ import sys
 import urllib.error
 import urllib.request
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from load_env import load_env  # noqa: E402
+
+load_env()
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+#: The LOCAL database's own credentials — never the production ones.
+#: They come from the `.env`, which is not versioned.
+LOCAL_DB_USER = os.getenv("XKHM_DB_USER", "linuxkonect")
+LOCAL_DB_PASS = os.getenv("XKHM_DB_PASSWORD", "")
 
 #: Where a dump is expected to be found.
 DUMP_GLOBS = ["*.sql", "*.sql.gz", "*.sql.bz2", "*.dump", "*.sql.xz"]
@@ -166,10 +176,6 @@ def find_dumps() -> list[pathlib.Path]:
 
 def check_local_database() -> tuple[bool, str]:
     """Is the local MySQL reachable, and how many tables does it have?"""
-    # The LOCAL database's own credentials — never the production ones.
-    local_user = os.getenv("XKHM_DB_USER", "linuxkonect")
-    local_pass = os.getenv("XKHM_DB_PASSWORD", "xkhm-local-only")
-
     try:
         result = subprocess.run(
             [
@@ -177,8 +183,8 @@ def check_local_database() -> tuple[bool, str]:
                 "exec",
                 "xkhm-mysql-1",
                 "mysql",
-                f"-u{local_user}",
-                f"-p{local_pass}",
+                f"-u{LOCAL_DB_USER}",
+                f"-p{LOCAL_DB_PASS}",
                 "-N",
                 "-e",
                 "SELECT COUNT(*) FROM information_schema.TABLES "
@@ -211,7 +217,7 @@ def check_admin_account() -> tuple[bool, str]:
         result = subprocess.run(
             [
                 "docker", "exec", "xkhm-mysql-1",
-                "mysql", "-ulinuxkonect", "-pxkhm-local-only",
+                "mysql", f"-u{LOCAL_DB_USER}", f"-p{LOCAL_DB_PASS}",
                 "-N", "-B", "linuxkonect",
                 "-e",
                 "SELECT username, disabled, loginattempts, "

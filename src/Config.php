@@ -92,9 +92,36 @@ class Config
             'port' => (int)($this->env('XKHM_DB_PORT') ?? $this->get('db_port', '3306')),
             'name' => $this->env('XKHM_DB_NAME') ?? $this->get('db_name', 'whmcs'),
             'user' => $this->env('XKHM_DB_USER') ?? $this->get('db_username', 'whmcs'),
-            'pass' => $this->env('XKHM_DB_PASS') ?? $this->get('db_password', ''),
+            'pass' => $this->getDbPassword(),
             'charset' => $this->get('mysql_charset', 'utf8'),
         ];
+    }
+
+    /**
+     * The database password, or a loud failure.
+     *
+     * The configuration file has no fallback: a credential in a
+     * versioned file is a credential in the git history (see
+     * aes/tickets/T027.md). The password must come from the
+     * environment, and saying so here — at the point where a connection
+     * is really needed — is better than an "access denied" at three in
+     * the morning.
+     */
+    public function getDbPassword(): string
+    {
+        $password = (string)($this->env('XKHM_DB_PASS') ?? $this->get('db_password', ''));
+
+        if (trim($password) === '') {
+            throw new \RuntimeException(
+                'The database password is not set. It must come from the '
+                . 'environment — DB_PASSWORD for the application, '
+                . 'XKHM_DB_PASS for the test suite — and never from the '
+                . 'configuration file. Run `make db-env` to create the '
+                . 'local .env.'
+            );
+        }
+
+        return $password;
     }
 
     private function env(string $name): ?string

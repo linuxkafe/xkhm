@@ -14,15 +14,21 @@ from __future__ import annotations
 
 import itertools
 import os
+import pathlib
 import subprocess
 import sys
 import time
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from load_env import load_env  # noqa: E402
+
+load_env()
 
 DB_CONTAINER = "xkhm-mysql-1"
 APP_CONTAINER = "xkhm-app-1"
 DB_NAME = os.getenv("XKHM_DB_NAME", "linuxkonect")
 DB_USER = os.getenv("XKHM_DB_USER", "linuxkonect")
-DB_PASS = os.getenv("XKHM_DB_PASSWORD", "xkhm-local-only")
+DB_PASS = os.getenv("XKHM_DB_PASSWORD", "")
 USERNAME = os.getenv("XKHM_ADMIN_USER", "linuxkafe")
 
 #: The bases the candidates are built from.

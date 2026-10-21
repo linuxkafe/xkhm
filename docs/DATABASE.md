@@ -303,18 +303,73 @@ o formulário de pedido.
 
 ### A entrega do token
 
-Não há SMTP configurado. A entrega é **plugável** e tem uma garantia:
-o ficheiro é **sempre** escrito, mesmo quando o SMTP existe. Assim há
-sempre um caminho para dentro, e o e-mail é um extra — não a condição.
+A entrega é **plugável** e tem uma regra de posse: **o ficheiro é a fila,
+e quem entrega retira-o da fila.** Assim nunca há dois consumidores
+(entrega duplicada) nem nenhum (token perdido).
 
-| Variável | Efeito |
-|----------|--------|
-| `XKHM_SMTP_HOST` | activa o envio por SMTP |
-| `XKHM_SMTP_PORT` | porta (por omissão `587`) |
-| `XKHM_SMTP_USER` / `XKHM_SMTP_PASS` | credenciais |
-| `XKHM_SMTP_FROM` | remetente |
-| `APP_ENV=development` | devolve o `developmentToken` na resposta |
-| `XKHM_RESET_TOKEN_DIR` | onde ficam os ficheiros dos tokens |
+```
+a aplicação    →  escreve a fila  →  tenta o SMTP  →  entregou? apaga a fila
+                                                     falhou?  a fila fica
+correio do host  →  lê a fila  →  entregou? apaga    falhou?  vai para failed/
+```
+
+O ficheiro é **sempre** escrito, mesmo quando o SMTP funciona. É a
+garantia de que há sempre um caminho para dentro.
+
+#### O correio do host
+
+Há um Postfix nesta máquina, na porta 25, que aceita submissões do
+loopback **sem autenticação**. E o contentor da aplicação **não chega ao
+host** — o firewall rejeita o tráfego da bridge Docker, e não há `sudo`
+para o abrir.
+
+Por isso a entrega é feita **no host**:
+
+```bash
+make db-mail-send          # entregar o que estiver pendente
+make db-mail-send --dry    # mostrar o que seria enviado
+```
+
+E o `crontab` do utilizador corre-o de minuto a minuto:
+
+```
+* * * * * /usr/bin/python3 ~/dev/xkhm/tools/mail_pending_tokens.py >> ~/dev/xkhm/storage/mailer.log 2>&1
+```
+
+Quando a entrega falha, o ficheiro vai para `storage/reset-tokens/failed/`
+**com o motivo** — nada se perde, e o operador vê porque.
+
+#### Os domínios reservados
+
+O mailer **recusa** os domínios reservados para teste (RFC 2606, RFC
+6761): `example.com`, `localhost`, `.local`, `.invalid`, … Esses
+domínios não existem e não aceitam correio; enviar para lá sai pela
+relay, é recusado, e volta como bounce — lixo numa caixa de correio
+real, e tráfego na conta de outra pessoa.
+
+A válvula de escape, para quem quiser testar contra um endereço local:
+
+```bash
+XKHM_MAILER_ALLOW_RESERVED=1 make db-mail-send
+```
+
+#### O remetente
+
+O relay de saída (Brevo) só aceita o remetente que está registado. O
+Postfix reescreve o `root` local para esse endereço, via
+`/etc/postfix/canonical`. Sem o remetente certo, a resposta é
+`451 4.0.0 Invalid from` e a mensagem fica na fila.
+
+| Variável | Onde | Efeito |
+|----------|------|--------|
+| `XKHM_SMTP_HOST` / `XKHM_SMTP_PORT` | aplicação | o servidor SMTP que a **aplicação** alcança (vazio = não alcança) |
+| `XKHM_SMTP_USER` / `XKHM_SMTP_PASS` | aplicação | credenciais — **omitidas** quando não há, porque um `--user` vazio é recusado por um relay que as exige |
+| `XKHM_SMTP_FROM` | aplicação | o remetente |
+| `XKHM_MAILER_SMTP_HOST` / `XKHM_MAILER_SMTP_PORT` | host | o servidor SMTP que o **correio do host** usa (`127.0.0.1:25`) |
+| `XKHM_MAILER_SMTP_FROM` | host | o remetente (`safedata@linuxkafe.com`) |
+| `XKHM_MAILER_ALLOW_RESERVED` | host | `1` entrega também aos domínios reservados (só para testes) |
+| `APP_ENV=development` | aplicação | devolve o `developmentToken` na resposta |
+| `XKHM_RESET_TOKEN_DIR` | ambos | onde ficam os ficheiros dos tokens |
 
 Em produção a resposta é genérica. O administrador lê o token com:
 
@@ -326,17 +381,72 @@ make db-reset-tokens CLEAR=1 ALL=1   # limpar todos
 
 ### As três portas de entrada
 
-A recuperação é uma **das três** maneiras de voltar a entrar, e cada uma
+A recuperação é **uma das** maneiras de voltar a entrar, e cada uma
 funciona mesmo quando as outras estão partidas:
 
 | Porta | Quando funciona |
 |-------|-----------------|
 | `make db-reset-admin` / `make db-reset-client` | sempre — não passa pela aplicação |
 | O fluxo do token | a aplicação está de pé |
-| O e-mail | há SMTP configurado |
+| O e-mail | o correio do host está a correr |
 
 É isto que o operador precisava: **um caminho que não dependa da
 coisa que se avariou.**
+
+## As credenciais
+
+**No repositório não há senhas.** Há a *forma* da configuração.
+
+O valor vive no `.env`, que **não é versionado** e tem modo `0600`:
+
+```bash
+make db-env          # cria o .env com senhas fortes
+make db-env REGEN=1  # refaz (e as senhas da base têm de ser rodadas)
+```
+
+O `docker-compose.yml` usa `${XKHM_DB_PASSWORD:?...}`: se a variável
+faltar, o `docker compose` **recusa arrancar** em vez de inventar uma
+senha.
+
+```yaml
+- MYSQL_PASSWORD=${XKHM_DB_PASSWORD:?defina XKHM_DB_PASSWORD no .env (make db-env)}
+```
+
+### Rodar a senha
+
+A rotação **verifica o resultado**: a senha antiga tem de deixar de
+funcionar e a nova tem de funcionar. Sem isso, é uma promessa.
+
+```bash
+python3 tools/rotate_db_password.py \
+  --host 127.0.0.1 --port 13306 --user linuxkonect \
+  --password <a-atual> --root-user root --root-password <a-do-root> \
+  --apply
+```
+
+```
+  a senha antiga ainda funciona? não
+  a senha nova funciona?         sim
+  [OK]    senha rodada e verificada.
+```
+
+Onde a base **de produção** é alcançável, é o mesmo comando com o
+`--host` certo. A base de produção (`10.0.3.1`) **não é alcançável
+desta máquina** — a rota existe, a porta não responde.
+
+### O hash de encriptação do WHMCS
+
+`CC_ENCRYPTION_HASH` também saiu do repositório, mas **não pode ser
+rodado**: é um segredo **partilhado** com o WHMCS, e rodá-lo tornaria
+ilegíveis os dados encriptados na base. Precisa de uma migração.
+
+### O histórico do git
+
+A senha de produção esteve em 10 ficheiros e em 10+ commits. Sair dos
+ficheiros não a tira do histórico — a **rotação** é que neutraliza a
+exposição. Reescrever a história é o que a remove, e é uma operação
+destrutiva que afecta todos os clones: é uma decisão do operador, não
+uma decisão automática.
 
 ## Formatos de senha
 
@@ -383,7 +493,7 @@ lá, com o WHMCS.
 
 ---
 
-## As credenciais
+## As contas e as suas senhas
 
 | Conta | Onde | Password |
 |-------|------|----------|
@@ -394,3 +504,6 @@ lá, com o WHMCS.
 
 Depois de importar a base real, **as senhas são as de lá** — as do fixture
 desaparecem porque as tabelas são recriadas.
+
+E a senha da **base de dados** é outra história: vive no `.env`, não no
+repositório. Ver [As credenciais](#as-credenciais).
