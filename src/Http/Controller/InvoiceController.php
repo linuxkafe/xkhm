@@ -6,6 +6,7 @@ namespace Xkhm\Http\Controller;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Xkhm\Http\View\Layout;
 use Xkhm\Service\BillingService;
 use Xkhm\Service\CreditService;
 use Xkhm\Service\GatewayService;
@@ -281,7 +282,11 @@ HTML;
 
     private function errorResponse(Response $response, string $message): Response
     {
-        $response->getBody()->write('<html><body><h3>Error: ' . htmlspecialchars($message) . '</h3><a href="/">Home</a></body></html>');
+        $body = '<h3>' . htmlspecialchars($message, ENT_QUOTES) . '</h3>'
+            . '<p><a href="/clientarea.php">Voltar à área do cliente</a></p>';
+
+        $response->getBody()->write(Layout::render('Erro', $body));
+
         return $response->withStatus(404)->withHeader('Content-Type', 'text/html; charset=utf-8');
     }
 }

@@ -129,7 +129,7 @@ $serverStatusService = new \Xkhm\Service\ServerStatusService();
 $serverStatusController = new ServerStatusController($serverStatusService);
 
 $sslService = new \Xkhm\Service\SslService();
-$sslController = new SslController($sslService);
+$sslController = new SslController($sslService, $domainService);
 
 $apiController = new ApiController($billingService, $ticketService, $domainService);
 
@@ -227,7 +227,10 @@ $app->post('/pwreset.php', [$pwResetController, 'process']);
 $app->get('/domainchecker.php', [$domainController, 'checker']);
 
 // Domain management
-$app->get('/domain.php', [$invoiceController, 'view']);
+$app->get('/domain.php', [$domainController, 'list']);
+
+// Invoice detail (WHMCS convention: viewinvoice.php)
+$app->get('/viewinvoice.php', [$invoiceController, 'view']);
 
 // Knowledgebase
 $app->get('/knowledgebase.php', function (Request $request, Response $response) use ($kbController) {

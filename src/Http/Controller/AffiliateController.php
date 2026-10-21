@@ -6,6 +6,7 @@ namespace Xkhm\Http\Controller;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Xkhm\Http\View\Layout;
 use Xkhm\Service\AffiliateService;
 
 class AffiliateController
