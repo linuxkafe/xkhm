@@ -145,12 +145,51 @@ were not met" — and T012 slipped through without one, and the kanban
 carried `done` for a panel that did not exist. The kanban now cites
 the verification file for every ticket that has one.
 
+### The rules that T042–T044 brought
+
+> **«Não está disponível» é um sintoma de *layout*, não de
+> funcionalidade.** (T044, [[SD-UX-001]])
+
+A `NavigationRail` do Flutter não rola, e com quinze destinos os
+últimos ficavam abaixo da dobra — e, no ecrã largo, onde não há
+gaveta, **inalcançáveis**. A pergunta a fazer não é «a função
+existe?», mas «**o utilizador consegue chegar lá?**». O teste que
+distingue as duas coisas é clicar na **última** entrada do menu, no
+ecrã mais baixo.
+
+> **Os defaults que não têm significado leem-se do esquema; os que
+> têm, escrevem-se à mão.** (T043, [[SD-CI-005]])
+
+O `INSERT` de um produto é recusado (`ERROR 1364`) porque
+`tblproducts` tem 70 colunas `NOT NULL` sem default. As colunas em
+falta são lidas do `information_schema` e tomam o valor neutro do
+seu tipo — e as enumerações e as datas ficam de fora, para que a
+ausência seja um erro **falante**.
+
+> **Um ficheiro de dados tem de chegar ao contentor — nos dois
+> estágios.** (T042, [[SD-CI-006]])
+
+O `resources/whmcs_admin_labels.php` era copiado só no estágio de
+*build*. O contentor respondia 200 e mostrava a configuração
+**errada** (175 de 235 definições em «Diversos»). Nenhum aviso — o
+código estava certo e o dado faltava. O teste que depende do
+ficheiro é o que impede a repetição.
+
+> **Um registo de domínio é uma instalação — e cobra-se a taxa.**
+> (T044, [[SD-DOMAIN-013]])
+
+O preço de registar, transferir e renovar está em `tblpricing`, com
+`type='domainregister' | 'domaintransfer' | 'domainrenew'`, e na
+coluna `msetupfee` — não em `annually`. E o **original é o oráculo**:
+os 18/18/35 € vieram de ver o WHMCS vivo com o Playwright, e de
+comparar.
+
 ### Test gates (all green)
 
 ```
-make test            # 168 PHPUnit tests — contra a base real
+make test            # 185 PHPUnit tests — contra a base real
 make lint            # PHPStan level 5, 0 errors
-make e2e             # 225 Playwright tests (API + Flutter) — dados reais
+make e2e             # 243 Playwright tests (API + Flutter) — dados reais
 make flutter-test    # 49 Flutter unit + widget tests
 make flutter-e2e     # 15 Playwright tests (Flutter web build)
 make tokens-check    # tokens in sync, no hard-coded colours (Dart and CSS)

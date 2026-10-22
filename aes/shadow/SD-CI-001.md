@@ -89,7 +89,7 @@ Semantics(
 
 **O Playwright é excelente para o Flutter web no que é bom no browser**
 (arranque, ausência de erros de consola, tráfego de rede, conteúdo
-exposto) e **não substitui o `flutter test`** para a lógica de界面. A divisão
+exposto) e **não substitui o `flutter test`** para a lógica de interface. A divisão
 saudável é: `flutter test` para o comportamento, Playwright para a
 integração real.
 

@@ -66,7 +66,7 @@ tabela, mas `document.scrollWidth - document.clientWidth == 0`.
 ## O detalhe do alvo de toque
 
 Nem todos os elementos interactivos precisam de 44 px. Um link dentro de um
-parágrafo é texto, não um botão —，扩大 um parágrafo quebraria o fluxo. A
+parágrafo é texto, não um botão — ampliar um parágrafo quebraria o fluxo. A
 excepção tem de ser explícita no teste, senão o teste passa a falhar por
 razões que não são o bug:
 

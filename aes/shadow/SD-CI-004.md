@@ -64,8 +64,13 @@ convenção.
 
 O WHMCS 5.3.9 declara quase todas as colunas como `NOT NULL` **sem
 default**. Um `INSERT` que nomeie só as colunas interessantes é
-rejeitado. A camada de mapeamento ganhou um bloco de defaults por tabela
-— gerado a partir do esquema vivo, não escrito à mão.
+rejeitado. A camada de mapeamento ganhou um bloco de defaults por tabela.
+
+**Correcção (T043):** esse bloco é escrito **à mão** — e tem de ser,
+porque os seus valores são **semânticos** (o `type` de um domínio é
+`Register`, a `date` de uma encomenda é agora). Para as tabelas em
+que o valor não importa, os defaults são lidos do **esquema**
+([[SD-CI-005]]). São duas camadas, e a confusão entre elas é o erro.
 
 ## Ver
 

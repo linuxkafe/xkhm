@@ -37,64 +37,7 @@ class CatalogueRepositoryPDO implements CatalogueRepositoryInterface
 
     // ─── The products ───────────────────────────────────────────────────────
 
-    /**
-     * The values of the columns a table needs, and that we do not set.
-     *
-     * The WHMCS's tables are wide, and almost every column is `NOT NULL`
-     * without a default — the WHMCS itself fills them all on insert. A
-     * partial `INSERT` is refused by MySQL in strict mode
-     * (`ERROR 1364: Field 'description' doesn't have a default value`).
-     *
-     * The list is read from the **schema**, not written by hand: the
-     * database is the source of truth, and a column added later does
-     * not break the insert.
-     *
-     * The columns whose value would be a **lie** — the enumerations and
-     * the dates — are left out on purpose: a missing one must fail
-     * loudly, not be filled with a value that means nothing.
-     *
-     * @param list<string> $set
-     *
-     * @return array<string, string|int>
-     */
-    private function neutralValues(string $table, array $set): array
-    {
-        $stmt = $this->pdo->prepare(
-            'SELECT COLUMN_NAME, DATA_TYPE FROM information_schema.COLUMNS '
-            . 'WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? '
-            . "AND IS_NULLABLE = 'NO' AND COLUMN_DEFAULT IS NULL "
-            . "AND EXTRA <> 'auto_increment'"
-        );
-        $stmt->execute([$table]);
-
-        $values = [];
-
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $column) {
-            $name = (string)$column['COLUMN_NAME'];
-            $type = (string)$column['DATA_TYPE'];
-
-            if (in_array($name, $set, true) || in_array($type, ['enum', 'set', 'date', 'datetime', 'timestamp'], true)) {
-                continue;
-            }
-
-            $values[$name] = $this->neutralValue($type);
-        }
-
-        return $values;
-    }
-
-    /**
-     * The neutral value of a type: zero for the numbers, empty for the
-     * text.
-     */
-    private function neutralValue(string $type): string|int
-    {
-        return match ($type) {
-            'tinyint', 'smallint', 'mediumint', 'int', 'integer', 'bigint',
-            'decimal', 'numeric', 'float', 'double', 'real' => 0,
-            default => '',
-        };
-    }
+    // ─── The products ───────────────────────────────────────────────────────
 
     public function products(?int $groupId = null): array
     {
@@ -191,7 +134,7 @@ class CatalogueRepositoryPDO implements CatalogueRepositoryInterface
 
         // As colunas que a tabela exige e que o painel não expõe.
         $values = array_merge(
-            $this->neutralValues('tblproducts', array_keys($columns)),
+            SchemaDefaults::neutral($this->pdo, 'tblproducts', array_keys($columns)),
             $columns
         );
 
@@ -241,7 +184,7 @@ class CatalogueRepositoryPDO implements CatalogueRepositoryInterface
 
         // As colunas que a tabela exige e que o painel não expõe.
         $values = array_merge(
-            $this->neutralValues('tblpricing', array_keys($values)),
+            SchemaDefaults::neutral($this->pdo, 'tblpricing', array_keys($values)),
             $values
         );
 
@@ -295,7 +238,7 @@ class CatalogueRepositoryPDO implements CatalogueRepositoryInterface
 
         // As colunas que a tabela exige e que o painel não expõe.
         $values = array_merge(
-            $this->neutralValues('tblproductgroups', array_keys($columns)),
+            SchemaDefaults::neutral($this->pdo, 'tblproductgroups', array_keys($columns)),
             $columns
         );
 
@@ -329,7 +272,7 @@ class CatalogueRepositoryPDO implements CatalogueRepositoryInterface
 
         // As colunas que a tabela exige e que o painel não expõe.
         $values = array_merge(
-            $this->neutralValues('tblservergroups', array_keys($columns)),
+            SchemaDefaults::neutral($this->pdo, 'tblservergroups', array_keys($columns)),
             $columns
         );
 
@@ -404,7 +347,7 @@ class CatalogueRepositoryPDO implements CatalogueRepositoryInterface
 
         // As colunas que a tabela exige e que o painel não expõe.
         $values = array_merge(
-            $this->neutralValues('tblservers', array_keys($columns)),
+            SchemaDefaults::neutral($this->pdo, 'tblservers', array_keys($columns)),
             $columns
         );
 

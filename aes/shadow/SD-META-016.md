@@ -13,7 +13,7 @@ tags: [design-tokens, dark-mode, css, flutter, single-source-of-truth]
 
 ## O erro que a primeira versão cometeu
 
-Quando o dark mode foi pedido, a primeira tentativa foi添加 um ficheiro
+Quando o dark mode foi pedido, a primeira tentativa foi adicionar um ficheiro
 `tokens-dark.css` e uma classe `LkColorsDark`. Duas listas de novo — o
 exactamente o problema que SD-META-014 já tinha resolvido.
 
