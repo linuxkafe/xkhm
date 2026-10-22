@@ -31,7 +31,6 @@ class ServiceTermsServiceTest extends TestCase
     private float $originalPrice = 0.0;
     private string $originalCycle = '';
     private string $originalDue = '';
-    private float $originalCredit = 0.0;
 
     protected function setUp(): void
     {
@@ -62,8 +61,6 @@ class ServiceTermsServiceTest extends TestCase
         $this->originalPrice = (float)$row['amount'];
         $this->originalCycle = (string)$row['billingcycle'];
         $this->originalDue = (string)$row['nextduedate'];
-        $this->originalCredit = (float)($client['credit'] ?? 0);
-
         $this->service = new ServiceTermsService(
             $this->repository,
             new CreditService(new InvoiceRepositoryPDO($this->pdo), $clients)
