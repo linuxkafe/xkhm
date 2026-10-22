@@ -101,6 +101,11 @@ class _DomainCheckerScreenState extends State<DomainCheckerScreen> {
               TextField(
                 key: const Key('domain-input'),
                 controller: _domainController,
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.search,
+                autocorrect: false,
+                enableSuggestions: false,
+                textCapitalization: TextCapitalization.none,
                 decoration: const InputDecoration(
                   labelText: 'Domínio',
                   hintText: 'exemplo',

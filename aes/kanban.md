@@ -112,6 +112,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T048 | O tipo do servidor | done | o módulo que aprovisiona: o campo que faltava, e o repositório que não o gravava |
 | T049 | A interface de 2026 | done | a escala, o contraste, as bordas em vez das sombras, e o logótipo sobre a placa branca |
 | T050 | Associar um serviço | done | o botão «Associar um serviço» na página do cliente, com o preço e a renovação |
+| T051 | O login no telefone | done | a wrapper de `Semantics` era a causa; o `textInputAction` e o `keyboardType` adequados |
 
 ### Open decisions
 

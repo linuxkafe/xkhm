@@ -262,6 +262,11 @@ class _OrderScreenState extends State<OrderScreen> {
                 TextField(
                   key: const Key('order-domain'),
                   controller: _domainController,
+                  keyboardType: TextInputType.url,
+                  textInputAction: TextInputAction.done,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  textCapitalization: TextCapitalization.none,
                   decoration: const InputDecoration(
                     labelText: 'Domínio',
                     hintText: 'exemplo.pt',

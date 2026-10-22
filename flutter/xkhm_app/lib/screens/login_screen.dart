@@ -159,51 +159,48 @@ class _LoginScreenState extends State<LoginScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        Semantics(
-          identifier: 'login-email',
-          container: true,
-          explicitChildNodes: true,
-          textField: true,
-          child: TextFormField(
-            key: const Key('login-email'),
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            autofillHints: const [AutofillHints.email],
-            decoration: const InputDecoration(
-              labelText: 'Email',
-            ),
-            validator: (value) {
-              final v = (value ?? '').trim();
-              if (v.isEmpty) return 'Indique o seu email';
-              if (!v.contains('@')) return 'Email inválido';
-              return null;
-            },
+        // Sem a wrapper de Semantica: no web, no Android, o teclado
+        // perde o foco a cada tecla quando o nó de semantica e'
+        // recriado. A chave e' suficiente para os testes.
+        TextFormField(
+          key: const Key('login-email'),
+          controller: _emailController,
+          keyboardType: TextInputType.emailAddress,
+          textInputAction: TextInputAction.next,
+          autocorrect: false,
+          enableSuggestions: false,
+          autofillHints: const [AutofillHints.email],
+          decoration: const InputDecoration(
+            labelText: 'Email',
+            prefixIcon: Icon(Icons.email_outlined),
           ),
+          validator: (value) {
+            final v = (value ?? '').trim();
+            if (v.isEmpty) return 'Indique o seu email';
+            if (!v.contains('@')) return 'Email inválido';
+            return null;
+          },
         ),
         const SizedBox(height: 16),
-        Semantics(
-          identifier: 'login-password',
-          container: true,
-          explicitChildNodes: true,
-          textField: true,
-          child: TextFormField(
-            key: const Key('login-password'),
-            controller: _passwordController,
-            obscureText: _obscure,
-            autofillHints: const [AutofillHints.password],
-            onFieldSubmitted: (_) => _submit(),
-            decoration: InputDecoration(
-              labelText: 'Senha',
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                ),
-                onPressed: () => setState(() => _obscure = !_obscure),
+        TextFormField(
+          key: const Key('login-password'),
+          controller: _passwordController,
+          obscureText: _obscure,
+          textInputAction: TextInputAction.done,
+          autofillHints: const [AutofillHints.password],
+          onFieldSubmitted: (_) => _submit(),
+          decoration: InputDecoration(
+            labelText: 'Senha',
+            prefixIcon: const Icon(Icons.lock_outlined),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
               ),
+              onPressed: () => setState(() => _obscure = !_obscure),
             ),
-            validator: (value) =>
-                (value ?? '').isEmpty ? 'Indique a sua senha' : null,
           ),
+          validator: (value) =>
+              (value ?? '').isEmpty ? 'Indique a sua senha' : null,
         ),
         const SizedBox(height: 24),
         ElevatedButton(
@@ -246,27 +243,23 @@ class _LoginScreenState extends State<LoginScreen> {
           style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
         ),
         const SizedBox(height: 20),
-        Semantics(
-          identifier: 'login-code',
-          container: true,
-          explicitChildNodes: true,
-          textField: true,
-          child: TextFormField(
-            key: const Key('login-code'),
-            controller: _codeController,
-            keyboardType: TextInputType.number,
-            autofillHints: const [AutofillHints.oneTimeCode],
-            onFieldSubmitted: (_) => _submitCode(),
-            decoration: const InputDecoration(
-              labelText: 'Código de verificação',
-            ),
-            validator: (value) {
-              final v = (value ?? '').trim();
-              if (v.isEmpty) return 'Indique o código';
-              if (v.length < 6) return 'O código tem seis dígitos';
-              return null;
-            },
+        TextFormField(
+          key: const Key('login-code'),
+          controller: _codeController,
+          keyboardType: TextInputType.number,
+          textInputAction: TextInputAction.done,
+          autofillHints: const [AutofillHints.oneTimeCode],
+          onFieldSubmitted: (_) => _submitCode(),
+          decoration: const InputDecoration(
+            labelText: 'Código de verificação',
+            prefixIcon: Icon(Icons.pin_outlined),
           ),
+          validator: (value) {
+            final v = (value ?? '').trim();
+            if (v.isEmpty) return 'Indique o código';
+            if (v.length < 6) return 'O código tem seis dígitos';
+            return null;
+          },
         ),
         const SizedBox(height: 24),
         ElevatedButton(
