@@ -51,3 +51,19 @@ uma URL.
 
 **Aprendido:** os campos de um formulário não são todos iguais, e o
 teclado do telefone **sabe** isso — se lhe dissermos.
+
+### 4. O `LayoutBuilder` reconstrui-se a cada mudanca de restricao
+
+A primeira tentativa removeu a wrapper de `Semantics` e usou um
+`LayoutBuilder` para centrar o conteudo. O `LayoutBuilder` reconstrui
+**a cada mudanca de restricao** — e a mudanca de restricao e' o que
+acontece quando o teclado aparece. Era a reconstrucao que fazia o
+foco perder-se.
+
+**Aprendido:** o `LayoutBuilder` e' para o layout que depende das
+restricoes. Um formulario que nao deve saltar com o teclado nao
+precisa dele: o `SingleChildScrollView` com o padding do teclado e'
+suficiente, e o conteudo fica **ao topo**.
+
+E a segunda tentativa (esta) e' a que o operador tem de testar no
+dispositivo.
