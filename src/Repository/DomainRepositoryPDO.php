@@ -159,14 +159,47 @@ class DomainRepositoryPDO implements DomainRepositoryInterface
         return $stmt->execute($data);
     }
 
+    /**
+     * The prices of the domains, by TLD.
+     *
+     * The **prices** live in `tblpricing` — one row per product and
+     * currency, with a column per cycle. The `tbldomainpricing` table
+     * holds the **registrars** and the options of each TLD, and the
+     * two are joined by `tblpricing.relid`.
+     *
+     * The WHMCS's price table has three prices per TLD: to register, to
+     * transfer, and to renew.
+     *
+     * @return array<string, array{register: float, transfer: float, renew: float, minYears: int}>
+     */
     public function getTLDPrices(): array
     {
-        $stmt = $this->pdo->query('SELECT * FROM tbldomainpricing');
+        $stmt = $this->pdo->prepare(
+            'SELECT dp.extension, p.msetupfee AS register, '
+            . 't.msetupfee AS transfer, w.msetupfee AS renew '
+            . 'FROM tbldomainpricing dp '
+            . 'LEFT JOIN tblpricing p ON p.relid = dp.id AND p.type = ? AND p.currency = ? '
+            . 'LEFT JOIN tblpricing t ON t.relid = dp.id AND t.type = ? AND t.currency = ? '
+            . 'LEFT JOIN tblpricing w ON w.relid = dp.id AND w.type = ? AND w.currency = ? '
+            . 'ORDER BY dp.extension'
+        );
+        $stmt->execute(['domainregister', 1, 'domaintransfer', 1, 'domainrenew', 1]);
 
         $prices = [];
-        foreach ($stmt->fetchAll() as $row) {
-            $canonical = SchemaMap::toCanonical(self::PRICING, $row);
-            $prices[$canonical['extension']] = (float)($canonical['msetupprice'] ?? 0);
+
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $extension = (string)($row['extension'] ?? '');
+
+            if ($extension === '') {
+                continue;
+            }
+
+            $prices[$extension] = [
+                'register' => (float)($row['register'] ?? 0),
+                'transfer' => (float)($row['transfer'] ?? 0),
+                'renew' => (float)($row['renew'] ?? 0),
+                'minYears' => 1,
+            ];
         }
 
         return $prices;

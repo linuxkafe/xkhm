@@ -36,9 +36,24 @@ class SettingsController extends AdminController
      */
     public function index(Request $request, Response $response): Response
     {
+        $groups = $this->settings->grouped();
+
+        // A seccao pedida; por omissao, a primeira com definicoes.
+        $section = (string)($request->getQueryParams()['section'] ?? '');
+
+        if ($section === '' || !isset($groups[$section])) {
+            foreach ($groups as $key => $group) {
+                if ($group['settings'] !== []) {
+                    $section = $key;
+                    break;
+                }
+            }
+        }
+
         $body = AdminLayout::header('Configuração')
             . $this->missingReport()
-            . $this->groups();
+            . $this->sectionNavigation($groups, $section)
+            . $this->group($groups[$section] ?? null, $section);
 
         return $this->render($response, 'Configuração', 'config', $body, $this->adminName());
     }
@@ -116,53 +131,79 @@ class SettingsController extends AdminController
     }
 
     /**
-     * The settings, grouped, with a form per group.
+     * The navigation of the sections — the WHMCS's configuration pages.
+     *
+     * @param array<string, array{label: string, settings: list<array<string, mixed>>}> $groups
      */
-    private function groups(): string
+    private function sectionNavigation(array $groups, string $current): string
     {
-        $groups = $this->settings->grouped();
-        $html = '';
+        $items = '';
 
         foreach ($groups as $key => $group) {
-            $settings = $group['settings'];
-
-            if ($settings === []) {
+            if ($group['settings'] === []) {
                 continue;
             }
 
-            $rows = '';
-            foreach ($settings as $setting) {
-                $rows .= $this->settingRow($setting);
-            }
+            $active = $key === $current ? ' class="active"' : '';
 
-            $html .= '<section class="panel"><div class="panel-heading">'
-                . $this->e($group['label']) . '</div><div class="panel-body">'
-                . '<form method="post" action="/admin/config.php">'
-                . '<input type="hidden" name="group" value="' . $this->e($key) . '">'
-                . '<table class="table table-striped"><tbody>' . $rows . '</tbody></table>'
-                . '<div class="admin-actions">'
-                . '<button type="submit" class="btn btn-primary">Guardar</button>'
-                . '</div>'
-                . '</form>'
-                . '</div></section>';
+            $items .= sprintf(
+                '<li><a href="/admin/config.php?section=%s"%s>%s <span class="admin-section-count">%d</span></a></li>',
+                $this->e((string)$key),
+                $active,
+                $this->e($group['label']),
+                count($group['settings'])
+            );
         }
 
-        return $html;
+        return '<nav class="admin-sections" aria-label="Secções da configuração">'
+            . '<ul>' . $items . '</ul></nav>';
+    }
+
+    /**
+     * The settings of one section, with a form.
+     *
+     * @param array{label: string, settings: list<array<string, mixed>>}|null $group
+     */
+    private function group(?array $group, string $section): string
+    {
+        if ($group === null || $group['settings'] === []) {
+            return '<p class="text-muted">Esta secção não tem definições.</p>';
+        }
+
+        $rows = '';
+        foreach ($group['settings'] as $setting) {
+            $rows .= $this->settingRow($setting);
+        }
+
+        return '<section class="panel"><div class="panel-heading">'
+            . $this->e($group['label']) . '</div><div class="panel-body">'
+            . '<form method="post" action="/admin/config.php">'
+            . '<input type="hidden" name="section" value="' . $this->e($section) . '">'
+            . '<table class="table table-striped"><tbody>' . $rows . '</tbody></table>'
+            . '<div class="admin-actions">'
+            . '<button type="submit" class="btn btn-primary">Guardar</button>'
+            . '</div>'
+            . '</form>'
+            . '</div></section>';
     }
 
     /**
      * One setting: editable, or read-only.
      *
-     * @param array{key: string, value: string, editable: bool} $setting
+     * @param array{key: string, label?: string, value: string, editable: bool} $setting
      */
     private function settingRow(array $setting): string
     {
         $key = $this->e($setting['key']);
         $value = $this->e($setting['value']);
 
+        $name = $this->e($setting['label'] ?? $setting['key']);
+
         if (!$setting['editable']) {
             return sprintf(
-                '<tr><td><code>%s</code></td><td>%s</td></tr>',
+                '<tr><td><span class="admin-setting-name">%s</span>'
+                . '<code class="admin-setting-key">%s</code></td><td>%s</td></tr>',
+                $name,
                 $key,
                 $value === '' ? '<span class="text-muted">—</span>' : $value
             );
@@ -177,7 +218,9 @@ class SettingsController extends AdminController
         );
 
         return sprintf(
-            '<tr><td><code>%s</code></td><td>%s</td></tr>',
+            '<tr><td><span class="admin-setting-name">%s</span>'
+            . '<code class="admin-setting-key">%s</code></td><td>%s</td></tr>',
+            $name,
             $key,
             $input
         );

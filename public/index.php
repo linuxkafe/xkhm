@@ -378,6 +378,17 @@ $adminServices = new \Xkhm\Http\Controller\Admin\ServiceController(
     $adminPanel,
     $serviceTermsService
 );
+// O catalogo: os produtos, os seus precos, e os servidores.
+$catalogueRepository = new \Xkhm\Repository\CatalogueRepositoryPDO();
+$adminCatalogue = new \Xkhm\Http\Controller\Admin\CatalogueController(
+    $adminPanel,
+    $catalogueRepository
+);
+$adminServers = new \Xkhm\Http\Controller\Admin\ServerController(
+    $adminPanel,
+    $catalogueRepository
+);
+
 $adminSettings = new \Xkhm\Http\Controller\Admin\SettingsController(
     $adminPanel,
     $settingsService
@@ -398,6 +409,10 @@ $app->post('/admin/services/{id:[0-9]+}/terms', [$adminServices, 'terms'])->add(
 $app->get('/admin/domains.php', [$adminDomains, 'index'])->add($adminAuthMiddleware);
 $app->get('/admin/affiliates.php', [$adminDomains, 'affiliates'])->add($adminAuthMiddleware);
 $app->get('/admin/search.php', [$adminDashboard, 'search'])->add($adminAuthMiddleware);
+$app->get('/admin/products.php', [$adminCatalogue, 'index'])->add($adminAuthMiddleware);
+$app->post('/admin/products.php', [$adminCatalogue, 'save'])->add($adminAuthMiddleware);
+$app->get('/admin/servers.php', [$adminServers, 'index'])->add($adminAuthMiddleware);
+$app->post('/admin/servers.php', [$adminServers, 'save'])->add($adminAuthMiddleware);
 $app->get('/admin/config.php', [$adminSettings, 'index'])->add($adminAuthMiddleware);
 $app->post('/admin/config.php', [$adminSettings, 'save'])->add($adminAuthMiddleware);
 

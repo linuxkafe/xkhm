@@ -2,7 +2,7 @@
 project: xkhm
 created: 2026-10-20
 current_sprint: sprint-01
-current_ticket: T024
+current_ticket: T044
 ---
 
 # XKHM — WHMCS Reimplementation
@@ -63,6 +63,10 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T038 | O aviso de pagamento: PDF, reenvio, e um rótulo que não mente | high | done |
 | T039 | A configuração: a `tblconfiguration` do WHMCS, editável | high | done |
 | T040 | O preço e o prazo de renovação do serviço | high | done |
+| T041 | A faturação certificada (a integração com a API das finanças) | high | pending |
+| T042 | A configuração em secções, com os nomes reais | high | done |
+| T043 | A gestão de produtos, serviços e servidores | high | done |
+| T044 | O preçário de domínios e o estado da rede | high | done |
 
 > **Note on numbering.** T020 was originally reserved for "Performance & load
 > testing". The Flutter conversion was planned as **T022** and the Playwright
@@ -92,6 +96,10 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T038 | O aviso de pagamento | done | PDF com o `dompdf`, reenvio pela fila com anexo, e a declaração de que não é fiscal |
 | T039 | A configuração | done | as 235 definições do WHMCS, agrupadas e editáveis; e o relatório do que falta |
 | T040 | Preço e prazo de renovação | done | o prorrateio é cotado antes de aplicado, e registado nas notas do cliente |
+| T041 | A faturação certificada | pending | precisa do WFA, do certificado e do NIF do operador (o NIF já está na base) |
+| T042 | A configuração em secções | done | 19 secções (as páginas do WHMCS), com os nomes reais do ficheiro de idioma |
+| T043 | O catálogo e os servidores | done | produtos com preços por ciclo, servidores com grupos; 4 defeitos apanhados pelos testes |
+| T044 | O preçário e o estado da rede | done | 18/18/35 €, como o WHMCS vivo; e a barra do menu passou a rolar |
 
 ### Open decisions
 

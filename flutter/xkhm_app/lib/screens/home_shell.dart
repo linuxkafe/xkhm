@@ -15,6 +15,7 @@ import 'knowledgebase_screen.dart';
 import 'orders_screen.dart';
 import 'security_screen.dart';
 import 'server_status_screen.dart';
+import 'network_status_screen.dart';
 import 'services_screen.dart';
 import 'ssl_screen.dart';
 import 'tickets_screen.dart';
@@ -127,6 +128,11 @@ class _HomeShellState extends State<HomeShell> {
       icon: Icons.dns_outlined,
       builder: (_) => const ServerStatusScreen(),
     ),
+    LkDestination(
+      label: 'Estado da Rede',
+      icon: Icons.cloud_off_outlined,
+      builder: (_) => const NetworkStatusScreen(),
+    ),
   ];
 
   void _select(int index) {
@@ -182,6 +188,10 @@ class _HomeShellState extends State<HomeShell> {
               selectedIndex: _index,
               labelType: NavigationRailLabelType.all,
               onDestinationSelected: _select,
+              // A barra rola: com quinze destinos, os últimos ficam
+              // abaixo da dobra num ecrã baixo — e ficavam
+              // **inalcançáveis**, sem-scroll nenhum.
+              scrollable: true,
               leading: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Text(

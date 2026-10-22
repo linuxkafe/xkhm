@@ -254,6 +254,41 @@ def test_flutter_navigates_to_the_domain_checker(app_page):
     assert "domínio" in body
 
 
+def test_flutter_shows_the_domain_price_table(app_page):
+    """
+    The price table, as the WHMCS shows it before the search.
+
+    Without it the client has no idea what a domain costs, and only
+    finds out at the checkout.
+    """
+    _login(app_page)
+    app_page.set_viewport_size({"width": 1280, "height": 900})
+    app_page.wait_for_timeout(800)
+
+    body = _navigate(app_page, "Procurar Domínio", "Preçário de Domínios")
+
+    # O preçário real da instalação: .com 18 €, .org 18 €, .pt 35 €.
+    assert ".com" in body
+    assert "18,00" in body
+    assert "Registar" in body
+    assert "Transferir" in body
+    assert "Renovar" in body
+
+
+def test_flutter_navigates_to_the_network_status(app_page):
+    """
+    The WHMCS has two pages: how the machine is now, and what is
+    coming. The second one is this — the planned interventions.
+    """
+    _login(app_page)
+    app_page.set_viewport_size({"width": 1280, "height": 900})
+    app_page.wait_for_timeout(800)
+
+    body = _navigate(app_page, "Estado da Rede", "Estado actual")
+
+    assert "intervenção" in body.lower()
+
+
 # ─── Mobile ──────────────────────────────────────────────────────────────────
 
 #: Every destination of the client area. None of them may be unreachable on
@@ -273,6 +308,7 @@ ALL_DESTINATIONS = [
     "Anúncios",
     "Procurar Domínio",
     "Status do Servidor",
+    "Estado da Rede",
 ]
 
 

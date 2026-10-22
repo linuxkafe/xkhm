@@ -181,15 +181,47 @@ Isto é garantido por `tests/Integration/SchemaParityTest.php`, que executa
 **todas** as consultas dos repositórios contra a base de dados e afirma que
 cada coluna referenciada existe.
 
-### As 16 tabelas que a aplicação usa
+### As 27 tabelas que a aplicação usa
 
-`tbladmins`, `tblaffiliates`, `tblaffiliatesclients`, `tblaffiliatespayouts`,
-`tblannouncements`, `tblclients`, `tbldomainpricing`, `tbldomains`,
-`tblinvoiceitems`, `tblinvoices`, `tblknowledgebase`, `tblknowledgebasecats`,
-`tblorders`, `tblticketdepartments`, `tblticketreplies`, `tbltickets`
+`tblaccounts`, `tbladmins`, `tblaffiliates`, `tblaffiliateshistory`,
+`tblaffiliateswithdrawals`, `tblannouncements`, `tblclients`,
+`tblconfiguration`, `tbldomainpricing`, `tbldomains`, `tbldomainspricing`,
+`tblhosting`, `tblinvoiceitems`, `tblinvoices`, `tblknowledgebase`,
+`tblknowledgebasecats`, `tblnotes`, `tblorders`, `tblpricing`,
+`tblproductgroups`, `tblproducts`, `tblservergroups`,
+`tblservergroupsrel`, `tblservers`, `tblticketdepartments`,
+`tblticketreplies`, `tbltickets`
 
-As restantes tabelas do WHMCS (produtos, alojamentos, servidores, contas…)
-são **preservadas** na importação mas ainda não são usadas pela aplicação.
+As restantes tabelas do WHMCS (contas, módulos, promoções,Addon…)
+são **preservadas** na importação mas ainda não são usadas pela
+aplicação.
+
+### As tabelas do WHMCS são **largas e obrigatórias**
+
+`tblproducts` tem 70 colunas `NOT NULL` **sem default**, e `tblservers`
+tem 24. Um `INSERT` com as colunas que o painel conhece é recusado
+pelo MySQL em modo estrito:
+
+```
+ERROR 1364 (HY000): Field 'description' doesn't have a default value
+```
+
+Por isso, as colunas que a tabela exige e que a aplicação não expõe
+são lidas do **esquema** (`information_schema`) e preenchidas com o
+valor neutro do seu tipo — zero para os números, texto vazio para o
+resto. A excepção são as colunas cujo valor neutro seria uma
+**mentira** (as enumerações e as datas), que ficam de fora de
+propósito: uma ausência tem de falhar em voz alta.
+
+Dois detalhes do esquema do WHMCS que custaram um erro cada:
+
+- `order` é uma **palavra reservada** do MySQL — os identificadores
+  dinâmicos vão entre crases.
+- `tblhosting` não tem `productid`: o serviço aponta para o produto
+  por **`packageid`**.
+
+E o preço de um registo de domínio está em `tblpricing.msetupfee`
+(um registo é uma instalação), e não em `annually`.
 
 ---
 

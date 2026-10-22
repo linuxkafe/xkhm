@@ -40,6 +40,9 @@ docker/backups/
 storage/*.tmp
 storage/reset-tokens/
 storage/mailer.log
+# Os avisos de pagamento sao artefactos de execucao (e tem dados de
+# clientes) — nunca sao versionados.
+storage/notice-pdfs/
 
 # Python
 __pycache__/

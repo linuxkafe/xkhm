@@ -28,7 +28,12 @@ esquema de cor do sistema e é utilizável num ecrã de telemóvel.
 | `/admin/domains.php` | Domínios |
 | `/admin/affiliates.php` | Afiliados |
 | `/admin/search.php` | Pesquisa global: clientes, faturas, tickets, domínios, pedidos |
-| `/admin/config.php` | A configuração: agrupada, editável, e o **relatório do que falta** |
+| `/admin/config.php` | A configuração: em **secções** (as páginas do WHMCS), editável, e o **relatório do que falta** |
+| `/admin/config.php?section=X` | Uma secção da configuração: «Geral», «Servidores», «Domínios», «Faturas», «Impostos», … |
+| `/admin/products.php` | O **catálogo**: os produtos, o tipo, o grupo, e o preço de cada ciclo |
+| `/admin/products.php?action=edit&id=N` | O produto, e os seus preços por ciclo |
+| `/admin/servers.php` | Os **servidores**: hostname, IP, custo, estado e grupos |
+| `/admin/servers.php?action=edit&id=N` | O servidor, e os grupos a que pertence |
 
 Todas exigem sessão de administrador. Sem sessão, a resposta é um `302`
 para `/admin/login.php` — **nunca** os dados.
@@ -36,6 +41,43 @@ para `/admin/login.php` — **nunca** os dados.
 ---
 
 ## As decisões
+
+### A configuração está em **secções**, com os nomes reais
+
+O WHMCS mostra a configuração em páginas (`configgeneral.php`,
+`configservers.php`, …), com as etiquetas do **idioma da
+instalação** («Tipo da Multa por Atraso», «Nome da Empresa»).
+
+As páginas do WHMCS estão cifradas, e as suas etiquetas não se podem
+ler. As etiquetas **que o idioma traz** extraem-se de
+`admin/lang/portugues.php` — por `tools/extract_whmcs_labels.py`, que
+gera `resources/whmcs_admin_labels.php` (2 372 etiquetas, 38
+secções, com a origem de cada uma).
+
+Para as definições que o idioma não cobre, a secção é a **página do
+WHMCS** onde essa definição vive, reconstruída pelo prefixo do nome
+— numa constante escrita à mão (`SECTION_PREFIXES`), para ser
+auditada. E a secção maior não pode engolir as restantes: um portão
+verifica isso.
+
+O ficheiro gerado tem de estar no contentor **nos dois estágios** do
+Dockerfile. Sem ele, o painel respondia 200 e mostrava a
+configuração errada.
+
+### O catálogo: o `INSERT` tem de preencher a tabela **inteira**
+
+As tabelas do WHMCS são largas: `tblproducts` tem 70 colunas
+`NOT NULL` sem default, e `tblservers` tem 24. Um `INSERT` com as
+colunas que o painel conhece é recusado (`ERROR 1364`).
+
+Por isso, as colunas que a tabela exige e que o painel não expõe são
+lidas do **esquema** (`information_schema`) e preenchidas com o valor
+neutro do seu tipo. As colunas cujo valor neutro seria uma mentira
+— as enumerações e as datas — ficam de fora de propósito: uma que
+falte tem de falhar em voz alta.
+
+E `order` é uma palavra reservada do MySQL: todos os identificadores
+dinâmicos vão entre crases.
 
 ### O painel é uma superfície de **leitura**
 

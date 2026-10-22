@@ -144,12 +144,40 @@ real** com credenciais reais e afirma sobre os dados reais da tabela
 | Tickets | `GET /api/v1/client/tickets`, `.../tickets/{id}`, `POST .../tickets` |
 | Base de Conhecimento | `GET /api/v1/knowledgebase`, `.../categories`, `.../{id}` |
 | Anúncios | `GET /api/v1/announcements` |
-| Procurar Domínio | `GET /api/v1/domains/check` |
-| Estado do Servidor | `GET /api/v1/serverstatus` |
+| Procurar Domínio | `GET /api/v1/domains/check`, `GET /api/v1/domains/pricing` (o preçário, como o WHMCS) |
+| Estado do Servidor | `GET /api/v1/serverstatus` (a máquina **agora**) |
+| Estado da Rede | `GET /api/v1/announcements` (as **intervenções comunicadas**) |
 | Serviços | `GET /api/v1/client/services` (com o preço, o ciclo e a renovação) |
 | Redefinir senha | `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password` |
 
 A interface é **pt-BR** em todos os ecrãs.
+
+### O preçário de domínios
+
+O `domainchecker.php` do WHMCS mostra, ao entrar, o **«Preçário de
+Domínios»**: o TLD, o mínimo de anos, e o preço de registar,
+transferir e renovar. Sem ele, o cliente só descobre o preço no
+pagamento.
+
+O xkhm mostra o mesmo — com os preços reais (`tblpricing`, com
+`type='domainregister' | 'domaintransfer' | 'domainrenew'`). O preço
+de um registo é uma **taxa de instalação**, e por isso está em
+`msetupfee`, não em `annually`.
+
+### O estado da rede
+
+O WHMCS tem duas páginas e duas perguntas: `serverstatus.php` diz
+como está a máquina **agora**; `networkissues.php` diz o que **vem**
+a seguir. São ecrãs separados no xkhm — «Status do Servidor» e
+«Estado da Rede» — porque a carga do sistema a 1.86 não diz nada
+sobre a intervenção das 22:30.
+
+### A barra do menu rola
+
+A `NavigationRail` do Flutter **não rola** por omissão. Com quinze
+destinos, os últimos ficavam abaixo da dobra — e, no ecrã largo,
+onde não há gaveta, ficavam **inalcançáveis**. É o sintoma exacto
+de «as funcionalidades não estão disponíveis».
 
 ### O ecrã de recuperação de senha
 

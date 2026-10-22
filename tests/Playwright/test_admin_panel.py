@@ -228,8 +228,13 @@ def test_the_configuration_is_visible(admin):
 
     body = admin.inner_text("body")
 
+    # A chave da definicao, e o **nome real** por cima dela.
     assert "CompanyName" in body
-    assert "LINUXKAFE" in body
+    assert "Nome da Empresa" in body
+
+    # O valor editável está no campo — `inner_text` não o traz.
+    assert admin.locator('input[name="CompanyName"]').count() == 1
+    assert admin.locator('input[name="CompanyName"]').input_value() == "LINUXKAFE"
 
 
 # ─── The malformed requests ──────────────────────────────────────────────────

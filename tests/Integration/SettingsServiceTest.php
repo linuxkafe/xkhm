@@ -70,14 +70,25 @@ class SettingsServiceTest extends TestCase
     {
         $missing = $this->settings->missing();
 
-        $keys = array_column($missing, 'key');
-
-        // O NIF não existe em lado nenhum da instalação — e o relatório
-        // tem de o dizer, porque sem NIF não há documento fiscal.
-        $this->assertContains('CompanyTaxNumber', $keys);
+        // O relatório é derivado do **estado actual**: uma definição
+        // que tem valor não é reportada. O NIF já vem na instalação
+        // importada, e o que interessa é a regra, não uma fotografia
+        // dos dados.
+        $all = $this->settings->all();
 
         foreach ($missing as $item) {
             $this->assertNotSame('', $item['why'], 'each missing setting says what it blocks');
+            $this->assertNotSame('', $item['label'], 'each missing setting has a name');
+        }
+
+        // E o inverso: uma definição obrigatória que **tem** valor não
+        // aparece no relatório.
+        $keys = array_column($missing, 'key');
+
+        if (trim((string)($all['CompanyTaxNumber'] ?? '')) !== '') {
+            $this->assertNotContains('CompanyTaxNumber', $keys);
+        } else {
+            $this->assertContains('CompanyTaxNumber', $keys);
         }
     }
 

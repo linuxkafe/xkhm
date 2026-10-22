@@ -26,6 +26,8 @@ final class AdminLayout
     public const SECTIONS = [
         ['key' => 'dashboard', 'label' => 'Painel', 'href' => '/admin'],
         ['key' => 'clients', 'label' => 'Clientes', 'href' => '/admin/clients.php'],
+        ['key' => 'products', 'label' => 'Produtos', 'href' => '/admin/products.php'],
+        ['key' => 'servers', 'label' => 'Servidores', 'href' => '/admin/servers.php'],
         ['key' => 'invoices', 'label' => 'Faturas', 'href' => '/admin/invoices.php'],
         ['key' => 'orders', 'label' => 'Pedidos', 'href' => '/admin/orders.php'],
         ['key' => 'tickets', 'label' => 'Tickets', 'href' => '/admin/tickets.php'],

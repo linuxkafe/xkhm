@@ -233,7 +233,9 @@ echo $notice->statusLabel(), "\n";
 echo $notice->fileName(), "\n";
 echo $notice->client['email'], "\n";
 echo $notice->issuer['name'], "\n";
-echo $notice->issuer['nif'] === '' ? 'SEM NIF' : 'COM NIF', "\n";
+// O NIF do documento, e o NIF da configuracao: tem de ser o mesmo.
+echo $notice->issuer['nif'] === '' ? 'SEM NIF' : $notice->issuer['nif'], "\n";
+echo $settings->company()['nif'] === '' ? 'SEM NIF' : $settings->company()['nif'], "\n";
 """
 
     result = subprocess.run(
@@ -248,13 +250,22 @@ echo $notice->issuer['nif'] === '' ? 'SEM NIF' : 'COM NIF', "\n";
     assert "AVISO NULO" not in output, result.stderr
     assert output, result.stderr
 
-    number, status, file_name, email, issuer, nif = output.split("\n")
+    number, status, file_name, email, issuer, nif, configured_nif = output.split("\n")
 
     assert number
     assert status in ("Pago", "Por pagar", "Cancelado")
     assert file_name.startswith("aviso-pagamento-")
     assert email == CLIENT_USER
     assert issuer == "LINUXKAFE"
-    # A instalação real não tem NIF — e o documento diz isso, em vez de
-    # inventar um.
-    assert nif == "SEM NIF"
+
+    # O documento diz o NIF que a instalação tem — e **não inventa** um.
+    # A instalação pode ter NIF ou não; o que não pode é divergir da
+    # configuração.
+    assert nif == configured_nif, "the document must carry the configured NIF"
+
+    if nif == "SEM NIF":
+        # Sem NIF, o documento diz isso, em vez de inventar um.
+        assert "SEM NIF" in output
+    else:
+        # O NIF português tem nove dígitos.
+        assert len(nif) == 9 and nif.isdigit(), f"unexpected NIF: {nif!r}"

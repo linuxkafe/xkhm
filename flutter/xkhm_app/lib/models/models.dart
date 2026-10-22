@@ -308,6 +308,31 @@ class LkAnnouncement {
       );
 }
 
+/// The price of a TLD, as the WHMCS's price table shows it.
+class LkDomainPrice {
+  const LkDomainPrice({
+    required this.tld,
+    required this.register,
+    required this.transfer,
+    required this.renew,
+    required this.minYears,
+  });
+
+  final String tld;
+  final double register;
+  final double transfer;
+  final double renew;
+  final int minYears;
+
+  factory LkDomainPrice.fromJson(Map<String, dynamic> json) => LkDomainPrice(
+        tld: json['tld'] as String? ?? '',
+        register: _asDouble(json['register']),
+        transfer: _asDouble(json['transfer']),
+        renew: _asDouble(json['renew']),
+        minYears: _asInt(json['minYears']),
+      );
+}
+
 class LkDomainResult {
   const LkDomainResult({
     required this.domain,

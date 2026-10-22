@@ -52,7 +52,34 @@ class DomainService
     public function getTLDPrice(string $tld): float
     {
         $prices = $this->domainRepository->getTLDPrices();
-        return $prices[$tld] ?? 0.0;
+
+        return (float)($prices[$tld]['register'] ?? 0.0);
+    }
+
+    /**
+     * The price table of the domains, as the WHMCS shows it.
+     *
+     * @return list<array{tld: string, register: float, transfer: float, renew: float, minYears: int}>
+     */
+    public function getTLDPriceTable(): array
+    {
+        $rows = [];
+
+        foreach ($this->domainRepository->getTLDPrices() as $tld => $prices) {
+            // O TLD da base de dados vem com o ponto; a interface
+            // mostra-o sem.
+            $tld = str_starts_with($tld, '.') ? $tld : '.' . $tld;
+
+            $rows[] = [
+                'tld' => $tld,
+                'register' => (float)$prices['register'],
+                'transfer' => (float)$prices['transfer'],
+                'renew' => (float)$prices['renew'],
+                'minYears' => (int)$prices['minYears'],
+            ];
+        }
+
+        return $rows;
     }
 
     /**

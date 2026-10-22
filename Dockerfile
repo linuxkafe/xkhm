@@ -13,6 +13,7 @@ COPY public/ public/
 COPY aes/ aes/
 COPY tests/ tests/
 COPY docker/ docker/
+COPY resources/ resources/
 
 # Copy remaining config files
 COPY phpunit.xml.dist phpstan.neon .php-cs-fixer.dist.php configuration.php ./
@@ -55,6 +56,7 @@ COPY --from=builder /build/src /var/www/html/src
 COPY --from=builder /build/public /var/www/html/public
 COPY --from=builder /build/aes /var/www/html/aes
 COPY --from=builder /build/docker /var/www/html/docker
+COPY --from=builder /build/resources /var/www/html/resources
 
 # Copy runtime files
 COPY composer.json ./

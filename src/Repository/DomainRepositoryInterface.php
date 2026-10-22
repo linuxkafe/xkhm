@@ -17,5 +17,10 @@ interface DomainRepositoryInterface
     public function findByIdWithDns(int $id): ?array;
     public function create(array $data): int;
     public function update(int $id, array $data): bool;
+    /**
+     * The prices of the domains, by TLD.
+     *
+     * @return array<string, array{register: float, transfer: float, renew: float, minYears: int}>
+     */
     public function getTLDPrices(): array;
 }

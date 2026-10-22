@@ -935,3 +935,76 @@ footer {
         flex: 1 1 100%;
     }
 }
+
+/* ── A configuração: secções e nomes ─────────────────────────────────────── */
+
+/*
+ * A configuração do WHMCS está dividida em páginas
+ * (`admin/config<name>.php`). O painel divide-se da mesma maneira: uma
+ * navegação de secções, e uma secção de cada vez.
+ */
+.admin-sections {
+    margin: 0 0 18px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.admin-sections ul {
+    display: flex;
+    gap: 4px;
+    list-style: none;
+    margin: 0;
+    padding: 0 0 4px;
+}
+
+.admin-sections li {
+    flex: 0 0 auto;
+}
+
+.admin-sections a {
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    color: var(--color-text);
+    display: block;
+    font-size: 13px;
+    padding: 8px 12px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.admin-sections a:hover {
+    border-color: var(--color-primary);
+}
+
+.admin-sections a.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-on-primary);
+    font-weight: 600;
+}
+
+.admin-section-count {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+/* O nome real da definicao, e a chave por baixo. */
+.admin-setting-name {
+    display: block;
+    font-weight: 500;
+}
+
+.admin-setting-key {
+    color: var(--color-text-light);
+    display: block;
+    font-size: 11px;
+}
+
+.admin-missing {
+    margin: 8px 0 0 18px;
+    padding: 0;
+}
+
+.admin-missing li {
+    margin-bottom: 4px;
+}

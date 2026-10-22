@@ -156,8 +156,10 @@ class SettingsService
     /** @var array<string, string>|null */
     private ?array $cache = null;
 
-    public function __construct(private SettingsRepositoryInterface $repository)
-    {
+    public function __construct(
+        private SettingsRepositoryInterface $repository,
+        private ?SettingsLabels $labels = null
+    ) {
     }
 
     /**
@@ -309,30 +311,44 @@ class SettingsService
     }
 
     /**
-     * The settings, grouped for the panel.
+     * The settings, grouped by the WHMCS's **sections**.
+     *
+     * The WHMCS splits the configuration into pages
+     * (`admin/config<name>.php`), and so does the panel. The name of
+     * each setting is the **real** one — the label of the WHMCS's own
+     * language file, or the setting's name humanised the way the
+     * WHMCS writes it.
      *
      * @return array<string, array{
      *     label: string,
-     *     settings: list<array{key: string, value: string, editable: bool}>
+     *     settings: list<array{key: string, label: string, value: string, editable: bool}>
      * }>
      */
     public function grouped(): array
     {
         $settings = $this->all();
+        $labels = $this->labels();
+
         $groups = [];
 
-        foreach (self::GROUPS as $key => $label) {
-            $groups[$key] = ['label' => $label, 'settings' => []];
-        }
-
         foreach ($settings as $key => $value) {
-            $group = $this->groupOf((string)$key);
+            $section = $labels->normalise($labels->sectionOf((string)$key));
 
-            $groups[$group]['settings'][] = [
+            $groups[$section]['label'] = $labels->sectionName($section);
+            $groups[$section]['settings'][] = [
                 'key' => (string)$key,
+                'label' => $labels->label((string)$key),
                 'value' => (string)$value,
                 'editable' => in_array((string)$key, self::EDITABLE, true),
             ];
+        }
+
+        // As seccoes sem definicoes nao aparecem; as do WHMCS que as
+        // tem aparecem todas.
+        foreach ($labels->sections() as $section => $name) {
+            if (!isset($groups[$section])) {
+                $groups[$section] = ['label' => $name, 'settings' => []];
+            }
         }
 
         foreach ($groups as $key => $group) {
@@ -342,38 +358,33 @@ class SettingsService
             );
         }
 
+        // As seccoes com definicoes primeiro, pela ordem do WHMCS.
+        $order = array_keys($labels->sections());
+        uksort(
+            $groups,
+            static function (string $a, string $b) use ($order): int {
+                $positionA = array_search($a, $order, true);
+                $positionB = array_search($b, $order, true);
+
+                $positionA = $positionA === false ? PHP_INT_MAX : $positionA;
+                $positionB = $positionB === false ? PHP_INT_MAX : $positionB;
+
+                return $positionA <=> $positionB;
+            }
+        );
+
         return $groups;
     }
 
     /**
-     * The group a setting belongs to.
+     * The labels and the sections.
      */
-    private function groupOf(string $setting): string
+    private function labels(): SettingsLabels
     {
-        return match (true) {
-            str_starts_with($setting, 'Company') => 'company',
-            str_starts_with($setting, 'RegistrarAdmin'),
-            str_starts_with($setting, 'DefaultNameserver') => 'client',
-            str_starts_with($setting, 'Tax'),
-            str_starts_with($setting, 'LateFee') => 'tax',
-            str_starts_with($setting, 'Currency') => 'currency',
-            str_starts_with($setting, 'SequentialInvoice') => 'numbering',
-            str_starts_with($setting, 'CreateInvoice'),
-            str_starts_with($setting, 'Invoice'),
-            str_starts_with($setting, 'ContinuousInvoicing'),
-            str_starts_with($setting, 'CancelInvoice'),
-            str_starts_with($setting, 'ShowCancelled') => 'billing',
-            str_starts_with($setting, 'Email'),
-            str_starts_with($setting, 'SystemEmail'),
-            str_starts_with($setting, 'SendEmail'),
-            str_starts_with($setting, 'Mail'),
-            str_starts_with($setting, 'NoInvoice'),
-            str_starts_with($setting, 'PreventEmail'),
-            str_starts_with($setting, 'AllowClientsToChange') => 'email',
-            str_starts_with($setting, 'AutoPayment'),
-            str_starts_with($setting, 'AutoRedirect'),
-            str_starts_with($setting, 'Gateway') => 'payment',
-            default => 'other',
-        };
+        if ($this->labels === null) {
+            $this->labels = new SettingsLabels();
+        }
+
+        return $this->labels;
     }
 }

@@ -474,17 +474,11 @@ final class ApiV1Controller
      */
     public function domainPricing(Request $request, Response $response): Response
     {
-        $tlds = $this->domainService->getPopularTLDs();
-
-        $pricing = [];
-        foreach ($tlds as $tld) {
-            $pricing[] = [
-                'tld' => $tld,
-                'price' => $this->domainService->getTLDPrice($tld),
-            ];
-        }
-
-        return JsonResponse::ok($response, ['pricing' => $pricing]);
+        // A tabela de preços, como o WHMCS a mostra: o TLD, o mínimo
+        // de anos, e o preço de registar, transferir e renovar.
+        return JsonResponse::ok($response, [
+            'pricing' => $this->domainService->getTLDPriceTable(),
+        ]);
     }
 
     /**
