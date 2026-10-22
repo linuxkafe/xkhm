@@ -125,6 +125,17 @@ class ServerController extends AdminController
                 ->withStatus(302);
         }
 
+        // O modulo e' obrigatorio: sem ele nao ha aprovisionamento.
+        $type = trim((string)($data['type'] ?? ''));
+
+        if ($type === '') {
+            return $response
+                ->withHeader('Location', '/admin/servers.php?action=edit&id=' . $id . '&error=type')
+                ->withStatus(302);
+        }
+
+        $data['type'] = $type;
+
         $this->catalogue->saveServer($data, $id);
 
         return $response
@@ -155,12 +166,14 @@ class ServerController extends AdminController
 
             $rows .= sprintf(
                 '<tr><td><a href="/admin/servers.php?action=edit&amp;id=%d">%s</a></td>'
-                . '<td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>',
+                . '<td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>',
                 (int)($server['id'] ?? 0),
                 $this->e((string)($server['name'] ?? '')),
                 $this->e((string)($server['hostname'] ?? '')),
                 $this->e((string)($server['ipaddress'] ?? '')),
                 $this->money($server['monthlycost'] ?? 0),
+                // O modulo que aprovisiona o servidor.
+                $this->e(\Xkhm\Service\ServerTypes::name((string)($server['type'] ?? '')) ?: '—'),
                 $this->e(implode(', ', $names) ?: '—'),
                 (int)($server['disabled'] ?? 0) === 1
                     ? '<span class="badge badge-bad">Desativado</span>'
@@ -174,7 +187,7 @@ class ServerController extends AdminController
 
         return '<div class="table-scroll"><table class="table table-striped">'
             . '<thead><tr><th>Servidor</th><th>Hostname</th><th>IP</th>'
-            . '<th>Custo mensal</th><th>Grupos</th><th>Estado</th></tr></thead>'
+            . '<th>Custo mensal</th><th>Módulo</th><th>Grupos</th><th>Estado</th></tr></thead>'
             . '<tbody>' . $rows . '</tbody></table></div>'
             . '<div class="admin-actions">'
             . '<a class="btn btn-primary" href="/admin/servers.php?action=edit">Novo servidor</a>'
@@ -210,7 +223,8 @@ class ServerController extends AdminController
             . $field('nameserver1', 'Servidor de nomes 1', (string)($server['nameserver1'] ?? ''))
             . $field('nameserver2', 'Servidor de nomes 2', (string)($server['nameserver2'] ?? ''))
             . $field('monthlycost', 'Custo mensal (€)', number_format((float)($server['monthlycost'] ?? 0), 2, '.', ''))
-            . $field('maxaccounts', 'Contas máximas', (string)($server['maxaccounts'] ?? '0'));
+            . $field('maxaccounts', 'Contas máximas', (string)($server['maxaccounts'] ?? '0'))
+            . $this->typeField((string)($server['type'] ?? ''));
 
         $body = '<section class="panel"><div class="panel-heading">Servidor</div><div class="panel-body">'
             . '<form method="post" action="/admin/servers.php" class="admin-form">'
@@ -238,6 +252,14 @@ class ServerController extends AdminController
     {
         if (isset($request->getQueryParams()['deleted'])) {
             return '<div class="alert alert-ok">O servidor foi removido.</div>';
+        }
+
+        if (isset($request->getQueryParams()['error'])) {
+            return '<div class="alert alert-danger">'
+                . 'O servidor precisa do <strong>tipo de interligação</strong> '
+                . '(o módulo que o aprovisiona). Sem ele, o servidor é um nome '
+                . 'de máquina e não há aprovisionamento.'
+                . '</div>';
         }
 
         return '';
@@ -270,6 +292,42 @@ class ServerController extends AdminController
             . '<input type="text" id="servergroup-name" name="groupname" class="form-control" required></div>'
             . '<button type="submit" class="btn">Criar o grupo</button>'
             . '</form></div></section>';
+    }
+
+    /**
+     * The **type** of the server: the module that provisions it.
+     *
+     * This is the field the operator asked for («que tipo de
+     * interligação/plugin para o configurar»): without it there is no
+     * provisioning — the server is a hostname and nothing more.
+     */
+    private function typeField(string $current): string
+    {
+        $options = '<option value="">— escolher o módulo —</option>';
+
+        foreach (\Xkhm\Service\ServerTypes::all() as $identifier => $name) {
+            $selected = $identifier === $current ? ' selected' : '';
+            $options .= sprintf(
+                '<option value="%s"%s>%s</option>',
+                $this->e($identifier),
+                $selected,
+                $this->e($name)
+            );
+        }
+
+        return '<div class="form-group">'
+            . '<label for="server-type">Tipo de interligação (o módulo)</label>'
+            . '<select id="server-type" name="type" class="form-control" required>'
+            . $options
+            . '</select>'
+            . '<p class="text-muted">'
+            . 'O módulo é o plugin que aprovisiona o servidor: cria a conta, '
+            . 'configura o alojamento e trata da renovação. É ele que sabe '
+            . 'falar com a máquina. '
+            . 'Os dois servidores desta instalação usam o <strong>Virtualmin</strong> '
+            . 'e o <strong>WHMCS MultiSite</strong>.'
+            . '</p>'
+            . '</div>';
     }
 
     /**

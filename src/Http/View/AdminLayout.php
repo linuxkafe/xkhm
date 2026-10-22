@@ -93,7 +93,7 @@ final class AdminLayout
 <header class="admin-header">
     <div class="admin-header-inner">
         <a class="admin-brand" href="/admin">
-            <img src="/templates/default/images/linuxkafe-escuro.svg" alt="LINUXKAFE" height="24" width="83">
+            <img src="/templates/default/images/linuxkafe.svg" alt="LINUXKAFE" height="24" width="83">
         </a>
         <span class="admin-header-title">Administração</span>
         <div class="admin-header-right">

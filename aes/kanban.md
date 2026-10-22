@@ -70,6 +70,8 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T045 | O cliente pode encomendar um serviço novo | high | done |
 | T046 | O cron — e os avisos que não saem para os clientes | high | done |
 | T047 | A interface de 2026: o tipo de letra e o logótipo | high | done |
+| T048 | O tipo de interligação do servidor | high | done |
+| T049 | A interface de 2026, ao estilo do design system | high | done |
 
 > **Note on numbering.** T020 was originally reserved for "Performance & load
 > testing". The Flutter conversion was planned as **T022** and the Playwright
@@ -106,6 +108,8 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T045 | A encomenda, a partir do cliente | done | o catálogo, o pedido, a fatura, e o serviço que nasce quando a fatura é paga |
 | T046 | O ciclo de facturação | done | as renovações, as multas, os avisos — e os avisos **não** saem para os clientes |
 | T047 | O tipo de letra e o logótipo | done | as fontes servidas de facto, e o logótipo no site, no painel e na app |
+| T048 | O tipo do servidor | done | o módulo que aprovisiona: o campo que faltava, e o repositório que não o gravava |
+| T049 | A interface de 2026 | done | a escala, o contraste, as bordas em vez das sombras, e o logótipo sobre a placa branca |
 
 ### Open decisions
 

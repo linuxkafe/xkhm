@@ -32,6 +32,7 @@ class LkPalette {
     required this.onHeader,
     required this.border,
     required this.link,
+    required this.logoPlate,
   });
 
   final Color primary;
@@ -45,6 +46,7 @@ class LkPalette {
   final Color onHeader;
   final Color border;
   final Color link;
+  final Color logoPlate;
 }
 
 /// The LkPalette values for each mode.
@@ -61,6 +63,7 @@ abstract final class LkColors {
     onHeader: Color(0xFFFFFFFF),
     border: Color(0xFFE0E0E0),
     link: Color(0xFF0056B3),
+    logoPlate: Color(0xFFFFFFFF),
   );
 
   static const LkPalette dark = LkPalette(
@@ -75,6 +78,7 @@ abstract final class LkColors {
     onHeader: Color(0xFFF0F0F0),
     border: Color(0xFF333333),
     link: Color(0xFF66B2FF),
+    logoPlate: Color(0xFFFFFFFF),
   );
 }
 
@@ -151,12 +155,31 @@ abstract final class LkSemantic {
 abstract final class LkFonts {
   static const String base = "Inter";
   static const List<String> baseFallback = <String>["system-ui", "-apple-system", "sans-serif"];
-  static const String heading = "Poppins";
-  static const List<String> headingFallback = <String>["Inter", "system-ui", "-apple-system", "sans-serif"];
   static const String mono = "Fira Code";
   static const List<String> monoFallback = <String>["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"];
 }
 
+/// The type scale, matching the `--type-*` design tokens.
+abstract final class LkTypeScale {
+  static const double displaySize = 32;
+  static const int displayWeight = 700;
+  static const double displayLineHeight = 1.2;
+  static const double h1Size = 24;
+  static const int h1Weight = 600;
+  static const double h1LineHeight = 1.3;
+  static const double h2Size = 20;
+  static const int h2Weight = 600;
+  static const double h2LineHeight = 1.3;
+  static const double h3Size = 16;
+  static const int h3Weight = 600;
+  static const double h3LineHeight = 1.4;
+  static const double bodySize = 14;
+  static const int bodyWeight = 400;
+  static const double bodyLineHeight = 1.5;
+  static const double smallSize = 12;
+  static const int smallWeight = 400;
+  static const double smallLineHeight = 1.5;
+}
 /// Layout tokens, matching the CSS layout block.
 abstract final class LkLayout {
   static const double widthMax = 1100;

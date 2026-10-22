@@ -137,10 +137,20 @@ void main() {
     });
 
     test('the fonts come from the generated tokens', () {
+      // Uma **unica** familia (a do design system).
       expect(LkFonts.base, contains('Inter'));
-      expect(LkFonts.heading, contains('Poppins'));
       expect(LkTheme.fontBase, LkFonts.base);
-      expect(LkTheme.fontHeading, LkFonts.heading);
+      expect(LkTheme.fontBaseFallback, LkFonts.baseFallback);
+    });
+
+    test('the type scale comes from the generated tokens', () {
+      expect(LkTypeScale.displaySize, 32);
+      expect(LkTypeScale.displayWeight, 700);
+      expect(LkTypeScale.h1Size, 24);
+      expect(LkTypeScale.h1Weight, 600);
+      expect(LkTypeScale.h2Size, 20);
+      expect(LkTypeScale.bodySize, 14);
+      expect(LkTypeScale.smallSize, 12);
     });
   });
 }

@@ -16,7 +16,8 @@
     "color-header": "#2d2d2d",
     "color-on-header": "#ffffff",
     "color-border": "#e0e0e0",
-    "color-link": "#0056b3"
+    "color-link": "#0056b3",
+    "color-logo-plate": "#ffffff"
   },
   "darkColors": {
     "color-primary": "#fbb202",
@@ -29,7 +30,8 @@
     "color-header": "#0d0d0d",
     "color-on-header": "#f0f0f0",
     "color-border": "#333333",
-    "color-link": "#66b2ff"
+    "color-link": "#66b2ff",
+    "color-logo-plate": "#ffffff"
   },
   "semantic": {
     "color-success-bg": "#d4edda",
@@ -70,15 +72,6 @@
         "sans-serif"
       ]
     },
-    "font-heading": {
-      "family": "Poppins",
-      "fallback": [
-        "Inter",
-        "system-ui",
-        "-apple-system",
-        "sans-serif"
-      ]
-    },
     "font-mono": {
       "family": "Fira Code",
       "fallback": [
@@ -93,7 +86,7 @@
   "layout": {
     "width-max": 1100,
     "border-radius": 8,
-    "shadow-card": "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
+    "shadow-card": "none"
   },
   "mobile": {
     "touch-target-min": 44,
@@ -126,6 +119,38 @@
       "weight": 600,
       "file": "Poppins-SemiBold.woff2",
       "style": "normal"
+    }
+  },
+  "typeScale": {
+    "display": {
+      "size": 32,
+      "weight": 700,
+      "lineHeight": 1.2
+    },
+    "h1": {
+      "size": 24,
+      "weight": 600,
+      "lineHeight": 1.3
+    },
+    "h2": {
+      "size": 20,
+      "weight": 600,
+      "lineHeight": 1.3
+    },
+    "h3": {
+      "size": 16,
+      "weight": 600,
+      "lineHeight": 1.4
+    },
+    "body": {
+      "size": 14,
+      "weight": 400,
+      "lineHeight": 1.5
+    },
+    "small": {
+      "size": 12,
+      "weight": 400,
+      "lineHeight": 1.5
     }
   }
 }

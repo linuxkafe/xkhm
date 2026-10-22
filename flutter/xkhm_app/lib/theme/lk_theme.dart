@@ -58,12 +58,10 @@ abstract final class LkTheme {
     );
 
     return base.copyWith(
-      textTheme: base.textTheme.apply(
-        fontFamily: LkFonts.base,
-        fontFamilyFallback: LkFonts.baseFallback,
-        bodyColor: colors.text,
-        displayColor: colors.text,
-      ),
+      // A escala e a do design system — nao a do Material. As familias
+      // de texto do Material tem 57 px de display e 11 px de etiqueta:
+      // e' a escala de 2014, e nao a de 2026.
+      textTheme: _textTheme(base.textTheme, colors),
       appBarTheme: AppBarTheme(
         backgroundColor: colors.header,
         foregroundColor: colors.onHeader,
@@ -198,21 +196,94 @@ abstract final class LkTheme {
     );
   }
 
-  /// Text style for section headings, matching `--font-heading`.
+  /// The type scale, applied to the Material text theme.
+  ///
+  /// The Material defaults are a 2014 scale (a 57 px display, an 11 px
+  /// label). The design system's is the one the tokens carry.
+  static TextTheme _textTheme(TextTheme base, LkPalette colors) {
+    TextStyle step(
+      TextStyle? style,
+      double size,
+      int weight,
+      double lineHeight, {
+      Color? color,
+    }) =>
+        (style ?? const TextStyle()).copyWith(
+          fontFamily: LkFonts.base,
+          fontFamilyFallback: LkFonts.baseFallback,
+          fontSize: size,
+          fontWeight: _weight(weight),
+          height: lineHeight,
+          color: color,
+        );
+
+    return base.copyWith(
+      displayLarge: step(
+          base.displayLarge, LkTypeScale.displaySize, LkTypeScale.displayWeight,
+          LkTypeScale.displayLineHeight),
+      headlineLarge: step(base.headlineLarge, LkTypeScale.h1Size,
+          LkTypeScale.h1Weight, LkTypeScale.h1LineHeight),
+      headlineMedium: step(base.headlineMedium, LkTypeScale.h2Size,
+          LkTypeScale.h2Weight, LkTypeScale.h2LineHeight),
+      titleLarge: step(base.titleLarge, LkTypeScale.h2Size,
+          LkTypeScale.h2Weight, LkTypeScale.h2LineHeight),
+      titleMedium: step(base.titleMedium, LkTypeScale.h3Size,
+          LkTypeScale.h3Weight, LkTypeScale.h3LineHeight),
+      titleSmall: step(base.titleSmall, LkTypeScale.h3Size,
+          LkTypeScale.h3Weight, LkTypeScale.h3LineHeight),
+      bodyLarge: step(base.bodyLarge, LkTypeScale.bodySize,
+          LkTypeScale.bodyWeight, LkTypeScale.bodyLineHeight,
+          color: colors.text),
+      bodyMedium: step(base.bodyMedium, LkTypeScale.bodySize,
+          LkTypeScale.bodyWeight, LkTypeScale.bodyLineHeight,
+          color: colors.text),
+      bodySmall: step(base.bodySmall, LkTypeScale.smallSize,
+          LkTypeScale.smallWeight, LkTypeScale.smallLineHeight,
+          color: colors.textLight),
+      labelLarge: step(base.labelLarge, LkTypeScale.bodySize,
+          LkTypeScale.bodyWeight, LkTypeScale.bodyLineHeight,
+          color: colors.text),
+      labelMedium: step(base.labelMedium, LkTypeScale.smallSize,
+          LkTypeScale.smallWeight, LkTypeScale.smallLineHeight,
+          color: colors.textLight),
+      labelSmall: step(base.labelSmall, LkTypeScale.smallSize,
+          LkTypeScale.smallWeight, LkTypeScale.smallLineHeight,
+          color: colors.textLight),
+    );
+  }
+
+  /// The weight of the scale, as a `FontWeight`.
+  static FontWeight _weight(int weight) => switch (weight) {
+        700 => FontWeight.w700,
+        600 => FontWeight.w600,
+        500 => FontWeight.w500,
+        _ => FontWeight.w400,
+      };
+
+  /// Text style for section headings.
+  ///
+  /// Uma **unica** familia (a do design system): os titulos sao a
+  /// Inter, com o peso e o tamanho da escala.
   static TextStyle heading(BuildContext context) => TextStyle(
-        fontFamily: LkTheme.fontHeading,
-        fontFamilyFallback: LkTheme.fontHeadingFallback,
+        fontFamily: LkTheme.fontBase,
+        fontFamilyFallback: LkTheme.fontBaseFallback,
+        fontSize: LkTypeScale.h2Size,
         fontWeight: FontWeight.w600,
+        height: LkTypeScale.h2LineHeight,
         color: Theme.of(context).colorScheme.onSurface,
       );
 
+  /// The colour of the **plate** the logo sits on.
+  ///
+  /// It is always white — the logo has a paper, and the paper does not
+  /// change with the mode.
+  static Color get logoPlate => LkColors.light.logoPlate;
+
   /// Font family names, matching the `--font-*` design tokens.
   static const String fontBase = LkFonts.base;
-  static const String fontHeading = LkFonts.heading;
 
-  /// The fallback chains, matching the tokens.
+  /// The fallback chain, matching the tokens.
   static const List<String> fontBaseFallback = LkFonts.baseFallback;
-  static const List<String> fontHeadingFallback = LkFonts.headingFallback;
 
   /// Secondary text, matching `--color-text-light`.
   static TextStyle muted(BuildContext context) =>

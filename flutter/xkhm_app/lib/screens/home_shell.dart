@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/session.dart';
+import '../theme/lk_theme.dart';
 import '../theme/tokens.dart';
 import '../widgets/lk_widgets.dart';
 import 'affiliate_screen.dart';
@@ -267,13 +268,26 @@ class _HomeShellState extends State<HomeShell> {
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
               child: Row(
                 children: [
-                  // O **logotipo**: a chaven com o wordmark. O
-                  // cabecalho e' escuro, e por isso a variante escura
-                  // (o wordmark branco).
-                  Image.asset(
-                    'assets/images/linuxkafe.png',
-                    height: 30,
-                    semanticLabel: 'LINUXKAFE',
+                  // O **logotipo**, sobre uma placa branca.
+                  //
+                  // A variante invertida (o wordmark branco)
+                  // resolvia o contraste, mas trocava a marca: o
+                  // «LINUX» preto deixava de ser o «LINUX» preto. A
+                  // placa e melhor.
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: LkTheme.logoPlate,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Image.asset(
+                      'assets/images/linuxkafe-claro.png',
+                      height: 26,
+                      semanticLabel: 'LINUXKAFE',
+                    ),
                   ),
                 ],
               ),

@@ -346,6 +346,9 @@ class CatalogueRepositoryPDO implements CatalogueRepositoryInterface
             'monthlycost' => (float)($data['monthlycost'] ?? 0),
             'statusaddress' => (string)($data['statusaddress'] ?? ''),
             'maxaccounts' => (int)($data['maxaccounts'] ?? 0),
+            // O **modulo** que aprovisiona o servidor. Sem ele, o
+            // servidor e' um nome de maquina e nada mais.
+            'type' => (string)($data['type'] ?? ''),
             'nameserver1' => (string)($data['nameserver1'] ?? ''),
             'nameserver2' => (string)($data['nameserver2'] ?? ''),
             'active' => (int)($data['active'] ?? 1),

@@ -296,6 +296,8 @@ def test_a_server_can_be_created(admin):
     admin.fill('input[name="name"]', name)
     admin.fill('input[name="hostname"]', "verificacao.teste")
     admin.fill('input[name="ipaddress"]', "192.0.2.10")
+    # O modulo e' obrigatorio (T048).
+    admin.select_option('select[name="type"]', "virtualmin")
     admin.click('button[type="submit"]')
     admin.wait_for_load_state("networkidle")
 
@@ -313,6 +315,74 @@ def test_a_server_can_be_created(admin):
 
     admin.goto(f"{BASE_URL}/admin/servers.php")
     assert name not in admin.inner_text("body")
+
+
+def test_the_server_form_asks_for_the_module(admin):
+    """
+    The server's **type** is the module that provisions it.
+
+    Without it, the server is a hostname and nothing more — and the
+    operator would have to find out by provisioning nothing.
+    """
+    admin.goto(f"{BASE_URL}/admin/servers.php")
+
+    admin.click("table.table tbody tr:first-child td:nth-child(1) a")
+    admin.wait_for_load_state("networkidle")
+
+    field = admin.locator('select[name="type"]')
+    assert field.count() == 1, "the form must ask for the module"
+
+    # A explainacao.
+    body = admin.inner_text("body")
+    assert "módulo" in body.lower()
+    assert "aprovisiona" in body.lower()
+
+    # E os modulos do WHMCS, incluindo os dois em uso.
+    values = field.locator("option").evaluate_all("els => els.map(e => e.value)")
+    assert "virtualmin" in values
+    assert "whmcs_multisite" in values
+    assert "cpanel" in values
+
+    # O servidor existente tem o dele.
+    selected = field.locator("option[selected]").inner_text()
+    assert "Virtualmin" in selected or "WHMCS MultiSite" in selected
+
+
+def test_a_server_without_a_module_is_refused(admin):
+    """O modulo e' obrigatorio."""
+    admin.goto(f"{BASE_URL}/admin/servers.php?action=edit")
+
+    admin.fill('input[name="name"]', "Servidor sem modulo")
+    admin.click('button:has-text("Guardar o servidor")')
+    admin.wait_for_load_state("networkidle")
+
+    body = admin.inner_text("body")
+    assert "tipo de interligação" in body.lower()
+
+
+def test_the_server_keeps_its_module(admin):
+    """O tipo e' gravado — e volta a ser lido."""
+    name = "Servidor com modulo"
+
+    admin.goto(f"{BASE_URL}/admin/servers.php?action=edit")
+
+    admin.fill('input[name="name"]', name)
+    admin.fill('input[name="hostname"]', "modulo.teste")
+    admin.fill('input[name="ipaddress"]', "192.0.2.20")
+    admin.select_option('select[name="type"]', "cpanel")
+    admin.click('button:has-text("Guardar o servidor")')
+    admin.wait_for_load_state("networkidle")
+
+    admin.goto(f"{BASE_URL}/admin/servers.php")
+
+    assert name in admin.inner_text("body")
+    assert "cPanel" in admin.inner_text("body")
+
+    # Limpar.
+    admin.locator(f"table.table tbody tr:has-text('{name}') td:nth-child(1) a").click()
+    admin.wait_for_load_state("networkidle")
+    admin.click('button:has-text("Remover o servidor")')
+    admin.wait_for_load_state("networkidle")
 
 
 def test_a_server_belongs_to_a_group(admin):

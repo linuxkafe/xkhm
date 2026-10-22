@@ -160,6 +160,18 @@ def _css_block(tokens: dict, *, dark: bool) -> str:
     for key, value in typography.items():
         body.append(f"\t{css_var(key)}: {css_font_stack(value)};\n")
 
+    # A escala: o design system define-a, e nao cada folha de estilo.
+    scale = tokens.get("typeScale", {})
+
+    if scale:
+        body.append("\n\t/* Escala tipografica */\n")
+        for key, step in scale.items():
+            body.append(
+                f"\t--type-{key}-size: {step['size']}px;\n"
+                f"\t--type-{key}-weight: {step['weight']};\n"
+                f"\t--type-{key}-line-height: {step['lineHeight']};\n"
+            )
+
     body.append("\n\t/* Layout */\n")
     body.append(f'\t{css_var("width-max")}: {layout["width-max"]}px;\n')
     body.append(f'\t{css_var("border-radius")}: {layout["border-radius"]}px;\n')
@@ -310,12 +322,29 @@ def render_dart(tokens: dict) -> str:
 
     out.append("/// Typography families, matching the CSS `--font-*` tokens.\n")
     out.append("abstract final class LkFonts {\n")
-    for key, name in (("font-base", "base"), ("font-heading", "heading"), ("font-mono", "mono")):
+    for key, name in (("font-base", "base"), ("font-mono", "mono")):
         face = tokens["typography"][key]
         out.append(f'  static const String {name} = "{face["family"]}";\n')
         fallbacks = ", ".join(f'"{f}"' for f in face.get("fallback", []))
         out.append(f"  static const List<String> {name}Fallback = <String>[{fallbacks}];\n")
-    out.append("}\n\n")
+
+    out.append("}\n")
+
+    # A escala tipografica — **fora** da classe das fontes.
+    scale = tokens.get("typeScale", {})
+
+    if scale:
+        out.append("\n/// The type scale, matching the `--type-*` design tokens.\n")
+        out.append("abstract final class LkTypeScale {\n")
+        for key, step in scale.items():
+            # O Dart usa lowerCamelCase.
+            name = key.split("-")[0] + "".join(
+                part.capitalize() for part in key.split("-")[1:]
+            )
+            out.append(f"  static const double {name}Size = {step['size']};\n")
+            out.append(f"  static const int {name}Weight = {step['weight']};\n")
+            out.append(f"  static const double {name}LineHeight = {step['lineHeight']};\n")
+        out.append("}\n")
 
     out.append("/// Layout tokens, matching the CSS layout block.\n")
     out.append("abstract final class LkLayout {\n")
