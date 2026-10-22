@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/api_client.dart';
 import '../widgets/lk_widgets.dart';
@@ -19,6 +20,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
   List<Map<String, dynamic>> _items = const [];
   String? _error;
   bool _loading = true;
+  bool _sending = false;
 
   @override
   void initState() {
@@ -56,6 +58,44 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     }
   }
 
+  /// Open the payment notice, as a PDF.
+  Future<void> _openPdf() async {
+    final url = context.read<LkApiClient>().clientInvoicePdfUrl(widget.invoiceId);
+
+    final opened = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível abrir o documento.')),
+      );
+    }
+  }
+
+  /// Send the payment notice again, by e-mail.
+  Future<void> _resend() async {
+    setState(() => _sending = true);
+
+    try {
+      await context.read<LkApiClient>().clientInvoiceResend(widget.invoiceId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('O aviso de pagamento foi enviado.')),
+      );
+    } on LkApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } on LkNetworkException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) return const LkLoading();
@@ -68,7 +108,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     return ListView(
       children: [
         LkCard(
-          title: 'Fatura #${invoice['number'] ?? ''}',
+          title: 'Aviso de pagamento #${invoice['number'] ?? ''}',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -100,6 +140,40 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
             ],
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.only(top: 4, bottom: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  key: const Key('invoice-pdf'),
+                  onPressed: _openPdf,
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: const Text('PDF'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  key: const Key('invoice-resend'),
+                  onPressed: _sending ? null : _resend,
+                  icon: const Icon(Icons.send_outlined),
+                  label: Text(_sending ? 'A enviar…' : 'Reenviar'),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Text(
+          'Este documento é um aviso de pagamento: diz o que se deve e como '
+          'pagar. Não é uma fatura, nem um documento fiscal — a fatura '
+          'certificada é emitida separadamente.',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.hintColor,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 12),
         const LkSectionTitle('Itens'),
         LkCard(
           child: Column(

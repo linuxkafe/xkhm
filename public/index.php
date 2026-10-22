@@ -99,6 +99,36 @@ $app->get('/health/db', function (Request $request, Response $response) use ($co
 // ─── Repository and Service Setup ─────────────────────────────────────────────
 
 $clientRepo = new ClientRepositoryPDO();
+
+// ── A configuração ───────────────────────────────────────────────────────────
+//
+// As definições vivem na `tblconfiguration` — a tabela do WHMCS, e a que
+// veio importada. São partilhadas com o WHMCS, e descrevem a instalação
+// real.
+$settingsRepository = new \Xkhm\Repository\SettingsRepositoryPDO();
+$settingsService = new \Xkhm\Service\SettingsService($settingsRepository);
+$invoiceNumberService = new \Xkhm\Service\InvoiceNumberService($settingsRepository);
+
+// O painel de administracao: as consultas de leitura que o sustaining.
+$adminPanel = new \Xkhm\Repository\AdminPanelRepositoryPDO();
+
+// O aviso de pagamento: o documento, e a fila que o envia.
+$paymentNoticePdf = new \Xkhm\Service\PaymentNoticePdf();
+$invoiceNoticeService = new \Xkhm\Service\InvoiceNoticeService(
+    $adminPanel,
+    $clientRepo,
+    $settingsService
+);
+$noticeQueue = new \Xkhm\Service\NoticeQueue($invoiceNoticeService, $paymentNoticePdf);
+
+// O preco e o prazo de renovacao dos servicos.
+$serviceTermsService = new \Xkhm\Service\ServiceTermsService(
+    $adminPanel,
+    new \Xkhm\Service\CreditService(
+        new \Xkhm\Repository\InvoiceRepositoryPDO(),
+        new \Xkhm\Repository\ClientRepositoryPDO()
+    )
+);
 $authService = new AuthService($clientRepo);
 $loginController = new LoginController($authService);
 $pwResetController = new PasswordResetController($clientRepo);
@@ -211,6 +241,7 @@ $deviceTrust = new \Xkhm\Service\DeviceTrust($signedTokens);
 $totpService = new \Xkhm\Service\TotpService();
 $mfaService = new \Xkhm\Service\MfaService($clientRepo, $totpService, $signedTokens);
 
+
 // ─── Versioned JSON API (/api/v1) — consumed by the Flutter application ─────
 
 $apiV1Controller = new \Xkhm\Http\Controller\Api\ApiV1Controller(
@@ -228,7 +259,10 @@ $apiV1Controller = new \Xkhm\Http\Controller\Api\ApiV1Controller(
     $adminPasswordResetService,
     $clientRepo,
     $mfaService,
-    $deviceTrust
+    $deviceTrust,
+    $invoiceNoticeService,
+    $paymentNoticePdf,
+    $noticeQueue
 );
 
 $apiAuth = new \Xkhm\Http\Controller\Api\ApiAuthMiddleware();
@@ -265,6 +299,8 @@ $app->group('/api/v1', function ($group) use ($apiV1Controller, $apiAuth) {
     $group->get('/client/summary', [$apiV1Controller, 'clientSummary'])->add($apiAuth);
     $group->get('/client/invoices', [$apiV1Controller, 'clientInvoices'])->add($apiAuth);
     $group->get('/client/invoices/{id:[0-9]+}', [$apiV1Controller, 'clientInvoice'])->add($apiAuth);
+    $group->get('/client/invoices/{id:[0-9]+}/pdf', [$apiV1Controller, 'clientInvoicePdf'])->add($apiAuth);
+    $group->post('/client/invoices/{id:[0-9]+}/resend', [$apiV1Controller, 'clientInvoiceResend'])->add($apiAuth);
     $group->get('/client/orders', [$apiV1Controller, 'clientOrders'])->add($apiAuth);
     $group->get('/client/domains', [$apiV1Controller, 'clientDomains'])->add($apiAuth);
     $group->get('/client/services', [$apiV1Controller, 'clientServices'])->add($apiAuth);
@@ -326,29 +362,44 @@ $app->get('/admin/logout.php', [$adminAuthController, 'logout']);
 // The panel itself. Every route is behind the administrator's session:
 // an unauthenticated request is sent to the login form, never to the
 // data.
-$adminPanel = new \Xkhm\Repository\AdminPanelRepositoryPDO();
 
 $adminDashboard = new \Xkhm\Http\Controller\Admin\DashboardController($adminPanel);
 $adminClients = new \Xkhm\Http\Controller\Admin\ClientController($adminPanel);
-$adminInvoices = new \Xkhm\Http\Controller\Admin\InvoiceController($adminPanel);
+$adminInvoices = new \Xkhm\Http\Controller\Admin\InvoiceController(
+    $adminPanel,
+    $invoiceNoticeService,
+    $paymentNoticePdf,
+    $noticeQueue
+);
 $adminOrders = new \Xkhm\Http\Controller\Admin\OrderController($adminPanel);
 $adminTickets = new \Xkhm\Http\Controller\Admin\TicketController($adminPanel, $ticketService);
 $adminDomains = new \Xkhm\Http\Controller\Admin\DomainController($adminPanel);
-$adminServices = new \Xkhm\Http\Controller\Admin\ServiceController($adminPanel);
+$adminServices = new \Xkhm\Http\Controller\Admin\ServiceController(
+    $adminPanel,
+    $serviceTermsService
+);
+$adminSettings = new \Xkhm\Http\Controller\Admin\SettingsController(
+    $adminPanel,
+    $settingsService
+);
 
 $app->get('/admin', [$adminDashboard, 'index'])->add($adminAuthMiddleware);
 // One route per path: the list and the detail share it, and the
 // `id` in the URL is what tells them apart.
 $app->get('/admin/clients.php', [$adminClients, 'index'])->add($adminAuthMiddleware);
 $app->get('/admin/invoices.php', [$adminInvoices, 'index'])->add($adminAuthMiddleware);
+$app->get('/admin/invoices/{id:[0-9]+}/pdf', [$adminInvoices, 'pdf'])->add($adminAuthMiddleware);
+$app->post('/admin/invoices/{id:[0-9]+}/resend', [$adminInvoices, 'resend'])->add($adminAuthMiddleware);
 $app->get('/admin/orders.php', [$adminOrders, 'index'])->add($adminAuthMiddleware);
 $app->get('/admin/tickets.php', [$adminTickets, 'index'])->add($adminAuthMiddleware);
 $app->post('/admin/tickets.php', [$adminTickets, 'reply'])->add($adminAuthMiddleware);
 $app->get('/admin/services.php', [$adminServices, 'index'])->add($adminAuthMiddleware);
+$app->post('/admin/services/{id:[0-9]+}/terms', [$adminServices, 'terms'])->add($adminAuthMiddleware);
 $app->get('/admin/domains.php', [$adminDomains, 'index'])->add($adminAuthMiddleware);
 $app->get('/admin/affiliates.php', [$adminDomains, 'affiliates'])->add($adminAuthMiddleware);
 $app->get('/admin/search.php', [$adminDashboard, 'search'])->add($adminAuthMiddleware);
-$app->get('/admin/config.php', [$adminDashboard, 'config'])->add($adminAuthMiddleware);
+$app->get('/admin/config.php', [$adminSettings, 'index'])->add($adminAuthMiddleware);
+$app->post('/admin/config.php', [$adminSettings, 'save'])->add($adminAuthMiddleware);
 
 // Redirect /admin/ to /admin
 $app->get('/admin/', function (Request $request, Response $response) {

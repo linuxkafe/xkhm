@@ -45,7 +45,10 @@ final class ApiV1Controller
         private AdminPasswordResetService $adminPasswordResetService,
         private ClientRepositoryInterface $clientRepository,
         private \Xkhm\Service\MfaService $mfaService,
-        private \Xkhm\Service\DeviceTrust $deviceTrust
+        private \Xkhm\Service\DeviceTrust $deviceTrust,
+        private \Xkhm\Service\InvoiceNoticeService $noticeService,
+        private \Xkhm\Service\PaymentNoticePdf $paymentNoticePdf,
+        private \Xkhm\Service\NoticeQueue $noticeQueue
     ) {
     }
 
@@ -577,6 +580,108 @@ final class ApiV1Controller
         ]);
     }
 
+
+    /**
+     * GET /api/v1/client/invoices/{id}/pdf
+     *
+     * The payment notice, as a PDF.
+     *
+     * It is a **commercial** document: it says what is owed and how to
+     * pay it, and it says on its face that it is not a fiscal
+     * document.
+     */
+    public function clientInvoicePdf(Request $request, Response $response, array $args): Response
+    {
+        $session = $request->getAttribute('session');
+        $clientId = (int)($session['client_id'] ?? 0);
+
+        $id = (int)($args['id'] ?? 0);
+
+        if ($id < 1) {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_NOT_FOUND,
+                'Fatura não encontrada.',
+                404
+            );
+        }
+
+        $invoice = $this->billingService->getInvoiceWithItems($id);
+
+        // The invoice has to belong to the client that is asking.
+        if ($invoice === null || (int)($invoice['userid'] ?? 0) !== $clientId) {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_NOT_FOUND,
+                'Fatura não encontrada.',
+                404
+            );
+        }
+
+        $notice = $this->noticeService->build($id);
+
+        if ($notice === null) {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_NOT_FOUND,
+                'Fatura não encontrada.',
+                404
+            );
+        }
+
+        $pdf = $this->paymentNoticePdf->render($notice);
+
+        $response->getBody()->write($pdf);
+
+        return $response
+            ->withHeader('Content-Type', 'application/pdf')
+            ->withHeader('Content-Disposition', 'attachment; filename="' . $notice->fileName() . '"')
+            ->withHeader('Content-Length', (string)strlen($pdf));
+    }
+
+    /**
+     * POST /api/v1/client/invoices/{id}/resend
+     *
+     * Send the payment notice by e-mail, again.
+     *
+     * The message goes to the **queue** of the host's mailer, with the
+     * PDF attached. The invoice itself is not touched: a notice that is
+     * sent twice is the same notice.
+     */
+    public function clientInvoiceResend(Request $request, Response $response, array $args): Response
+    {
+        $session = $request->getAttribute('session');
+        $clientId = (int)($session['client_id'] ?? 0);
+
+        $id = (int)($args['id'] ?? 0);
+
+        $invoice = $id > 0 ? $this->billingService->getInvoiceWithItems($id) : null;
+
+        if ($invoice === null || (int)($invoice['userid'] ?? 0) !== $clientId) {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_NOT_FOUND,
+                'Fatura não encontrada.',
+                404
+            );
+        }
+
+        $queued = $this->noticeQueue->queue($id, (int)($invoice['userid'] ?? 0));
+
+        if (!$queued) {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_SERVER_ERROR,
+                'Não foi possível preparar o aviso.',
+                500
+            );
+        }
+
+        return JsonResponse::ok($response, [
+            'message' => 'O aviso de pagamento foi enviado.',
+        ]);
+    }
+
     /**
      * GET /api/v1/client/invoices/{id}
      */
@@ -725,6 +830,8 @@ final class ApiV1Controller
                         'status' => (string)($service['domainstatus'] ?? ''),
                         'amount' => (float)($service['amount'] ?? 0),
                         'billingCycle' => (string)($service['billingcycle'] ?? ''),
+                        'renewalDate' => (string)($service['nextduedate'] ?? ''),
+                        'invoiceDate' => (string)($service['nextinvoicedate'] ?? ''),
                         'nextDueDate' => (string)($service['nextduedate'] ?? ''),
                         'registrationDate' => (string)($service['regdate'] ?? ''),
                         'diskUsage' => (int)($service['diskusage'] ?? 0),

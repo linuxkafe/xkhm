@@ -499,6 +499,84 @@ dispositivo é o cookie expirar.
 | `POST /api/v1/auth/login` | com `deviceId`; pode devolver um **desafio** |
 | `POST /api/v1/auth/mfa` | a resposta ao desafio |
 
+## O aviso de pagamento
+
+O que o cliente recebe **não** é uma fatura: é um **aviso de
+pagamento**, e o documento diz isso na cara.
+
+> Este documento é um aviso de pagamento. Não é uma fatura, nem um
+> documento fiscal, e não serve de título para efeitos fiscais. A
+> fatura certificada é emitida separadamente, pelo programa de
+> faturação certificado.
+
+Em Portugal, a fatura é o documento fiscal, e só o software
+**certificado** pela Autoridade Tributária pode emitir um. Um
+documento que se apresente como fatura e não é é um problema — e o
+problema é do software, não do cliente.
+
+| | |
+|---|---|
+| O PDF | `GET /api/v1/client/invoices/{id}/pdf` (o cliente dono) e `GET /admin/invoices/{id}/pdf` (o administrador) |
+| O reenvio | `POST /api/v1/client/invoices/{id}/resend` e `POST /admin/invoices/{id}/resend` — vai para a fila do correio do host, **com o PDF anexado** |
+| O gerador | `dompdf` (HTML → PDF), pelo composer |
+
+O documento **não recalcula** o IVA: mostra o que a fatura tem. A
+tabela de taxas (`tbltax`) está vazia, e inventar uma taxa é pior do
+que mostrar o total que a fatura tem.
+
+## A configuração
+
+As definições vivem na **`tblconfiguration`** — a tabela do WHMCS, e a
+que veio importada. São **partilhadas** com o WHMCS: uma mudança feita
+numa é vista pela outra.
+
+O `configuration.php` ficou com o que é **dela**: a ligação à base de
+dados, o hash de encriptação e o caminho da administração.
+
+O painel (`/admin/config.php`) mostra-as **agrupadas** — Empresa,
+Registo do cliente, IVA, Moeda, Facturação, Numeração, Correio,
+Pagamento — e edita as que interessam. As que não estão na lista
+explícita das editáveis são de leitura: `InstanceID`, `License` e
+`token_namespace` não se mexem.
+
+E no topo há o **relatório do que falta** para o documento de
+pagamento ficar completo — que hoje inclui o **NIF**, os **dados
+bancários**, a **informação de pagamento** e a **moeda**.
+
+### A empresa resolve dois sítios
+
+O WHMCS guarda a empresa em `Company*` **e** em `RegistrarAdmin*` (o
+registador pode facturar ao cliente com os seus dados). A resolução
+procura em `Company*` e, quando está vazio, vai ao `RegistrarAdmin*` —
+que é de onde vem, nesta instalação.
+
+### A escrita
+
+A `tblconfiguration.setting` é um `text` com um índice **não-único**:
+**não há chave única**, e o `ON DUPLICATE KEY` nunca dispara. A escrita
+é, por isso, apagar e escrever — e fica **exactamente uma** linha.
+
+## O preço e o prazo de renovação
+
+Um serviço tem um **preço** (`tblhosting.amount`) e um **ciclo**
+(`tblhosting.billingcycle`), e a próxima renovação
+(`tblhosting.nextduedate`).
+
+O preço **por ciclo** está no produto (`tblpricing`): `monthly`,
+`quarterly`, `semiannually`, `annually`, `biennially`, `triennially` —
+e `-1.00` significa que o produto não tem esse ciclo. Só os ciclos com
+preço entram no formulário.
+
+Mudar o preço a meio do período dá origem a um **prorrateio**: a
+diferença, proporcional ao tempo que resta do ciclo. É **cotado antes**
+de ser aplicado, e o valor aplicado é o que foi mostrado.
+
+- Uma diferença **a favor do cliente** vira **crédito** (`tblclients.credit`).
+- Uma diferença **a favor da empresa** fica **registada** para a
+  próxima fatura — não há coluna para ela, e o painel diz isso.
+- A mudança é escrita nas **notas do cliente** (`tblnotes`), como no
+  WHMCS.
+
 ## Formatos de senha
 
 A base de produção usa **dois** formatos. O verificador suporta ambos (e

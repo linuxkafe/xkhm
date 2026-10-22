@@ -48,6 +48,12 @@ PENDING_DIR = TOKEN_DIR / "pending"
 FAILED_DIR = TOKEN_DIR / "failed"
 ADMIN_DIR = TOKEN_DIR / "admin"
 
+#: The root of the storage. The attachment paths in the queue are
+#: **relative** to it: the queue is written by the application (inside
+#: the container) and read by the mailer (on the host), and the two do
+#: not share the same absolute paths.
+STORAGE_ROOT = TOKEN_DIR.parent
+
 #: The domains reserved for testing and documentation (RFC 2606, RFC 6761).
 #:
 #: They are guaranteed **not** to exist and **not** to accept mail. A
@@ -175,6 +181,15 @@ def parse_pending(path: pathlib.Path) -> dict[str, str]:
         account: someone@example.com
         token: <the token>
         created: 2026-10-21T15:00:00+00:00
+
+    Two lines are optional:
+
+        subject: <the subject of the message>
+        attachment: <the path of a file to attach>
+
+    The payment notice uses them: the application generates the PDF
+    (it has the application) and the mailer only attaches it (it has
+    the file).
     """
     fields: dict[str, str] = {}
 
@@ -216,10 +231,16 @@ def build_message(fields: dict[str, str], public_url: str) -> EmailMessage:
     the form. The **code** comes as the alternative, for the person who
     reads the e-mail on another device and cannot click it. The code
     never disappears: the two paths are complementary.
+
+    A **payment notice** is different: it carries a document, not a
+    code, and the document comes as an attachment.
     """
     purpose = fields.get("purpose", "cliente")
     account = fields.get("account", "")
     token = fields.get("token", "")
+
+    if purpose == "aviso":
+        return build_notice_message(fields)
 
     link = reset_link(public_url, purpose, token)
 
@@ -307,6 +328,32 @@ def build_message(fields: dict[str, str], public_url: str) -> EmailMessage:
     return message
 
 
+def build_notice_message(fields: dict[str, str]) -> EmailMessage:
+    """
+    The payment notice: a document, and where to find it.
+    """
+    account = fields.get("account", "")
+    token = fields.get("token", "")
+    subject = fields.get("subject") or "Aviso de pagamento"
+    attachment = fields.get("attachment", "")
+
+    body = (
+        "Ola,\n\n"
+        "Segue em anexo o aviso de pagamento"
+        + (f' da fatura {token}' if token else '')
+        + ".\n\n"
+        "O aviso diz o que se deve, ate quando e como pagar.\n\n"
+        "O documento nao e uma fatura: e um aviso de pagamento. A fatura "
+        "certificada e emitida separadamente.\n"
+    )
+
+    message = EmailMessage()
+    message["Subject"] = subject
+    message.set_content(body)
+
+    return message
+
+
 def send(message: EmailMessage, host: str, port: int, sender: str) -> None:
     """
     Hand the message to the SMTP server.
@@ -315,6 +362,48 @@ def send(message: EmailMessage, host: str, port: int, sender: str) -> None:
     loopback, and a relay that *does* want credentials would refuse an
     empty one.
     """
+    with smtplib.SMTP(host, port, timeout=20) as smtp:
+        smtp.send_message(message, from_addr=sender)
+
+
+def resolve_attachment(attachment: str) -> pathlib.Path:
+    """
+    The attachment, from the path the queue carries.
+
+    The path is relative to the storage root, so that the queue can be
+    written inside the container and read on the host.
+    """
+    candidate = pathlib.Path(attachment)
+
+    if candidate.is_absolute():
+        return candidate
+
+    return STORAGE_ROOT / candidate
+
+
+def send_with_attachment(
+    message: EmailMessage,
+    host: str,
+    port: int,
+    sender: str,
+    attachment: str,
+) -> None:
+    """
+    Send a message with a file attached.
+
+    The attachment goes on **before** the message is sent: adding it
+    afterwards and sending again would deliver the message twice.
+    """
+    path = resolve_attachment(attachment)
+
+    if path.is_file():
+        message.add_attachment(
+            path.read_bytes(),
+            maintype="application",
+            subtype="pdf",
+            filename=path.name,
+        )
+
     with smtplib.SMTP(host, port, timeout=20) as smtp:
         smtp.send_message(message, from_addr=sender)
 
@@ -392,8 +481,13 @@ def main() -> int:
         message["From"] = sender
         message["To"] = recipient
 
+        attachment = fields.get("attachment", "").strip()
+
         try:
-            send(message, host, port, sender)
+            if attachment:
+                send_with_attachment(message, host, port, sender, attachment)
+            else:
+                send(message, host, port, sender)
         except Exception as exc:
             print(f"  [ERRO] {recipient}: {exc}")
             move_to_failed(path, str(exc))

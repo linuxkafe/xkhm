@@ -144,10 +144,15 @@ class _ServiceCard extends StatelessWidget {
 
     final amount = (service['amount'] as num?)?.toDouble() ?? 0;
     if (amount > 0) {
-      details.add('Valor: ${amount.toStringAsFixed(2).replaceAll('.', ',')} €');
+      details.add('Preço: ${amount.toStringAsFixed(2).replaceAll('.', ',')} €');
     }
 
-    final nextDue = '${service['nextDueDate'] ?? ''}';
+    final cycle = '${service['billingCycle'] ?? ''}';
+    if (cycle.isNotEmpty) {
+      details.add('Ciclo: $cycle');
+    }
+
+    final nextDue = '${service['renewalDate'] ?? ''}';
     if (nextDue.isNotEmpty) {
       details.add('Renova: $nextDue');
     }

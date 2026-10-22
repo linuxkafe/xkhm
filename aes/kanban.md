@@ -60,6 +60,9 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T035 | Os serviços do cliente, pelo seu tipo | high | done |
 | T036 | A interface mobile, modernizada | high | done |
 | T037 | MFA para dispositivos novos, sem alterar a base de dados | high | done |
+| T038 | O aviso de pagamento: PDF, reenvio, e um rótulo que não mente | high | done |
+| T039 | A configuração: a `tblconfiguration` do WHMCS, editável | high | done |
+| T040 | O preço e o prazo de renovação do serviço | high | done |
 
 > **Note on numbering.** T020 was originally reserved for "Performance & load
 > testing". The Flutter conversion was planned as **T022** and the Playwright
@@ -86,6 +89,9 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T035 | Os serviços pelo seu tipo | done | o tipo vem do produto, não de uma lista escrita à mão; ecrã novo na app |
 | T036 | A interface mobile, modernizada | done | herói, figuras lado a lado, artigos resumidos, pull-to-refresh |
 | T037 | MFA para dispositivos novos | done | o segredo em `authdata` (coluna que já existia); a confiança é um cookie assinado |
+| T038 | O aviso de pagamento | done | PDF com o `dompdf`, reenvio pela fila com anexo, e a declaração de que não é fiscal |
+| T039 | A configuração | done | as 235 definições do WHMCS, agrupadas e editáveis; e o relatório do que falta |
+| T040 | Preço e prazo de renovação | done | o prorrateio é cotado antes de aplicado, e registado nas notas do cliente |
 
 ### Open decisions
 
@@ -134,9 +140,9 @@ the verification file for every ticket that has one.
 ### Test gates (all green)
 
 ```
-make test            # 151 PHPUnit tests — contra a base real
+make test            # 168 PHPUnit tests — contra a base real
 make lint            # PHPStan level 5, 0 errors
-make e2e             # 209 Playwright tests (API + Flutter) — dados reais
+make e2e             # 225 Playwright tests (API + Flutter) — dados reais
 make flutter-test    # 49 Flutter unit + widget tests
 make flutter-e2e     # 15 Playwright tests (Flutter web build)
 make tokens-check    # tokens in sync, no hard-coded colours (Dart and CSS)

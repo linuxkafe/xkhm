@@ -204,6 +204,60 @@ class AdminPanelRepositoryPDO implements AdminPanelRepositoryInterface
         return $services[0] ?? null;
     }
 
+    public function productPrices(int $packageId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT monthly, quarterly, semiannually, annually, biennially, triennially '
+            . 'FROM tblpricing WHERE type = ? AND relid = ? AND currency = ? LIMIT 1'
+        );
+        $stmt->execute(['product', $packageId, 1]);
+
+        $row = $stmt->fetch();
+
+        if ($row === false) {
+            return [];
+        }
+
+        $prices = [];
+
+        foreach (['monthly', 'quarterly', 'semiannually', 'annually', 'biennially', 'triennially'] as $column) {
+            $prices[$column] = (float)($row[$column] ?? -1);
+        }
+
+        return $prices;
+    }
+
+    public function updateServiceTerms(
+        int $id,
+        float $amount,
+        string $billingCycle,
+        string $nextDueDate
+    ): bool {
+        $stmt = $this->pdo->prepare(
+            'UPDATE tblhosting SET amount = :amount, billingcycle = :cycle, '
+            . 'nextduedate = :next WHERE id = :id'
+        );
+
+        return $stmt->execute([
+            'amount' => $amount,
+            'cycle' => $billingCycle,
+            'next' => $nextDueDate,
+            'id' => $id,
+        ]);
+    }
+
+    public function addNote(int $clientId, int $adminId, string $note): bool
+    {
+        $now = date('Y-m-d H:i:s');
+
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO tblnotes (userid, adminid, created, modified, note, sticky) '
+            . 'VALUES (?, ?, ?, ?, ?, 0)'
+        );
+
+        return $stmt->execute([$clientId, $adminId, $now, $now, $note]);
+    }
+
     /**
      * The services, with the product and the group they belong to.
      *

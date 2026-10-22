@@ -146,7 +146,7 @@ real** com credenciais reais e afirma sobre os dados reais da tabela
 | Anúncios | `GET /api/v1/announcements` |
 | Procurar Domínio | `GET /api/v1/domains/check` |
 | Estado do Servidor | `GET /api/v1/serverstatus` |
-| Serviços | `GET /api/v1/client/services` |
+| Serviços | `GET /api/v1/client/services` (com o preço, o ciclo e a renovação) |
 | Redefinir senha | `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password` |
 
 A interface é **pt-BR** em todos os ecrãs.
@@ -167,6 +167,15 @@ servidor de correio. Em produção o campo fica vazio e o código chega
 por e-mail (ou é entregue pelo administrador — ver `docs/DATABASE.md`).
 
 O botão «Esqueci a senha?» do ecrã de login abre este ecrã.
+
+### O aviso de pagamento
+
+O ecrã de um aviso tem o **PDF** (abre o documento) e o **reenvio**
+(que o manda por correio, com o PDF anexado).
+
+E avisa, no topo da lista, do que estes documentos são: um **aviso de
+pagamento**, não uma fatura. A fatura certificada é emitida
+separadamente, pelo programa de faturação certificado.
 
 ### A verificação em dois passos
 

@@ -201,6 +201,21 @@ def upsert_admin(username: str, password: str) -> int:
 # ─── The sample data ─────────────────────────────────────────────────────────
 
 
+def reset_client_billing(client_id: int) -> None:
+    """Put the development client's billing back where it was.
+
+    The tests of the price of a service leave a proration behind — a
+    credit, and a price that is not the seed's. The seed owns the
+    development account, so it puts them back.
+    """
+    mysql(f"UPDATE tblclients SET credit = 0 WHERE id = {client_id};")
+    mysql(
+        "UPDATE tblhosting SET amount = 24.99, billingcycle = 'Annually' "
+        "WHERE userid = " + str(client_id) + " AND packageid = 21;"
+    )
+    mysql(f"DELETE FROM tblnotes WHERE userid = {client_id};")
+
+
 def reset_client_mfa(client_id: int) -> None:
     """Clear the second factor of the development client.
 
@@ -480,6 +495,7 @@ def main() -> int:
         seed_client_data(client_id)
         seed_client_services(client_id)
         reset_client_mfa(client_id)
+        reset_client_billing(client_id)
         print("  [OK]    dados do cliente (faturas, pedido, dominio, ticket)")
         seed_global_content()
         print("  [OK]    base de conhecimento e anuncios")

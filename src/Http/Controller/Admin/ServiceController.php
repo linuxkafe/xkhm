@@ -18,6 +18,13 @@ use Xkhm\Http\View\AdminLayout;
  */
 class ServiceController extends AdminController
 {
+    public function __construct(
+        \Xkhm\Repository\AdminPanelRepositoryInterface $repository,
+        private \Xkhm\Service\ServiceTermsService $terms
+    ) {
+        parent::__construct($repository);
+    }
+
     /**
      * GET /admin/services.php?id=N
      */
@@ -47,6 +54,24 @@ class ServiceController extends AdminController
             $product !== '' ? $product : 'Serviço #' . $id,
             ['Clientes' => '/admin/clients.php?id=' . (int)$service['userid']]
         );
+
+        // ── As condicoes ──
+        $body .= '<section class="panel"><div class="panel-heading">'
+            . 'Preço e prazo de renovação</div><div class="panel-body">';
+
+        $body .= '<dl class="admin-details">';
+        foreach ([
+            'Preço actual' => $this->money($service['amount'] ?? 0),
+            'Ciclo' => $this->e($service['billingcycle'] ?? ''),
+            'Próxima renovação' => $this->date($service['nextduedate'] ?? null),
+            'Próxima fatura' => $this->date($service['nextinvoicedate'] ?? null),
+        ] as $label => $value) {
+            $body .= '<div><dt>' . $this->e($label) . '</dt><dd>' . $value . '</dd></div>';
+        }
+        $body .= '</dl>';
+
+        $body .= $this->termsForm($service);
+        $body .= '</div></section>';
 
         // ── O que o serviço e ──
         $fields = [
@@ -159,5 +184,157 @@ class ServiceController extends AdminController
             $body,
             $admin
         );
+    }
+
+    /**
+     * The form that changes the price and the renewal term.
+     *
+     * @param array<string, mixed> $service
+     */
+    private function termsForm(array $service): string
+    {
+        $id = (int)($service['id'] ?? 0);
+        $packageId = (int)($service['packageid'] ?? 0);
+        $current = (string)($service['billingcycle'] ?? '');
+
+        $cycles = $this->terms->availableCycles($packageId);
+
+        $options = '';
+        foreach ($cycles as $cycle => $price) {
+            $selected = $cycle === $current ? ' selected' : '';
+            $options .= sprintf(
+                '<option value="%s"%s>%s — %s</option>',
+                $this->e($cycle),
+                $selected,
+                $this->e($cycle),
+                $this->money($price)
+            );
+        }
+
+        if ($options === '') {
+            return '<p class="text-muted">'
+                . 'Este produto não tem preços por ciclo: o preço é definido à mão.'
+                . '</p>';
+        }
+
+        $price = $this->money($service['amount'] ?? 0);
+
+        return <<<HTML
+        <form method="post" action="/admin/services/{$id}/terms" class="admin-form">
+            <input type="hidden" name="action" value="quote">
+            <div class="form-group">
+                <label for="service-cycle">Ciclo de renovação</label>
+                <select id="service-cycle" name="billingCycle" class="form-control">
+                    {$options}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="service-amount">Preço (€) — em branco, o do produto</label>
+                <input type="text" id="service-amount" name="amount" class="form-control"
+                       inputmode="decimal" placeholder="{$price}">
+            </div>
+            <button type="submit" class="btn btn-primary">Calcular a alteração</button>
+        </form>
+        HTML;
+    }
+
+    /**
+     * The quote of a change, and the action that applies it.
+     */
+    private function quoteBlock(array $quote): string
+    {
+        $difference = (float)$quote['difference'];
+        $credit = (float)$quote['credit'];
+
+        if ($difference == 0.0) {
+            $message = 'A alteração não dá origem a prorrateio.';
+        } elseif ($difference < 0) {
+            $message = sprintf(
+                'A diferença é a favor do cliente: %.2f € viram crédito.',
+                $credit
+            );
+        } else {
+            $message = sprintf(
+                'A diferença é a favor da empresa: %.2f € serão facturados '
+                . 'na próxima renovação.',
+                $difference
+            );
+        }
+
+        $id = (int)($quote['service']['id'] ?? 0);
+
+        return '<div class="alert alert-info">'
+            . '<p><strong>Preço:</strong> '
+            . $this->money($quote['currentPrice']) . ' (' . $this->e($quote['currentCycle']) . ')'
+            . ' → ' . $this->money($quote['newPrice']) . ' (' . $this->e($quote['newCycle']) . ')</p>'
+            . '<p><strong>Próxima renovação:</strong> '
+            . $this->e($quote['nextDueDate'])
+            . ' (' . (int)$quote['daysRemaining'] . ' dias restantes)</p>'
+            . '<p>' . $this->e($message) . '</p>'
+            . '<form method="post" action="/admin/services/' . $id . '/terms">'
+            . '<input type="hidden" name="action" value="apply">'
+            . '<input type="hidden" name="billingCycle" value="' . $this->e($quote['newCycle']) . '">'
+            . '<input type="hidden" name="amount" value="' . $this->e((string)$quote['newPrice']) . '">'
+            . '<button type="submit" class="btn btn-primary">Aplicar a alteração</button>'
+            . '</form>'
+            . '</div>';
+    }
+
+    /**
+     * POST /admin/services/{id}/terms
+     *
+     * The quote, and the change.
+     */
+    public function terms(Request $request, Response $response, array $args): Response
+    {
+        $id = (int)($args['id'] ?? 0);
+        $data = $request->getParsedBody();
+        $data = is_array($data) ? $data : [];
+
+        $cycle = trim((string)($data['billingCycle'] ?? ''));
+        $rawAmount = trim((string)($data['amount'] ?? ''));
+        $amount = $rawAmount === '' ? null : (float)str_replace(',', '.', $rawAmount);
+
+        $action = (string)($data['action'] ?? 'quote');
+
+        if ($action === 'apply') {
+            $applied = $this->terms->apply(
+                $id,
+                $cycle,
+                $amount,
+                (int)($_SESSION['admin_id'] ?? 0)
+            );
+
+            if ($applied === null) {
+                return $response
+                    ->withHeader('Location', '/admin/services.php?id=' . $id . '&error=1')
+                    ->withStatus(302);
+            }
+
+            return $response
+                ->withHeader('Location', '/admin/services.php?id=' . $id . '&changed=1')
+                ->withStatus(302);
+        }
+
+        $quote = $this->terms->quote($id, $cycle, $amount);
+
+        if ($quote === null) {
+            return $response
+                ->withHeader('Location', '/admin/services.php?id=' . $id . '&error=1')
+                ->withStatus(302);
+        }
+
+        $service = $this->repository->findService($id);
+        $body = AdminLayout::header('Alterar as condições')
+            . $this->quoteBlock($quote)
+            . '<p><a class="btn" href="/admin/services.php?id=' . $id . '">Voltar</a></p>';
+
+        unset($service);
+
+        $response->getBody()->write(
+            AdminLayout::render('Alterar as condições', $body, 'clients', $this->adminName())
+        );
+
+        return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
     }
 }

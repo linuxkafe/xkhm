@@ -15,6 +15,71 @@ class InvoiceController extends AdminController
 {
     private const STATUSES = ['Paid', 'Unpaid', 'Cancelled'];
 
+    public function __construct(
+        \Xkhm\Repository\AdminPanelRepositoryInterface $repository,
+        private \Xkhm\Service\InvoiceNoticeService $noticeService,
+        private \Xkhm\Service\PaymentNoticePdf $paymentNoticePdf,
+        private \Xkhm\Service\NoticeQueue $noticeQueue
+    ) {
+        parent::__construct($repository);
+    }
+
+    /**
+     * GET /admin/invoices/{id}/pdf
+     *
+     * The payment notice, as a PDF.
+     */
+    public function pdf(Request $request, Response $response, array $args): Response
+    {
+        $id = (int)($args['id'] ?? 0);
+
+        $notice = $id > 0 ? $this->noticeService->build($id) : null;
+
+        if ($notice === null) {
+            return $this->notFound($response, 'A fatura', $this->adminName());
+        }
+
+        $pdf = $this->paymentNoticePdf->render($notice);
+
+        $response->getBody()->write($pdf);
+
+        return $response
+            ->withHeader('Content-Type', 'application/pdf')
+            ->withHeader(
+                'Content-Disposition',
+                'attachment; filename="' . $notice->fileName() . '"'
+            )
+            ->withHeader('Content-Length', (string)strlen($pdf));
+    }
+
+    /**
+     * POST /admin/invoices/{id}/resend
+     *
+     * Send the payment notice again, by e-mail.
+     */
+    public function resend(Request $request, Response $response, array $args): Response
+    {
+        $id = (int)($args['id'] ?? 0);
+
+        $invoice = $id > 0 ? $this->repository->findInvoice($id) : null;
+
+        if ($invoice === null) {
+            return $this->notFound($response, 'A fatura', $this->adminName());
+        }
+
+        $queued = $this->noticeQueue->queue($id, (int)($invoice['userid'] ?? 0));
+
+        if (!$queued) {
+            return $response
+                ->withHeader('Location', '/admin/invoices.php?id=' . $id . '&error=1')
+                ->withStatus(302);
+        }
+
+        return $response
+            ->withHeader('Location', '/admin/invoices.php?id=' . $id . '&sent=1')
+            ->withStatus(302);
+    }
+
     /**
      * GET /admin/invoices.php
      */
@@ -64,11 +129,16 @@ class InvoiceController extends AdminController
             ];
         }
 
-        $body = AdminLayout::header('Faturas')
-            . $this->filters('/admin/invoices.php', $search, $status, self::STATUSES, 'Número da fatura')
+        $body = AdminLayout::header('Avisos de pagamento')
+            . '<p class="text-muted">'
+            . 'Estes documentos são <strong>avisos de pagamento</strong>: dizem o que '
+            . 'se deve e como pagar, e não são documentos fiscais. A fatura '
+            . 'certificada é emitida separadamente.'
+            . '</p>'
+            . $this->filters('/admin/invoices.php', $search, $status, self::STATUSES, 'Número do aviso')
             . $this->table(
                 [
-                    ['label' => 'Fatura', 'value' => 'number'],
+                    ['label' => 'Aviso', 'value' => 'number'],
                     ['label' => 'Cliente', 'value' => 'client'],
                     ['label' => 'Data', 'value' => 'date'],
                     ['label' => 'Vencimento', 'value' => 'due'],
@@ -107,8 +177,12 @@ class InvoiceController extends AdminController
         $items = $this->repository->invoiceItems($id);
 
         $body = AdminLayout::header(
-            'Fatura ' . (string)$invoice['invoicenum'],
-            ['Faturas' => '/admin/invoices.php']
+            'Aviso de pagamento ' . (string)$invoice['invoicenum'],
+            [
+                'Avisos' => '/admin/invoices.php',
+                'PDF' => '/admin/invoices/' . $id . '/pdf',
+                'Reenviar' => '/admin/invoices/' . $id . '/resend',
+            ]
         );
 
         $fields = [

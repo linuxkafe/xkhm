@@ -285,6 +285,18 @@ class LkApiClient {
   Future<Map<String, dynamic>> clientAffiliate() =>
       _send('GET', '/client/affiliate');
 
+  /// The payment notice, as a PDF.
+  ///
+  /// It is a **commercial** document: it says what is owed and how to
+  /// pay it, and it says on its face that it is not a fiscal document.
+  String clientInvoicePdfUrl(int invoiceId) => '/api/v1/client/invoices/$invoiceId/pdf';
+
+  /// Send the payment notice again, by e-mail.
+  Future<bool> clientInvoiceResend(int invoiceId) async {
+    final data = await _send('POST', '/client/invoices/$invoiceId/resend');
+    return data['message'] != null;
+  }
+
   Future<List<Map<String, dynamic>>> clientInvoices() async {
     final data = await _send('GET', '/client/invoices');
     return (data['invoices'] as List<dynamic>? ?? const [])

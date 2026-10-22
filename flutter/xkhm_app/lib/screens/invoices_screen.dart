@@ -78,10 +78,27 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
     return LkRefreshable(
       onRefresh: _load,
       child: ListView.separated(
-        itemCount: _invoices.length,
+        padding: const EdgeInsets.only(top: 4, bottom: 24),
+        itemCount: _invoices.length + 1,
         separatorBuilder: (_, _) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
-          final invoice = _invoices[index];
+          // A primeira linha e a nota: o que estes documentos sao.
+          if (index == 0) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Estes documentos são avisos de pagamento: dizem o que se deve '
+                'e como pagar. Não são faturas, nem documentos fiscais — a '
+                'fatura certificada é emitida separadamente.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.hintColor,
+                  height: 1.5,
+                ),
+              ),
+            );
+          }
+
+          final invoice = _invoices[index - 1];
           return LkCard(
             child: InkWell(
               onTap: () => _openDetail(context, invoice.id),

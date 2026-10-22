@@ -85,6 +85,31 @@ interface AdminPanelRepositoryInterface
      */
     public function findService(int $id): ?array;
 
+    /**
+     * The price of a product, by cycle.
+     *
+     * The WHMCS keeps a price per billing cycle; `-1.00` means the
+     * product does not have that cycle.
+     *
+     * @return array<string, float>
+     */
+    public function productPrices(int $packageId): array;
+
+    /**
+     * Change the price and the renewal term of a service.
+     */
+    public function updateServiceTerms(
+        int $id,
+        float $amount,
+        string $billingCycle,
+        string $nextDueDate
+    ): bool;
+
+    /**
+     * Write a note on the client — as the WHMCS does.
+     */
+    public function addNote(int $clientId, int $adminId, string $note): bool;
+
     // ─── Invoices ───────────────────────────────────────────────────────────
 
     public function countInvoices(?string $status = null, ?string $search = null): int;
