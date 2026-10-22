@@ -7,10 +7,6 @@ import '../widgets/lk_widgets.dart';
 import 'password_reset_screen.dart';
 
 /// The login screen (pt-BR).
-///
-/// When the client has a second factor and the device is **new**, the
-/// server answers the login with a challenge instead of a session. The
-/// screen then asks for the code from the authenticator app.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -51,11 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!ok) {
       final session = context.read<LkSession>();
 
-      // A second factor was asked for: the screen changes, and there is
-      // no error to report — the user is simply one step further.
-      if (session.needsSecondFactor) {
-        return;
-      }
+      if (session.needsSecondFactor) return;
 
       final message = session.error ?? 'Falha ao iniciar sessão.';
       ScaffoldMessenger.of(context).showSnackBar(
@@ -64,7 +56,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  /// The answer to the second factor.
   Future<void> _submitCode() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
@@ -96,55 +87,56 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Container(
         color: theme.colorScheme.surface,
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'LINUXKAFÉ',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          // The wordmark sits on the page background, so it
-                          // uses the *text* colour — the header colour would
-                          // be invisible in dark mode.
-                          color: theme.colorScheme.onSurface,
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Área do Cliente',
-                        textAlign: TextAlign.center,
-                        style: LkTheme.muted(context),
-                      ),
-                      const SizedBox(height: 28),
-                      LkCard(
-                        title: needsCode
-                            ? 'Verificação em dois passos'
-                            : 'Iniciar Sessão',
-                        child: needsCode
-                            ? _secondFactor(theme)
-                            : _credentials(theme),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Servidores, Software Livre e Soberania Digital',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.hintColor,
-                        ),
-                      ),
-                    ],
+          child: SingleChildScrollView(
+            // The keyboard's inset, as a bottom padding. The content
+            // stays at the top, so the field does not jump when the
+            // keyboard appears — that is what made the focus drop on
+            // Android.
+            padding: EdgeInsets.only(
+              left: 24,
+              right: 24,
+              top: 24,
+              bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'LINUXKAFÉ',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Área do Cliente',
+                    textAlign: TextAlign.center,
+                    style: LkTheme.muted(context),
+                  ),
+                  const SizedBox(height: 28),
+                  LkCard(
+                    title: needsCode
+                        ? 'Verificação em dois passos'
+                        : 'Iniciar Sessão',
+                    child: needsCode
+                        ? _secondFactor(theme)
+                        : _credentials(theme),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Servidores, Software Livre e Soberania Digital',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.hintColor,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -159,9 +151,6 @@ class _LoginScreenState extends State<LoginScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        // Sem a wrapper de Semantica: no web, no Android, o teclado
-        // perde o foco a cada tecla quando o nó de semantica e'
-        // recriado. A chave e' suficiente para os testes.
         TextFormField(
           key: const Key('login-email'),
           controller: _emailController,
