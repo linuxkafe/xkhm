@@ -72,6 +72,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T047 | A interface de 2026: o tipo de letra e o logótipo | high | done |
 | T048 | O tipo de interligação do servidor | high | done |
 | T049 | A interface de 2026, ao estilo do design system | high | done |
+| T050 | Associar um serviço a um cliente | high | done |
 
 > **Note on numbering.** T020 was originally reserved for "Performance & load
 > testing". The Flutter conversion was planned as **T022** and the Playwright
@@ -110,6 +111,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T047 | O tipo de letra e o logótipo | done | as fontes servidas de facto, e o logótipo no site, no painel e na app |
 | T048 | O tipo do servidor | done | o módulo que aprovisiona: o campo que faltava, e o repositório que não o gravava |
 | T049 | A interface de 2026 | done | a escala, o contraste, as bordas em vez das sombras, e o logótipo sobre a placa branca |
+| T050 | Associar um serviço | done | o botão «Associar um serviço» na página do cliente, com o preço e a renovação |
 
 ### Open decisions
 

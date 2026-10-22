@@ -427,6 +427,7 @@ $app->get('/admin', [$adminDashboard, 'index'])->add($adminAuthMiddleware);
 // One route per path: the list and the detail share it, and the
 // `id` in the URL is what tells them apart.
 $app->get('/admin/clients.php', [$adminClients, 'index'])->add($adminAuthMiddleware);
+$app->post('/admin/clients.php', [$adminClients, 'index'])->add($adminAuthMiddleware);
 $app->get('/admin/invoices.php', [$adminInvoices, 'index'])->add($adminAuthMiddleware);
 $app->post('/admin/invoices.php', [$adminInvoices, 'markPaid'])->add($adminAuthMiddleware);
 $app->get('/admin/invoices/{id:[0-9]+}/pdf', [$adminInvoices, 'pdf'])->add($adminAuthMiddleware);

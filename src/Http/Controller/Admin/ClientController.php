@@ -6,6 +6,7 @@ namespace Xkhm\Http\Controller\Admin;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Xkhm\Repository\CatalogueRepositoryPDO;
 use Xkhm\Http\View\AdminLayout;
 
 /**
@@ -27,6 +28,18 @@ class ClientController extends AdminController
      */
     public function index(Request $request, Response $response): Response
     {
+        $action = (string)($request->getQueryParams()['action'] ?? '');
+
+        // Com `action=addservice` e' o formulario de associar um servico
+        // ao cliente, e nao o detalhe.
+        if ($action === 'addservice' && $this->id($request) !== null) {
+            if (strtoupper((string)$request->getMethod()) === 'POST') {
+                return $this->addService($request, $response);
+            }
+
+            return $this->addServiceForm($request, $response);
+        }
+
         // With an `id` in the URL it is the detail, not the list. The
         // router cannot tell them apart: the path is the same.
         if ($this->id($request) !== null) {
@@ -160,6 +173,164 @@ class ClientController extends AdminController
         }
 
         return $html;
+    }
+
+    /**
+     * The form to associate a new service to a client.
+     */
+    public function addServiceForm(Request $request, Response $response): Response
+    {
+        $id = $this->id($request);
+        $admin = $this->adminName();
+
+        $client = $this->repository->findClient((int)$id);
+
+        if ($client === null) {
+            return $this->notFound($response, 'O cliente', $admin);
+        }
+
+        $catalogue = new \Xkhm\Repository\CatalogueRepositoryPDO();
+        $products = $catalogue->products();
+
+        $options = '';
+
+        foreach ($products as $product) {
+            if ((string)($product['hidden'] ?? '') === 'on') {
+                continue;
+            }
+
+            $prices = $product['prices'] ?? [];
+            $firstCycle = '';
+
+            foreach (CatalogueRepositoryPDO::CYCLES as $column => $label) {
+                if ((float)($prices[$column] ?? -1) >= 0) {
+                    $firstCycle = $label;
+                    break;
+                }
+            }
+
+            $price = (float)($prices[$firstCycle !== '' ? strtolower(str_replace(' ', '', $firstCycle)) : 'annually'] ?? -1);
+
+            if ($price < 0) {
+                continue;
+            }
+
+            $options .= sprintf(
+                '<option value="%d" data-cycle="%s" data-price="%s">%s — %s</option>',
+                (int)$product['id'],
+                $this->e($firstCycle),
+                $this->e(number_format($price, 2, '.', '')),
+                $this->e((string)($product['name'] ?? '')),
+                $this->e((string)($product['groupname'] ?? ''))
+            );
+        }
+
+        $today = date('Y-m-d');
+
+        $body = AdminLayout::header(
+            sprintf('Novo serviço — %s %s', $client['firstname'], $client['lastname']),
+            ['Cliente' => '/admin/clients.php?id=' . $id]
+        );
+
+        $body .= '<section class="panel"><div class="panel-heading">Novo serviço</div><div class="panel-body">'
+            . '<form method="post" action="/admin/clients.php?id=' . $id . '&action=addservice" class="admin-form">'
+            . '<div class="form-group"><label for="service-product">Produto</label>'
+            . '<select id="service-product" name="productid" class="form-control" required>'
+            . $options . '</select></div>'
+            . '<div class="form-group"><label for="service-cycle">Ciclo</label>'
+            . '<select id="service-cycle" name="billingcycle" class="form-control">'
+            . '<option value="Monthly">Mensal</option>'
+            . '<option value="Quarterly">Trimestral</option>'
+            . '<option value="Semi Annually">Semestral</option>'
+            . '<option value="Annually" selected>Anual</option>'
+            . '<option value="Biennially">Bienal</option>'
+            . '<option value="Triennially">Trienal</option>'
+            . '</select></div>'
+            . '<div class="form-group"><label for="service-price">Valor (€)</label>'
+            . '<input type="text" id="service-price" name="amount" class="form-control" value="0.00" inputmode="decimal" required></div>'
+            . '<div class="form-group"><label for="service-renewal">Próxima renovação</label>'
+            . '<input type="date" id="service-renewal" name="nextduedate" class="form-control" value="' . $this->e($today) . '" required></div>'
+            . '<div class="form-group"><label for="service-domain">Domínio</label>'
+            . '<input type="text" id="service-domain" name="domain" class="form-control"></div>'
+            . '<button type="submit" class="btn btn-primary">Associar o serviço</button>'
+            . '</form></div></section>';
+
+        return $this->render($response, 'Novo serviço', 'clients', $body, $admin);
+    }
+
+    /**
+     * POST /admin/clients.php?id=N&action=addservice
+     */
+    public function addService(Request $request, Response $response): Response
+    {
+        $data = $request->getParsedBody();
+        $data = is_array($data) ? $data : [];
+
+        $id = $this->id($request);
+        $admin = $this->adminName();
+
+        if ($id === null) {
+            return $this->notFound($response, 'O cliente', $admin);
+        }
+
+        $productId = (int)($data['productid'] ?? 0);
+        $cycle = (string)($data['billingcycle'] ?? 'Annually');
+        $amount = (float)str_replace(',', '.', (string)($data['amount'] ?? '0'));
+        $domain = trim((string)($data['domain'] ?? ''));
+        $renewal = (string)($data['nextduedate'] ?? '');
+
+        if ($productId <= 0) {
+            return $this->badRequest($response, 'O serviço', $admin);
+        }
+
+        $catalogue = new \Xkhm\Repository\CatalogueRepositoryPDO();
+        $product = $catalogue->product($productId);
+
+        if ($product === null) {
+            return $this->notFound($response, 'O produto', $admin);
+        }
+
+        if ($renewal === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $renewal)) {
+            $renewal = date('Y-m-d', strtotime('+1 year'));
+        }
+
+        $services = new \Xkhm\Repository\ServiceRepositoryPDO();
+
+        $services->create([
+            'userid' => $id,
+            'orderid' => 0,
+            'packageid' => $productId,
+            'server' => (int)($product['servergroup'] ?? 0),
+            'regdate' => date('Y-m-d'),
+            'domain' => $domain,
+            'paymentmethod' => '',
+            'firstpaymentamount' => $amount,
+            'amount' => $amount,
+            'billingcycle' => $cycle,
+            'nextduedate' => $renewal,
+            'nextinvoicedate' => $renewal,
+            'domainstatus' => 'Active',
+            'username' => '',
+            'password' => '',
+            'notes' => 'Associado pelo operador',
+            'subscriptionid' => '',
+            'promoid' => 0,
+            'suspendreason' => '',
+            'overideautosuspend' => '',
+            'overidesuspenduntil' => '0000-00-00',
+            'dedicatedip' => '',
+            'assignedips' => '',
+            'ns1' => '',
+            'ns2' => '',
+            'diskusage' => 0,
+            'disklimit' => 0,
+            'bwusage' => 0,
+            'bwlimit' => 0,
+        ]);
+
+        return $response
+            ->withHeader('Location', '/admin/clients.php?id=' . $id . '&added=1')
+            ->withStatus(302);
     }
 
     /**
@@ -357,7 +528,16 @@ class ClientController extends AdminController
             . '</div></section>';
 
         // ── Os servicos ──
+        if (isset($request->getQueryParams()['added'])) {
+            $body .= '<div class="alert alert-success">O serviço foi associado ao cliente.</div>';
+        }
+
         $body .= $this->servicesSection($this->repository->clientServices($id));
+
+        // E a accao de associar.
+        $body .= '<div class="admin-actions">'
+            . '<a class="btn btn-primary" href="/admin/clients.php?id=' . $id . '&action=addservice">Associar um serviço</a>'
+            . '</div>';
 
         return $this->render(
             $response,
