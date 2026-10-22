@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
 import smtplib
 import sys
@@ -102,6 +103,40 @@ RESERVED_TLDS = {
     "invalid",
     "example",
 }
+
+
+#: The addresses that may receive the **payment notices**.
+#:
+#: The installation is not validated yet: the payment notice says, on
+#: its face, that it is not a fiscal document. Sending it to a real
+#: client would put that document in the inbox of somebody who paid.
+#:
+#: The same list is read by the application (`src/Service/MailPolicy.php`),
+#: so the notice is never even addressed to a client. This is the
+#: **last gate**: a misconfiguration upstream cannot reach a client
+#: either.
+NOTICE_RECIPIENTS_ENV = "XKHM_MAILER_NOTICE_RECIPIENTS"
+
+#: The operator's address, until the operator says otherwise.
+DEFAULT_NOTICE_RECIPIENTS = "mail@linuxkafe.com"
+
+
+def notice_recipients() -> set[str]:
+    """
+    The addresses that may receive the payment notices.
+    """
+    raw = os.getenv(NOTICE_RECIPIENTS_ENV, "").strip()
+
+    if not raw:
+        raw = DEFAULT_NOTICE_RECIPIENTS
+
+    addresses = {
+        address.strip().lower()
+        for address in raw.split(",")
+        if address.strip()
+    }
+
+    return addresses or {DEFAULT_NOTICE_RECIPIENTS}
 
 
 def is_reserved(address: str) -> bool:
@@ -331,11 +366,16 @@ def build_message(fields: dict[str, str], public_url: str) -> EmailMessage:
 def build_notice_message(fields: dict[str, str]) -> EmailMessage:
     """
     The payment notice: a document, and where to find it.
+
+    While the installation is not validated, the notice goes to the
+    **operator** — and the body says whose it is, so that a pile of
+    them is still readable.
     """
     account = fields.get("account", "")
     token = fields.get("token", "")
     subject = fields.get("subject") or "Aviso de pagamento"
     attachment = fields.get("attachment", "")
+    client = fields.get("client", "").strip()
 
     body = (
         "Ola,\n\n"
@@ -346,6 +386,14 @@ def build_notice_message(fields: dict[str, str]) -> EmailMessage:
         "O documento nao e uma fatura: e um aviso de pagamento. A fatura "
         "certificada e emitida separadamente.\n"
     )
+
+    if client:
+        body += (
+            "\n---\n"
+            "Este aviso foi gerado para o cliente " + client + ".\n"
+            "A instalacao ainda nao esta validada, e por isso o aviso nao "
+            "foi enviado ao cliente: e para validacao.\n"
+        )
 
     message = EmailMessage()
     message["Subject"] = subject
@@ -415,8 +463,6 @@ def main() -> int:
 
     load_env()
 
-    import os
-
     host = os.getenv("XKHM_MAILER_SMTP_HOST", "127.0.0.1")
     port = int(os.getenv("XKHM_MAILER_SMTP_PORT", "25"))
     sender = os.getenv("XKHM_MAILER_SMTP_FROM", "safedata@linuxkafe.com")
@@ -456,11 +502,25 @@ def main() -> int:
 
         recipient = fields.get("recipient", "")
         token = fields.get("token", "")
+        purpose = fields.get("purpose", "").strip().lower()
 
         if not recipient or not token:
             print(f"  [ERRO] {path.name}: ficheiro incompleto — movido para failed/")
             move_to_failed(path, "ficheiro incompleto")
             failed += 1
+            continue
+
+        # The payment notices are restricted: until the installation is
+        # validated, they only go to the operator.
+        if purpose == "aviso" and recipient.lower() not in notice_recipients():
+            move_to_failed(
+                path,
+                "aviso de pagamento para um cliente — a instalacao ainda "
+                "nao esta validada (destinatario permitido: "
+                + ", ".join(sorted(notice_recipients()))
+                + ")",
+            )
+            print(f"  [skip]  {recipient} (aviso: instalacao nao validada)")
             continue
 
         if is_reserved(recipient) and not allow_reserved:

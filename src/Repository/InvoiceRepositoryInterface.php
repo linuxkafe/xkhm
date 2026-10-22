@@ -10,6 +10,13 @@ interface InvoiceRepositoryInterface
     public function findByUserId(int $userId): array;
     public function findByIdWithItems(int $id): ?array;
     public function create(array $data): int;
+
+    /**
+     * Add a line to an invoice.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function addItem(int $invoiceId, array $data): int;
     public function update(int $id, array $data): bool;
     public function getInvoiceTotal(int $id): ?float;
 }

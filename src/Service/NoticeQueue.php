@@ -42,6 +42,11 @@ class NoticeQueue
             return false;
         }
 
+        // A instalação ainda não está validada: o aviso **não** sai
+        // para o cliente — sai para o operador, e o cliente viaja com
+        // a mensagem. A política está em `MailPolicy`.
+        $recipient = MailPolicy::recipientFor($client);
+
         $pdf = $this->pdf->render($notice);
 
         $directory = $this->directory();
@@ -65,12 +70,15 @@ class NoticeQueue
         @chmod($path, 0644);
 
         $payload = sprintf(
-            "purpose: aviso\nrecipient: %s\naccount: %d\ntoken: %d\n"
+            "purpose: aviso\nrecipient: %s\nclient: %s\naccount: %d\ntoken: %d\n"
             . "subject: %s\nattachment: %s\ncreated: %s\n",
+            $recipient,
             $client,
             $clientId,
             $invoiceId,
-            $this->subject($notice),
+            $recipient === $client
+                ? $this->subject($notice)
+                : $this->operatorSubject($notice, $client),
             // The path is **relative** to the storage root: the queue is
             // read by the host's mailer, and the host's path is not the
             // container's.
@@ -96,6 +104,22 @@ class NoticeQueue
         return sprintf(
             'Aviso de pagamento — fatura %s',
             $notice->number
+        );
+    }
+
+    /**
+     * The subject, when the notice goes to the operator instead of to
+     * the client.
+     *
+     * Without it, the operator receives a notice with no idea whose
+     * it is — and several clients have the same first name.
+     */
+    private function operatorSubject(InvoiceNotice $notice, string $client): string
+    {
+        return sprintf(
+            '[Não enviar ao cliente] Aviso de pagamento — fatura %s — %s',
+            $notice->number,
+            $client
         );
     }
 

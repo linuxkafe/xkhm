@@ -34,6 +34,7 @@ esquema de cor do sistema e é utilizável num ecrã de telemóvel.
 | `/admin/products.php?action=edit&id=N` | O produto, e os seus preços por ciclo |
 | `/admin/servers.php` | Os **servidores**: hostname, IP, custo, estado e grupos |
 | `/admin/servers.php?action=edit&id=N` | O servidor, e os grupos a que pertence |
+| `POST /admin/invoices.php` | **Marcar a fatura como paga** — e é aí que o serviço nasce |
 
 Todas exigem sessão de administrador. Sem sessão, a resposta é um `302`
 para `/admin/login.php` — **nunca** os dados.
@@ -63,6 +64,43 @@ verifica isso.
 O ficheiro gerado tem de estar no contentor **nos dois estágios** do
 Dockerfile. Sem ele, o painel respondia 200 e mostrava a
 configuração errada.
+
+### Marcar a fatura como paga é o momento em que o **serviço** nasce
+
+Não há uma porta de pagamento em funcionamento, e por isso é o
+operador quem diz que a fatura foi paga. Ao pagá-la:
+
+- a fatura passa a `Paid`, com a data de pagamento;
+- o **serviço** é criado (`tblhosting`), com o **preço que foi
+  pago** — não o preço de lista do produto;
+- o pedido passa a `Active`.
+
+Um produto que um cliente já tem **não** é removido — o painel
+diz porquê e sugere escondê-lo.
+
+### O ciclo de facturação (o `cron.php` do WHMCS)
+
+O WHMCS corre o seu `cron.php` por HTTP, sem autenticação. Aqui
+há duas coisas:
+
+- a **linha de comando**, dentro do contentor (onde a base de
+  dados está): `make cron`;
+- uma **rota com token** (`XKHM_CRON_TOKEN`): sem o token, recusa.
+
+O ciclo faz as quatro coisas do WHMCS: as faturas de **renovação**,
+a **multa por atraso**, os **avisos de pagamento** e a
+**suspensão** dos serviços em atraso.
+
+Duas delas tocam o cliente, e uma delas desliga o serviço. Até a
+instalação estar validada:
+
+| Acção | Onde vai | Como se desliga |
+|-------|----------|-----------------|
+| Os **avisos** | para o **operador** | `XKHM_MAILER_NOTICE_RECIPIENTS` |
+| A **suspensão** | não acontece | `XKHM_CRON_ALLOW_SUSPENSION` |
+
+E o ciclo é **idempotente**: correr duas vezes não gera duas
+faturas para o mesmo período, nem dois avisos para a mesma fatura.
 
 ### O catálogo: o `INSERT` tem de preencher a tabela **inteira**
 

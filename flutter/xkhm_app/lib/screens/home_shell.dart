@@ -13,6 +13,7 @@ import 'home_screen.dart';
 import 'invoices_screen.dart';
 import 'knowledgebase_screen.dart';
 import 'orders_screen.dart';
+import 'order_screen.dart';
 import 'security_screen.dart';
 import 'server_status_screen.dart';
 import 'network_status_screen.dart';
@@ -92,6 +93,11 @@ class _HomeShellState extends State<HomeShell> {
       label: 'Pedidos',
       icon: Icons.shopping_bag_outlined,
       builder: (_) => const OrdersScreen(),
+    ),
+    LkDestination(
+      label: 'Encomendar',
+      icon: Icons.add_shopping_cart_outlined,
+      builder: (_) => const OrderScreen(),
     ),
     LkDestination(
       label: 'Domínios',
@@ -194,13 +200,15 @@ class _HomeShellState extends State<HomeShell> {
               scrollable: true,
               leading: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  'LINUXKAFÉ',
-                  style: TextStyle(
-                    color: LkColors.light.text,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
+                // A barra vive sobre o fundo da pagina — claro ou
+                // escuro, conforme o modo. Por isso a variante do
+                // logotipo segue o modo.
+                child: Image.asset(
+                  Theme.of(context).brightness == Brightness.dark
+                      ? 'assets/images/linuxkafe.png'
+                      : 'assets/images/linuxkafe-claro.png',
+                  height: 26,
+                  semanticLabel: 'LINUXKAFE',
                 ),
               ),
               destinations: [
@@ -259,18 +267,13 @@ class _HomeShellState extends State<HomeShell> {
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.dns_outlined,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'LINUXKAFÉ',
-                    style: TextStyle(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
+                  // O **logotipo**: a chaven com o wordmark. O
+                  // cabecalho e' escuro, e por isso a variante escura
+                  // (o wordmark branco).
+                  Image.asset(
+                    'assets/images/linuxkafe.png',
+                    height: 30,
+                    semanticLabel: 'LINUXKAFE',
                   ),
                 ],
               ),

@@ -9,7 +9,7 @@ import 'package:xkhm_app/widgets/lk_widgets.dart';
 void main() {
   group('Design tokens', () {
     test('expose the LINUXKAFE colour scheme in light mode', () {
-      expect(LkColors.light.primary, const Color(0xFFF8B400));
+      expect(LkColors.light.primary, const Color(0xFFFBB202));
       expect(LkColors.light.header, const Color(0xFF2D2D2D));
       expect(LkColors.light.text, const Color(0xFF212121));
       expect(LkColors.light.link, const Color(0xFF0056B3));

@@ -48,7 +48,8 @@ final class ApiV1Controller
         private \Xkhm\Service\DeviceTrust $deviceTrust,
         private \Xkhm\Service\InvoiceNoticeService $noticeService,
         private \Xkhm\Service\PaymentNoticePdf $paymentNoticePdf,
-        private \Xkhm\Service\NoticeQueue $noticeQueue
+        private \Xkhm\Service\NoticeQueue $noticeQueue,
+        private \Xkhm\Service\OrderService $orderService
     ) {
     }
 
@@ -836,6 +837,52 @@ final class ApiV1Controller
                 },
                 $services
             ),
+        ]);
+    }
+
+    /**
+     * GET /api/v1/catalogue
+     *
+     * The products on sale, with the price of every cycle they have.
+     *
+     * It is **public**: the WHMCS's order form is browsable before
+     * the client signs in, and the prices are public too.
+     */
+    public function catalogue(Request $request, Response $response): Response
+    {
+        return JsonResponse::ok($response, [
+            'catalogue' => $this->orderService->catalogue(),
+        ]);
+    }
+
+    /**
+     * POST /api/v1/client/orders
+     *
+     * Place an order: the order and the invoice are created, and the
+     * service appears when the invoice is paid.
+     */
+    public function placeOrder(Request $request, Response $response): Response
+    {
+        $session = $request->getAttribute('session');
+        $clientId = (int)($session['client_id'] ?? 0);
+
+        $data = $request->getParsedBody();
+        $data = is_array($data) ? $data : [];
+
+        $result = $this->orderService->place($clientId, $data);
+
+        if (!$result['ok']) {
+            return JsonResponse::fail(
+                $response,
+                JsonResponse::CODE_BAD_REQUEST,
+                (string)($result['error'] ?? 'Não foi possível encomendar.'),
+                400
+            );
+        }
+
+        return JsonResponse::ok($response, [
+            'orderId' => (int)$result['orderId'],
+            'invoiceId' => (int)$result['invoiceId'],
         ]);
     }
 

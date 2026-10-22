@@ -147,6 +147,7 @@ real** com credenciais reais e afirma sobre os dados reais da tabela
 | Procurar Domínio | `GET /api/v1/domains/check`, `GET /api/v1/domains/pricing` (o preçário, como o WHMCS) |
 | Estado do Servidor | `GET /api/v1/serverstatus` (a máquina **agora**) |
 | Estado da Rede | `GET /api/v1/announcements` (as **intervenções comunicadas**) |
+| Encomendar | `GET /api/v1/catalogue` (público), `POST /api/v1/client/orders` |
 | Serviços | `GET /api/v1/client/services` (com o preço, o ciclo e a renovação) |
 | Redefinir senha | `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password` |
 
@@ -164,6 +165,16 @@ O xkhm mostra o mesmo — com os preços reais (`tblpricing`, com
 de um registo é uma **taxa de instalação**, e por isso está em
 `msetupfee`, não em `annually`.
 
+### O ecrã de encomenda
+
+O catálogo é **público** — como a `order.php` do WHMCS: vê-se o que
+se vende antes de entrar. O cliente escolhe o produto, o ciclo e o
+domínio, e a encomenda cria o **pedido** e a **fatura**; o serviço
+nasce quando a fatura for paga (pelo operador, no painel).
+
+O botão de cada produto diz **que** produto encomenda — sem isso, um
+leitor de ecrã diz só «Encomendar», dez vezes seguidas.
+
 ### O estado da rede
 
 O WHMCS tem duas páginas e duas perguntas: `serverstatus.php` diz
@@ -171,6 +182,21 @@ como está a máquina **agora**; `networkissues.php` diz o que **vem**
 a seguir. São ecrãs separados no xkhm — «Status do Servidor» e
 «Estado da Rede» — porque a carga do sistema a 1.86 não diz nada
 sobre a intervenção das 22:30.
+
+### As fontes e o logótipo
+
+A aplicação embute a **Inter** e a **Poppins** (`.ttf` no
+`pubspec.yaml`), e o painel web serve as **mesmas** — derivadas
+para `woff2` por `tools/build_web_fonts.py`, a partir dos mesmos
+ficheiros. Uma fonte, duas saídas.
+
+O **logótipo** vive em `assets/images/` nas duas variantes: a
+escura (o wordmark branco) para os cabeçalhos escuros, e a clara
+para os fundos claros. A barra escolhe a variante **pelo modo**.
+
+E o `--font-base` gerado pelo token é uma **cadeia** (`Inter,
+system-ui, …`), sem aspas: com as aspas, seria um nome de família
+que não existe, e o painel cairia na serif do sistema.
 
 ### A barra do menu rola
 

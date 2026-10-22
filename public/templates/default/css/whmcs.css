@@ -348,12 +348,13 @@ a:hover {
     flex-wrap: wrap;
 }
 
+/*
+ * A marca e' o **logotipo** — a chaven com o wordmark. A variante
+ * escura e' a que vive no cabecalho escuro: o wordmark preto
+ * desapareceria nele.
+ */
 .site-brand {
     color: var(--color-primary);
-    font-family: var(--font-heading);
-    font-size: 1.35rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
     text-decoration: none;
     /* A comfortable tap target. */
     display: inline-flex;
@@ -361,8 +362,13 @@ a:hover {
     min-height: var(--touch-target-min);
 }
 
+.site-brand img {
+    display: block;
+    height: 30px;
+    width: auto;
+}
+
 .site-brand:hover {
-    color: var(--color-primary);
     text-decoration: none;
     opacity: 0.85;
 }
@@ -548,11 +554,15 @@ footer {
 
 .admin-brand {
     color: var(--color-on-header);
-    font-family: var(--font-heading);
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: 1px;
     text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+}
+
+.admin-brand img {
+    display: block;
+    height: 24px;
+    width: auto;
 }
 
 .admin-header-title {

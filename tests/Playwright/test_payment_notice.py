@@ -147,8 +147,14 @@ def test_the_notice_can_be_resent(client):
             fields[key.strip()] = value.strip()
 
     assert fields["purpose"] == "aviso"
-    assert fields["recipient"] == CLIENT_USER
-    assert fields["subject"].startswith("Aviso de pagamento")
+    # A instalacao ainda nao esta validada: o aviso vai para o
+    # operador, e o cliente viaja com a mensagem.
+    assert fields["recipient"] == "mail@linuxkafe.com"
+    assert fields["client"] == CLIENT_USER
+    # O assunto marca o aviso como "para validar": a instalacao ainda
+    # nao esta validada, e o aviso nao vai para o cliente.
+    assert fields["subject"].startswith("[Não enviar ao cliente]")
+    assert "Aviso de pagamento" in fields["subject"]
     assert fields["attachment"].startswith("notice-pdfs/")
 
 

@@ -81,6 +81,22 @@ class InvoiceRepositoryPDO implements InvoiceRepositoryInterface
         return (int) $this->pdo->lastInsertId();
     }
 
+    public function addItem(int $invoiceId, array $data): int
+    {
+        $data['invoiceid'] = $invoiceId;
+        $data = SchemaMap::withRequiredDefaults(self::ITEMS, $data);
+
+        $columns = implode(', ', array_map(fn (string $c): string => "`$c`", array_keys($data)));
+        $placeholders = ':' . implode(', :', array_keys($data));
+
+        $stmt = $this->pdo->prepare(
+            "INSERT INTO tblinvoiceitems ($columns) VALUES ($placeholders)"
+        );
+        $stmt->execute($data);
+
+        return (int) $this->pdo->lastInsertId();
+    }
+
     public function update(int $id, array $data): bool
     {
         $data = SchemaMap::toReal(self::TABLE, $data);

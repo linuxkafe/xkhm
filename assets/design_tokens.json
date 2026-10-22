@@ -6,8 +6,8 @@
     "version": "2.1.0"
   },
   "colors": {
-    "color-primary": "#f8b400",
-    "color-primary-hover": "#e6a300",
+    "color-primary": "#fbb202",
+    "color-primary-hover": "#e6a000",
     "color-on-primary": "#212121",
     "color-text": "#212121",
     "color-text-light": "#555555",
@@ -19,8 +19,8 @@
     "color-link": "#0056b3"
   },
   "darkColors": {
-    "color-primary": "#f8b400",
-    "color-primary-hover": "#e6a300",
+    "color-primary": "#fbb202",
+    "color-primary-hover": "#e6a000",
     "color-on-primary": "#1a1a1a",
     "color-text": "#e8e8e8",
     "color-text-light": "#a0a0a0",
@@ -62,9 +62,33 @@
     "color-shadow": "#00000066"
   },
   "typography": {
-    "font-base": "Inter, system-ui, -apple-system, sans-serif",
-    "font-heading": "Poppins, Inter, system-ui, -apple-system, sans-serif",
-    "font-mono": "Fira Code, monospace"
+    "font-base": {
+      "family": "Inter",
+      "fallback": [
+        "system-ui",
+        "-apple-system",
+        "sans-serif"
+      ]
+    },
+    "font-heading": {
+      "family": "Poppins",
+      "fallback": [
+        "Inter",
+        "system-ui",
+        "-apple-system",
+        "sans-serif"
+      ]
+    },
+    "font-mono": {
+      "family": "Fira Code",
+      "fallback": [
+        "ui-monospace",
+        "SFMono-Regular",
+        "Menlo",
+        "Consolas",
+        "monospace"
+      ]
+    }
   },
   "layout": {
     "width-max": 1100,
@@ -77,5 +101,31 @@
     "breakpoint-md": 768,
     "breakpoint-lg": 992,
     "breakpoint-xl": 1200
+  },
+  "fonts": {
+    "Inter-Regular": {
+      "family": "Inter",
+      "weight": 400,
+      "file": "Inter-Regular.woff2",
+      "style": "normal"
+    },
+    "Inter-SemiBold": {
+      "family": "Inter",
+      "weight": 600,
+      "file": "Inter-SemiBold.woff2",
+      "style": "normal"
+    },
+    "Inter-Bold": {
+      "family": "Inter",
+      "weight": 700,
+      "file": "Inter-Bold.woff2",
+      "style": "normal"
+    },
+    "Poppins-SemiBold": {
+      "family": "Poppins",
+      "weight": 600,
+      "file": "Poppins-SemiBold.woff2",
+      "style": "normal"
+    }
   }
 }

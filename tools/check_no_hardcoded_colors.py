@@ -5,7 +5,7 @@ the hand-written CSS.
 
 The LINUXKAFE palette lives in exactly one place — `assets/design_tokens.json`
 — and is compiled into `lib/theme/tokens.dart` and `css/tokens.css` by
-`tools/sync_tokens.py`. A widget or a rule that hard-codes `#f8b400` would
+`tools/sync_tokens.py`. A widget or a rule that hard-codes `#fbb202` would
 silently fork the brand.
 
 This script fails when a raw colour literal is found, so the drift cannot

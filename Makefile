@@ -96,6 +96,9 @@ db-reset-client: ## Reset a client's password (EMAIL=... PASSWORD=...)
 db-reset-tokens: ## List the pending credential-recovery tokens (CLEAR=1 removes the expired ones)
 	@python3 tools/list_reset_tokens.py
 
+cron: ## Run the billing cycle (the WHMCS's cron.php) — inside the container
+	@docker exec xkhm-app-1 php /var/www/html/tools/cron.php
+
 db-mail-send: ## Deliver the pending credential-recovery tokens by e-mail
 	@python3 tools/mail_pending_tokens.py
 

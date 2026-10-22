@@ -196,6 +196,21 @@ As restantes tabelas do WHMCS (contas, módulos, promoções,Addon…)
 são **preservadas** na importação mas ainda não são usadas pela
 aplicação.
 
+### O `sql_mode` é parte do esquema
+
+O MySQL local corre com:
+
+```
+STRICT_TRANS_TABLES, NO_ZERO_IN_DATE, ERROR_FOR_DIVISION_BY_ZERO, NO_ENGINE_SUBSTITUTION
+```
+
+**Sem** `NO_ZERO_DATE` — porque a data zero (`0000-00-00`) é a
+convenção do WHMCS para «ainda não há data» (a fatura por pagar, com
+a data de pagamento vazia), e é o que os **dados importados** têm.
+
+A produção tem de ter o mesmo modo: sem isto, o xkhm não escreve
+uma fatura por pagar da maneira que o WHMCS escreve.
+
 ### As tabelas do WHMCS são **largas e obrigatórias**
 
 `tblproducts` tem 70 colunas `NOT NULL` **sem default**, e `tblservers`
@@ -222,6 +237,12 @@ Dois detalhes do esquema do WHMCS que custaram um erro cada:
 
 E o preço de um registo de domínio está em `tblpricing.msetupfee`
 (um registo é uma instalação), e não em `annually`.
+
+E o ciclo de faturação chama-se `Annually` (como o cliente e o
+produto o escrevem) e a coluna do `tblpricing` chama-se `annually`:
+o mapa entre as duas está em `CatalogueRepositoryPDO::CYCLE_COLUMNS`,
+e o `-1.00` do `tblpricing` é um **código** («este produto não tem
+este ciclo»), não um preço.
 
 ---
 

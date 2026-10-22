@@ -244,6 +244,17 @@ $mfaService = new \Xkhm\Service\MfaService($clientRepo, $totpService, $signedTok
 
 // ─── Versioned JSON API (/api/v1) — consumed by the Flutter application ─────
 
+// O catalogo e as encomendas. Antes do controlador da API: a ordem
+// das dependencias conta.
+$orderService = new \Xkhm\Service\OrderService(
+    new \Xkhm\Repository\CatalogueRepositoryPDO(),
+    new \Xkhm\Repository\OrderRepositoryPDO(),
+    new \Xkhm\Repository\InvoiceRepositoryPDO(),
+    new \Xkhm\Repository\ServiceRepositoryPDO(),
+    $invoiceNumberService,
+    $settingsService
+);
+
 $apiV1Controller = new \Xkhm\Http\Controller\Api\ApiV1Controller(
     $authService,
     $billingService,
@@ -262,7 +273,8 @@ $apiV1Controller = new \Xkhm\Http\Controller\Api\ApiV1Controller(
     $deviceTrust,
     $invoiceNoticeService,
     $paymentNoticePdf,
-    $noticeQueue
+    $noticeQueue,
+    $orderService
 );
 
 $apiAuth = new \Xkhm\Http\Controller\Api\ApiAuthMiddleware();
@@ -291,6 +303,7 @@ $app->group('/api/v1', function ($group) use ($apiV1Controller, $apiAuth) {
     $group->get('/serverstatus', [$apiV1Controller, 'serverStatus']);
     $group->get('/domains/pricing', [$apiV1Controller, 'domainPricing']);
     $group->get('/domains/check', [$apiV1Controller, 'domainCheck']);
+    $group->get('/catalogue', [$apiV1Controller, 'catalogue']);
 
     // Authenticated endpoints
     $group->get('/auth/session', [$apiV1Controller, 'session'])->add($apiAuth);
@@ -302,6 +315,7 @@ $app->group('/api/v1', function ($group) use ($apiV1Controller, $apiAuth) {
     $group->get('/client/invoices/{id:[0-9]+}/pdf', [$apiV1Controller, 'clientInvoicePdf'])->add($apiAuth);
     $group->post('/client/invoices/{id:[0-9]+}/resend', [$apiV1Controller, 'clientInvoiceResend'])->add($apiAuth);
     $group->get('/client/orders', [$apiV1Controller, 'clientOrders'])->add($apiAuth);
+    $group->post('/client/orders', [$apiV1Controller, 'placeOrder'])->add($apiAuth);
     $group->get('/client/domains', [$apiV1Controller, 'clientDomains'])->add($apiAuth);
     $group->get('/client/services', [$apiV1Controller, 'clientServices'])->add($apiAuth);
     $group->get('/client/security', [$apiV1Controller, 'clientSecurity'])->add($apiAuth);
@@ -369,7 +383,8 @@ $adminInvoices = new \Xkhm\Http\Controller\Admin\InvoiceController(
     $adminPanel,
     $invoiceNoticeService,
     $paymentNoticePdf,
-    $noticeQueue
+    $noticeQueue,
+    $orderService
 );
 $adminOrders = new \Xkhm\Http\Controller\Admin\OrderController($adminPanel);
 $adminTickets = new \Xkhm\Http\Controller\Admin\TicketController($adminPanel, $ticketService);
@@ -389,6 +404,20 @@ $adminServers = new \Xkhm\Http\Controller\Admin\ServerController(
     $catalogueRepository
 );
 
+// O ciclo de facturacao (o `cron.php` do WHMCS).
+$cronService = new \Xkhm\Service\CronService(
+    new \Xkhm\Repository\ServiceRepositoryPDO(),
+    new \Xkhm\Repository\InvoiceRepositoryPDO(),
+    $settingsService,
+    $noticeQueue,
+    $invoiceNumberService,
+    new \Xkhm\Repository\ActivityLogRepositoryPDO()
+);
+$cronController = new \Xkhm\Http\Controller\CronController(
+    $cronService,
+    (string)(getenv('XKHM_CRON_TOKEN') ?: '')
+);
+
 $adminSettings = new \Xkhm\Http\Controller\Admin\SettingsController(
     $adminPanel,
     $settingsService
@@ -399,6 +428,7 @@ $app->get('/admin', [$adminDashboard, 'index'])->add($adminAuthMiddleware);
 // `id` in the URL is what tells them apart.
 $app->get('/admin/clients.php', [$adminClients, 'index'])->add($adminAuthMiddleware);
 $app->get('/admin/invoices.php', [$adminInvoices, 'index'])->add($adminAuthMiddleware);
+$app->post('/admin/invoices.php', [$adminInvoices, 'markPaid'])->add($adminAuthMiddleware);
 $app->get('/admin/invoices/{id:[0-9]+}/pdf', [$adminInvoices, 'pdf'])->add($adminAuthMiddleware);
 $app->post('/admin/invoices/{id:[0-9]+}/resend', [$adminInvoices, 'resend'])->add($adminAuthMiddleware);
 $app->get('/admin/orders.php', [$adminOrders, 'index'])->add($adminAuthMiddleware);
@@ -414,6 +444,11 @@ $app->post('/admin/products.php', [$adminCatalogue, 'save'])->add($adminAuthMidd
 $app->get('/admin/servers.php', [$adminServers, 'index'])->add($adminAuthMiddleware);
 $app->post('/admin/servers.php', [$adminServers, 'save'])->add($adminAuthMiddleware);
 $app->get('/admin/config.php', [$adminSettings, 'index'])->add($adminAuthMiddleware);
+
+// O ciclo de facturacao. Exige o token (`XKHM_CRON_TOKEN`): sem ele,
+// a rota recusa — e o ciclo corre pela linha de comando, dentro do
+// contentor.
+$app->get('/cron.php', [$cronController, 'run']);
 $app->post('/admin/config.php', [$adminSettings, 'save'])->add($adminAuthMiddleware);
 
 // Redirect /admin/ to /admin

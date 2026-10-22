@@ -67,6 +67,9 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T042 | A configuração em secções, com os nomes reais | high | done |
 | T043 | A gestão de produtos, serviços e servidores | high | done |
 | T044 | O preçário de domínios e o estado da rede | high | done |
+| T045 | O cliente pode encomendar um serviço novo | high | done |
+| T046 | O cron — e os avisos que não saem para os clientes | high | done |
+| T047 | A interface de 2026: o tipo de letra e o logótipo | high | done |
 
 > **Note on numbering.** T020 was originally reserved for "Performance & load
 > testing". The Flutter conversion was planned as **T022** and the Playwright
@@ -100,6 +103,9 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T042 | A configuração em secções | done | 19 secções (as páginas do WHMCS), com os nomes reais do ficheiro de idioma |
 | T043 | O catálogo e os servidores | done | produtos com preços por ciclo, servidores com grupos; 4 defeitos apanhados pelos testes |
 | T044 | O preçário e o estado da rede | done | 18/18/35 €, como o WHMCS vivo; e a barra do menu passou a rolar |
+| T045 | A encomenda, a partir do cliente | done | o catálogo, o pedido, a fatura, e o serviço que nasce quando a fatura é paga |
+| T046 | O ciclo de facturação | done | as renovações, as multas, os avisos — e os avisos **não** saem para os clientes |
+| T047 | O tipo de letra e o logótipo | done | as fontes servidas de facto, e o logótipo no site, no painel e na app |
 
 ### Open decisions
 
@@ -184,12 +190,52 @@ coluna `msetupfee` — não em `annually`. E o **original é o oráculo**:
 os 18/18/35 € vieram de ver o WHMCS vivo com o Playwright, e de
 comparar.
 
+### The rules that T045–T047 brought
+
+> **A política e a acção são coisas diferentes.** (T046)
+
+`AutoSuspension` está `on`: a política do WHMCS é suspender os
+serviços em atraso. Mas uma instalação **não validada** não pode
+agir sobre ela — o dano (o cliente sem serviço) é irreversível. A
+definição diz **o que** deve ser feito; o ambiente diz **se** pode
+ser feito.
+
+> **Os avisos não saem para os clientes — e a restrição é em dois
+> portões.** (T046)
+
+A aplicação não endereça o aviso ao cliente, e o **correio do host**
+recusa um aviso cujo destinatário não esteja na lista
+(`XKHM_MAILER_NOTICE_RECIPIENTS`), movendo-o para `failed/` com o
+motivo. A lista vive no ambiente — a **única fonte** para os dois
+runtimes.
+
+> **O `sql_mode` é parte do esquema.** (T046, T045)
+
+O MySQL local era mais restrito que o de produção: o `NO_ZERO_DATE`
+recusava a data zero — que é a convenção do WHMCS para «ainda não há
+data», e que os **dados importados** têm. O modo local foi
+alinhado com o da produção (com o motivo no `docker-compose.yml`).
+
+> **Uma fonte **nomeada** não é uma fonte **servida**.** (T047)
+
+Os tokens diziam `"Inter, system-ui, …"` — com as aspas, é **um**
+nome de família, que não existe. O painel estava com a serif e a
+app com a Roboto. E o `fontFamily` do Flutter não é uma cadeia: é
+uma família. O token passou a ter a família e a cadeia **separadas**.
+
+> **Aprovisionar é usar o que o cliente pagou, não o que está à
+> lista.** (T045)
+
+O `tblpricing` é o preço de lista; o `tblhosting.amount` é o que
+o cliente paga. São diferentes sempre que há um desconto — e o erro
+é silencioso.
+
 ### Test gates (all green)
 
 ```
-make test            # 185 PHPUnit tests — contra a base real
+make test            # 208 PHPUnit tests — contra a base real
 make lint            # PHPStan level 5, 0 errors
-make e2e             # 243 Playwright tests (API + Flutter) — dados reais
+make e2e             # 251 Playwright tests (API + Flutter) — dados reais
 make flutter-test    # 49 Flutter unit + widget tests
 make flutter-e2e     # 15 Playwright tests (Flutter web build)
 make tokens-check    # tokens in sync, no hard-coded colours (Dart and CSS)
@@ -202,4 +248,5 @@ make db-env            # cria o .env local com senhas fortes (não versionado)
 make db-rotate         # roda a senha da base, verificando o resultado
 make db-mail-send      # entrega os tokens de recuperação por correio
 make db-mail-send --dry  # mostra o que seria entregue (sem enviar)
+make cron             # o ciclo de facturacao (o cron.php do WHMCS)
 ```

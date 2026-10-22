@@ -57,6 +57,19 @@ services:
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+      # O `sql_mode` tem de ser o **da produção**, e não o do MySQL
+      # moderno.
+      #
+      # Os dados importados do WHMCS de produção usam a data zero
+      # (`0000-00-00`) nas colunas `NOT NULL` — é a convenção do WHMCS
+      # para «ainda não há data» (a fatura por pagar, com a data de
+      # pagamento vazia). O MySQL 8 recusa essa data com
+      # `NO_ZERO_DATE`, e o `NO_ZERO_DATE` também impede o
+      # `NULL` que o WHMCS escrevia.
+      #
+      # A produção tem de ter o mesmo modo: sem isto, o xkhm não
+      # escreve uma fatura por pagar da mesma maneira que o WHMCS.
+      - --sql-mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql

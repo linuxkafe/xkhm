@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import os
 import pathlib
+import socket
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -20,6 +22,100 @@ from typing import Any
 
 import pytest
 from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
+
+# ─── A fake SMTP server ────────────────────────────────────────────────────────────
+
+
+# ─── A fake SMTP server ──────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def fake_smtp():
+    """A fake SMTP server that records the messages it receives."""
+    server = FakeSmtp()
+    yield server
+    server.stop()
+
+
+class FakeSmtp:
+    """
+    A minimal SMTP server that records the messages it receives.
+    """
+
+    def __init__(self) -> None:
+        self.messages: list[str] = []
+        self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._server.bind(("127.0.0.1", 0))
+        self._server.listen(5)
+        self.port = self._server.getsockname()[1]
+        self._running = True
+        self._thread = threading.Thread(target=self._serve, daemon=True)
+        self._thread.start()
+
+    def _serve(self) -> None:
+        while self._running:
+            try:
+                conn, _ = self._server.accept()
+            except OSError:
+                return
+
+            threading.Thread(target=self._handle, args=(conn,), daemon=True).start()
+
+    def _handle(self, conn: socket.socket) -> None:
+        stream = conn.makefile("rwb")
+        stream.write(b"220 fake ESMTP\r\n")
+        stream.flush()
+
+        while True:
+            line = stream.readline()
+            if not line:
+                break
+
+            text = line.decode("utf-8", "replace").strip()
+            upper = text.upper()
+
+            if upper.startswith("EHLO"):
+                stream.write(b"250-fake\r\n250 SIZE 10240000\r\n")
+            elif upper.startswith("HELO"):
+                stream.write(b"250 fake\r\n")
+            elif upper.startswith(("MAIL FROM", "RCPT TO")):
+                stream.write(b"250 Ok\r\n")
+            elif upper.startswith("DATA"):
+                stream.write(b"354 go ahead\r\n")
+                stream.flush()
+
+                body: list[str] = []
+                while True:
+                    chunk = stream.readline()
+                    if not chunk or chunk.strip() == b".":
+                        break
+                    body.append(chunk.decode("utf-8", "replace"))
+
+                self.messages.append("".join(body))
+                stream.write(b"250 Ok: queued\r\n")
+            elif upper.startswith("QUIT"):
+                stream.write(b"221 Bye\r\n")
+                stream.flush()
+                break
+            else:
+                stream.write(b"250 Ok\r\n")
+
+            stream.flush()
+
+        conn.close()
+
+    def stop(self) -> None:
+        self._running = False
+        self._server.close()
+
+
+@pytest.fixture
+def fake_smtp():
+    server = FakeSmtp()
+    yield server
+    server.stop()
+
 
 # ─── Configuration ────────────────────────────────────────────────────────────
 

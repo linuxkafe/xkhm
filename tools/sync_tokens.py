@@ -80,7 +80,7 @@ def css_var(name: str) -> str:
 
 
 def dart_color(value: str) -> str:
-    """#f8b400 -> 0xFFF8B400 (Flutter wants the 0xAARRGGBB form).
+    """#fbb202 -> 0xFFFBB202 (Flutter wants the 0xAARRGGBB form).
 
     An 8-digit CSS value is `#RRGGBBAA` (alpha last), while Dart's
     `Color(0xAARRGGBB)` puts the alpha first. The two orders are swapped
@@ -100,7 +100,7 @@ def dart_color(value: str) -> str:
 
 
 def css_color(value: str) -> str:
-    """#f8b400 -> #f8b400; #0000001a -> rgba(0, 0, 0, 0.1)."""
+    """#fbb202 -> #fbb202; #0000001a -> rgba(0, 0, 0, 0.1)."""
     value = value.lstrip("#")
     if len(value) == 3:
         value = "".join(channel * 2 for channel in value)
@@ -114,6 +114,25 @@ def css_color(value: str) -> str:
 
 
 # ─── Renderers ───────────────────────────────────────────────────────────────
+
+
+def css_font_stack(face: dict) -> str:
+    """
+    The CSS of a typeface: the family, and the fallbacks.
+
+    A family with a space in the name has to be quoted — and the
+    **whole** stack must not be, or the browser looks for a family
+    literally named "Inter, system-ui, sans-serif" and finds nothing.
+    That is the bug this function exists to prevent.
+    """
+    family = face["family"]
+
+    if " " in family:
+        family = f'"{family}"'
+
+    fallbacks = list(face.get("fallback", []))
+
+    return ", ".join([family] + fallbacks)
 
 
 def _css_block(tokens: dict, *, dark: bool) -> str:
@@ -139,7 +158,7 @@ def _css_block(tokens: dict, *, dark: bool) -> str:
 
     body.append("\n\t/* Tipografia */\n")
     for key, value in typography.items():
-        body.append(f'\t{css_var(key)}: "{value}";\n')
+        body.append(f"\t{css_var(key)}: {css_font_stack(value)};\n")
 
     body.append("\n\t/* Layout */\n")
     body.append(f'\t{css_var("width-max")}: {layout["width-max"]}px;\n')
@@ -164,6 +183,45 @@ def _css_block(tokens: dict, *, dark: bool) -> str:
     return f":root {{\n{rendered}}}\n"
 
 
+def _font_faces(tokens: dict) -> str:
+    """
+    The `@font-face` rules.
+
+    The fonts are **served**, not named: before this, the tokens said
+    `Inter` and the browser fell back to the system font, because
+    nothing ever declared the family.
+
+    They are self-hosted (the CSP is strict, and a request to a third
+    party would be data leaving the machine) and they come from the
+    application's own files, converted by `tools/build_web_fonts.py`.
+    """
+    fonts = tokens.get("fonts", {})
+
+    if not fonts:
+        return ""
+
+    out: list[str] = []
+
+    for name, face in fonts.items():
+        family = face["family"]
+        style = face.get("style", "normal")
+        weight = face["weight"]
+        file = face["file"]
+
+        out.append(
+            "@font-face {\n"
+            f'\tfont-family: "{family}";\n'
+            f"\tfont-style: {style};\n"
+            f"\tfont-weight: {weight};\n"
+            "\tfont-display: swap;\n"
+            f'\tsrc: url("../fonts/{file}") format("woff2");\n'
+            f"\tfont-named-instance: {name};\n"
+            "}\n"
+        )
+
+    return "\n".join(out)
+
+
 def render_css(tokens: dict) -> str:
     url = tokens["source"]["url"]
 
@@ -180,6 +238,8 @@ def render_css(tokens: dict) -> str:
     return "".join(
         [
             BANNER_CSS.format(url=url),
+            "\n",
+            _font_faces(tokens),
             "\n",
             light,
             "\n",
@@ -250,9 +310,11 @@ def render_dart(tokens: dict) -> str:
 
     out.append("/// Typography families, matching the CSS `--font-*` tokens.\n")
     out.append("abstract final class LkFonts {\n")
-    out.append(f'  static const String base = "{tokens["typography"]["font-base"]}";\n')
-    out.append(f'  static const String heading = "{tokens["typography"]["font-heading"]}";\n')
-    out.append(f'  static const String mono = "{tokens["typography"]["font-mono"]}";\n')
+    for key, name in (("font-base", "base"), ("font-heading", "heading"), ("font-mono", "mono")):
+        face = tokens["typography"][key]
+        out.append(f'  static const String {name} = "{face["family"]}";\n')
+        fallbacks = ", ".join(f'"{f}"' for f in face.get("fallback", []))
+        out.append(f"  static const List<String> {name}Fallback = <String>[{fallbacks}];\n")
     out.append("}\n\n")
 
     out.append("/// Layout tokens, matching the CSS layout block.\n")

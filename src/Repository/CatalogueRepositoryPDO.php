@@ -27,6 +27,23 @@ class CatalogueRepositoryPDO implements CatalogueRepositoryInterface
         'triennially' => 'Triennially',
     ];
 
+    /**
+     * The billing cycle of the WHMCS, and the column that holds it.
+     *
+     * The two spellings **differ**: the cycle is `Annually` (as the
+     * client and the product write it) and the column is `annually`.
+     * Confundir as duas dá um preço de `-1.00` — que é o «não tem
+     * este ciclo».
+     */
+    public const CYCLE_COLUMNS = [
+        'Monthly' => 'monthly',
+        'Quarterly' => 'quarterly',
+        'Semi Annually' => 'semiannually',
+        'Annually' => 'annually',
+        'Biennially' => 'biennially',
+        'Triennially' => 'triennially',
+    ];
+
     private PDO $pdo;
 
     public function __construct(?PDO $pdo = null)

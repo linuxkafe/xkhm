@@ -199,6 +199,9 @@ final class SchemaMap
             'credit' => 0.0, 'tax' => 0.0, 'tax2' => 0.0, 'taxrate' => 0.0,
             'taxrate2' => 0.0, 'status' => '', 'paymentmethod' => '',
             'notes' => '',
+            // A data zero e a convencao do WHMCS para «ainda nao foi
+            // paga» — e o que o MySQL em modo estrito aceita.
+            'datepaid' => '0000-00-00 00:00:00',
         ],
         'tblinvoiceitems' => [
             'userid' => 0, 'type' => '', 'relid' => 0, 'description' => '',

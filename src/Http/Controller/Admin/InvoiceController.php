@@ -19,9 +19,43 @@ class InvoiceController extends AdminController
         \Xkhm\Repository\AdminPanelRepositoryInterface $repository,
         private \Xkhm\Service\InvoiceNoticeService $noticeService,
         private \Xkhm\Service\PaymentNoticePdf $paymentNoticePdf,
-        private \Xkhm\Service\NoticeQueue $noticeQueue
+        private \Xkhm\Service\NoticeQueue $noticeQueue,
+        private \Xkhm\Service\OrderService $orderService
     ) {
         parent::__construct($repository);
+    }
+
+    /**
+     * POST /admin/invoices.php
+     *
+     * Mark an invoice as paid.
+     *
+     * This is the moment the **service** is created: the order was
+     * placed, the invoice was raised, the client paid. Without a
+     * payment gateway, the operator is the one who says it was paid.
+     */
+    public function markPaid(Request $request, Response $response): Response
+    {
+        $data = $request->getParsedBody();
+        $data = is_array($data) ? $data : [];
+
+        $id = (int)($data['id'] ?? 0);
+
+        if ($id <= 0) {
+            return $this->badRequest($response, 'A fatura', $this->adminName());
+        }
+
+        $invoice = $this->repository->findInvoice($id);
+
+        if ($invoice === null) {
+            return $this->notFound($response, 'A fatura', $this->adminName());
+        }
+
+        $this->orderService->markPaid($id, (string)($data['paymentmethod'] ?? ''));
+
+        return $response
+            ->withHeader('Location', '/admin/invoices.php?id=' . $id . '&paid=1')
+            ->withStatus(302);
     }
 
     /**
@@ -208,6 +242,18 @@ class InvoiceController extends AdminController
             $body .= '<div><dt>' . $this->e($label) . '</dt><dd>' . $value . '</dd></div>';
         }
         $body .= '</dl></div></section>';
+
+        // A fatura por pagar pode ser marcada como paga — e é aí que
+        // o serviço nasce.
+        if ((string)$invoice['status'] === 'Unpaid') {
+            $body .= '<section class="panel"><div class="panel-heading">Pagamento</div>'
+                . '<div class="panel-body">'
+                . '<form method="post" action="/admin/invoices.php" class="admin-form">'
+                . '<input type="hidden" name="id" value="' . $id . '">'
+                . '<button type="submit" class="btn btn-primary">Marcar como paga</button>'
+                . '<p class="text-muted">O serviço do pedido é criado aqui.</p>'
+                . '</form></div></section>';
+        }
 
         $rows = [];
         foreach ($items as $item) {

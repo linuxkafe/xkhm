@@ -45,9 +45,14 @@ final class SchemaDefaults
 
     /**
      * The types that are left out: o seu valor neutro seria uma mentira.
+     *
+     * As **enumerações** ficam de fora — o valor neutro de uma
+     * enumeração não existe, e inventar um seria mentir. As **datas**
+     * não ficam de fora: o WHMCS usa a data zero (`0000-00-00`) para
+     * «não há data», e é a convenção que a base de dados espera.
      */
     private const NEVER_NEUTRAL = [
-        'enum', 'set', 'date', 'datetime', 'timestamp', 'time', 'year',
+        'enum', 'set',
     ];
 
     /**
@@ -89,6 +94,17 @@ final class SchemaDefaults
      */
     public static function value(string $type): string|int
     {
-        return in_array($type, self::NUMERIC, true) ? 0 : '';
+        if (in_array($type, self::NUMERIC, true)) {
+            return 0;
+        }
+
+        // A data zero do WHMCS.
+        return match ($type) {
+            'date' => '0000-00-00',
+            'datetime', 'timestamp' => '0000-00-00 00:00:00',
+            'time' => '00:00:00',
+            'year' => '0000',
+            default => '',
+        };
     }
 }

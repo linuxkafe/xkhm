@@ -10,10 +10,23 @@
 
 set -e
 
-STORAGE_DIR="${XKHM_RESET_TOKEN_DIR:-/var/www/html/storage}"
-RESET_DIR="$(dirname "$STORAGE_DIR")/reset-tokens"
+# O directorio do armazenamento. E' um *bind mount*: as permissões do
+# host escondem as da imagem.
+#
+# O `XKHM_RESET_TOKEN_DIR` aponta para o **sub**directorio dos
+# tokens (`storage/reset-tokens`), e nao para o `storage` — por isso
+# o directorio do armazenamento e' o dirname dele, e nao o caminho
+# do variavel.
+STORAGE_DIR="$(dirname "${XKHM_RESET_TOKEN_DIR:-/var/www/html/storage/reset-tokens}")"
+RESET_DIR="$STORAGE_DIR/reset-tokens"
 
-for dir in "$STORAGE_DIR" "$RESET_DIR" "$RESET_DIR/pending" "$RESET_DIR/admin"; do
+# Os PDF dos avisos de pagamento. O contentor **escreve** aqui (o
+# correio do host vai depois ler), e a suite de testes corre no host
+# e escreve aqui tambem — por isso o directorio tem de ser
+# escribivel pelos dois.
+NOTICE_DIR="$STORAGE_DIR/notice-pdfs"
+
+for dir in "$STORAGE_DIR" "$RESET_DIR" "$RESET_DIR/pending" "$RESET_DIR/admin" "$NOTICE_DIR"; do
     mkdir -p "$dir" 2>/dev/null || true
     chown www-data:www-data "$dir" 2>/dev/null || true
     chmod 777 "$dir" 2>/dev/null || true

@@ -92,7 +92,9 @@ final class AdminLayout
 <body class="admin-body">
 <header class="admin-header">
     <div class="admin-header-inner">
-        <a class="admin-brand" href="/admin">LINUXKAFÉ</a>
+        <a class="admin-brand" href="/admin">
+            <img src="/templates/default/images/linuxkafe-escuro.svg" alt="LINUXKAFE" height="24" width="83">
+        </a>
         <span class="admin-header-title">Administração</span>
         <div class="admin-header-right">
             <span class="admin-user">{$adminEsc}</span>

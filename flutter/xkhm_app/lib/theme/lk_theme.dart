@@ -54,11 +54,13 @@ abstract final class LkTheme {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: colors.bg,
       fontFamily: LkFonts.base,
+      fontFamilyFallback: LkFonts.baseFallback,
     );
 
     return base.copyWith(
       textTheme: base.textTheme.apply(
         fontFamily: LkFonts.base,
+        fontFamilyFallback: LkFonts.baseFallback,
         bodyColor: colors.text,
         displayColor: colors.text,
       ),
@@ -199,6 +201,7 @@ abstract final class LkTheme {
   /// Text style for section headings, matching `--font-heading`.
   static TextStyle heading(BuildContext context) => TextStyle(
         fontFamily: LkTheme.fontHeading,
+        fontFamilyFallback: LkTheme.fontHeadingFallback,
         fontWeight: FontWeight.w600,
         color: Theme.of(context).colorScheme.onSurface,
       );
@@ -206,6 +209,10 @@ abstract final class LkTheme {
   /// Font family names, matching the `--font-*` design tokens.
   static const String fontBase = LkFonts.base;
   static const String fontHeading = LkFonts.heading;
+
+  /// The fallback chains, matching the tokens.
+  static const List<String> fontBaseFallback = LkFonts.baseFallback;
+  static const List<String> fontHeadingFallback = LkFonts.headingFallback;
 
   /// Secondary text, matching `--color-text-light`.
   static TextStyle muted(BuildContext context) =>

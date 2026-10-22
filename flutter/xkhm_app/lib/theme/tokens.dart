@@ -50,8 +50,8 @@ class LkPalette {
 /// The LkPalette values for each mode.
 abstract final class LkColors {
   static const LkPalette light = LkPalette(
-    primary: Color(0xFFF8B400),
-    primaryHover: Color(0xFFE6A300),
+    primary: Color(0xFFFBB202),
+    primaryHover: Color(0xFFE6A000),
     onPrimary: Color(0xFF212121),
     text: Color(0xFF212121),
     textLight: Color(0xFF555555),
@@ -64,8 +64,8 @@ abstract final class LkColors {
   );
 
   static const LkPalette dark = LkPalette(
-    primary: Color(0xFFF8B400),
-    primaryHover: Color(0xFFE6A300),
+    primary: Color(0xFFFBB202),
+    primaryHover: Color(0xFFE6A000),
     onPrimary: Color(0xFF1A1A1A),
     text: Color(0xFFE8E8E8),
     textLight: Color(0xFFA0A0A0),
@@ -149,9 +149,12 @@ abstract final class LkSemantic {
 
 /// Typography families, matching the CSS `--font-*` tokens.
 abstract final class LkFonts {
-  static const String base = "Inter, system-ui, -apple-system, sans-serif";
-  static const String heading = "Poppins, Inter, system-ui, -apple-system, sans-serif";
-  static const String mono = "Fira Code, monospace";
+  static const String base = "Inter";
+  static const List<String> baseFallback = <String>["system-ui", "-apple-system", "sans-serif"];
+  static const String heading = "Poppins";
+  static const List<String> headingFallback = <String>["Inter", "system-ui", "-apple-system", "sans-serif"];
+  static const String mono = "Fira Code";
+  static const List<String> monoFallback = <String>["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"];
 }
 
 /// Layout tokens, matching the CSS layout block.

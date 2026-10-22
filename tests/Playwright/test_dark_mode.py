@@ -189,8 +189,9 @@ def test_the_header_keeps_the_brand_yellow(page):
     page.emulate_media(color_scheme="dark")
     page.goto("/")
 
+    # O amarelo da marca e' o do **logotipo** (#fbb202).
     brand = _rgb(page, ".site-brand", "color")
-    assert brand == "rgb(248, 180, 0)", brand
+    assert brand == "rgb(251, 178, 2)", brand
 
 
 # ─── Mobile ──────────────────────────────────────────────────────────────────

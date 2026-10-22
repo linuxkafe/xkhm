@@ -132,8 +132,8 @@ void main() {
     });
 
     test('the brand yellow is the identity in both modes', () {
-      expect(LkColors.light.primary, const Color(0xFFF8B400));
-      expect(LkColors.dark.primary, const Color(0xFFF8B400));
+      expect(LkColors.light.primary, const Color(0xFFFBB202));
+      expect(LkColors.dark.primary, const Color(0xFFFBB202));
     });
 
     test('the fonts come from the generated tokens', () {

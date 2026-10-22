@@ -8,13 +8,49 @@
  *       Edit `assets/design_tokens.json` and run `make tokens`.
  */
 
+@font-face {
+	font-family: "Inter";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("../fonts/Inter-Regular.woff2") format("woff2");
+	font-named-instance: Inter-Regular;
+}
+
+@font-face {
+	font-family: "Inter";
+	font-style: normal;
+	font-weight: 600;
+	font-display: swap;
+	src: url("../fonts/Inter-SemiBold.woff2") format("woff2");
+	font-named-instance: Inter-SemiBold;
+}
+
+@font-face {
+	font-family: "Inter";
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url("../fonts/Inter-Bold.woff2") format("woff2");
+	font-named-instance: Inter-Bold;
+}
+
+@font-face {
+	font-family: "Poppins";
+	font-style: normal;
+	font-weight: 600;
+	font-display: swap;
+	src: url("../fonts/Poppins-SemiBold.woff2") format("woff2");
+	font-named-instance: Poppins-SemiBold;
+}
+
 :root {
 	/* Tell the browser to theme the scrollbars and form controls. */
 	color-scheme: light dark;
 
 	/* Cores */
-	--color-primary: #f8b400; /* Amarelo LinuxKafé */
-	--color-primary-hover: #e6a300;
+	--color-primary: #fbb202; /* Amarelo LinuxKafé */
+	--color-primary-hover: #e6a000;
 	--color-on-primary: #212121;
 	--color-text: #212121;
 	--color-text-light: #555555;
@@ -41,9 +77,9 @@
 	--color-shadow: rgba(0, 0, 0, 0.102);
 
 	/* Tipografia */
-	--font-base: "Inter, system-ui, -apple-system, sans-serif";
-	--font-heading: "Poppins, Inter, system-ui, -apple-system, sans-serif";
-	--font-mono: "Fira Code, monospace";
+	--font-base: Inter, system-ui, -apple-system, sans-serif;
+	--font-heading: Poppins, Inter, system-ui, -apple-system, sans-serif;
+	--font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
 	/* Layout */
 	--width-max: 1100px;
@@ -61,8 +97,8 @@
 @media (prefers-color-scheme: dark) {
   :root {
   	/* Cores */
-  	--color-primary: #f8b400; /* Amarelo LinuxKafé */
-  	--color-primary-hover: #e6a300;
+  	--color-primary: #fbb202; /* Amarelo LinuxKafé */
+  	--color-primary-hover: #e6a000;
   	--color-on-primary: #1a1a1a;
   	--color-text: #e8e8e8;
   	--color-text-light: #a0a0a0;
@@ -89,9 +125,9 @@
   	--color-shadow: rgba(0, 0, 0, 0.4);
 
   	/* Tipografia */
-  	--font-base: "Inter, system-ui, -apple-system, sans-serif";
-  	--font-heading: "Poppins, Inter, system-ui, -apple-system, sans-serif";
-  	--font-mono: "Fira Code, monospace";
+  	--font-base: Inter, system-ui, -apple-system, sans-serif;
+  	--font-heading: Poppins, Inter, system-ui, -apple-system, sans-serif;
+  	--font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   	/* Layout */
   	--width-max: 1100px;

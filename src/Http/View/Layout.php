@@ -69,7 +69,9 @@ final class Layout
 <body>
 <header class="site-header">
     <div class="header-container">
-        <a class="site-brand" href="/">LINUXKAFÉ</a>
+        <a class="site-brand" href="/">
+            <img src="/templates/default/images/linuxkafe-escuro.svg" alt="LINUXKAFE" height="30" width="103">
+        </a>
         <nav class="main-navigation">
             <ul>
 {$nav}            </ul>

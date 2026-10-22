@@ -39,6 +39,11 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  assets:
+    # O logotipo. As duas variantes: a escura (o wordmark branco) para
+    # os cabecalhos escuros, e a clara para os fundos claros.
+    - assets/images/
+
   # Inter and Poppins are the LINUXKAFE brand fonts (see the design tokens).
   # They are bundled so the application never depends on an external font CDN
   # and works under a strict Content-Security-Policy.

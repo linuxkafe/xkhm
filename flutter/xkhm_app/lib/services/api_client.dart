@@ -382,6 +382,28 @@ class LkApiClient {
         .cast<Map<String, dynamic>>();
   }
 
+  /// The catalogue: the products on sale, with the price of every
+  /// cycle they have.
+  Future<List<Map<String, dynamic>>> catalogue() async {
+    final data = await _send('GET', '/catalogue');
+    return (data['catalogue'] as List<dynamic>? ?? const [])
+        .cast<Map<String, dynamic>>();
+  }
+
+  /// Place an order: the order and the invoice are created; the
+  /// service appears when the invoice is paid.
+  Future<Map<String, dynamic>> placeOrder({
+    required int productId,
+    required String cycle,
+    String domain = '',
+  }) async {
+    return _send('POST', '/client/orders', body: {
+      'productId': productId,
+      'cycle': cycle,
+      'domain': domain,
+    });
+  }
+
   Future<List<Map<String, dynamic>>> checkDomain(String domain) async {
     final data = await _send('GET', '/domains/check', query: {'domain': domain});
     return (data['results'] as List<dynamic>? ?? const [])
