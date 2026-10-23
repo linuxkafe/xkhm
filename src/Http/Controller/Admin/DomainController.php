@@ -128,6 +128,8 @@ class DomainController extends AdminController
             . '</select></div>'
             . '<div class="form-group"><label for="domain-expiry">Data de expiração</label>'
             . '<input type="date" id="domain-expiry" name="expirydate" class="form-control" value="' . $this->e((string)($domain['expirydate'] ?? '')) . '"></div>'
+            . '<div class="form-group"><label for="domain-registrar">Registar (interligação)</label>'
+            . '<input type="text" id="domain-registrar" name="registrar" class="form-control" value="' . $this->e((string)($domain['registrar'] ?? '')) . '"></div>'
             . '<button type="submit" class="btn btn-primary">Guardar</button>'
             . '</form></div></section>';
 
@@ -157,6 +159,7 @@ class DomainController extends AdminController
         $update = [
             'status' => (string)($data['status'] ?? $domain['status']),
             'expirydate' => (string)($data['expirydate'] ?? $domain['expirydate']),
+            'registrar' => (string)($data['registrar'] ?? $domain['registrar']),
         ];
 
         $this->repository->updateDomain($id, $update);

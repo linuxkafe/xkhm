@@ -405,3 +405,63 @@ def test_a_server_belongs_to_a_group(admin):
 
     # O botão muda de "Adicionar" para "Retirar" (ou o contrário).
     assert before != after or "Retirar" in after or "Adicionar" in after
+
+
+# ─── Os dominios ────────────────────────────────────────────────────────────
+
+
+def test_the_domains_are_listed_with_their_state(admin):
+    admin.goto(f"{BASE_URL}/admin/domains.php")
+
+    body = admin.inner_text("body")
+
+    assert admin.locator("table.table tbody tr").count() > 0
+    assert "Activo" in body or "Expirado" in body or "Cancelado" in body
+
+
+def test_a_domain_can_be_opened_and_edited(admin):
+    admin.goto(f"{BASE_URL}/admin/domains.php")
+
+    admin.click("table.table tbody tr:first-child td:nth-child(1) a")
+    admin.wait_for_load_state("networkidle")
+
+    assert admin.locator('select[name="status"]').count() == 1
+    assert admin.locator('input[name="expirydate"]').count() == 1
+    assert admin.locator('input[name="registrar"]').count() == 1
+
+
+def test_a_domain_can_be_changed(admin):
+    """O estado e o prazo mudam mesmo."""
+    admin.goto(f"{BASE_URL}/admin/domains.php")
+
+    admin.click("table.table tbody tr:first-child td:nth-child(1) a")
+    admin.wait_for_load_state("networkidle")
+
+    original_status = admin.locator('select[name="status"]').input_value()
+    original_expiry = admin.locator('input[name="expirydate"]').input_value()
+    original_registrar = admin.locator('input[name="registrar"]').input_value()
+
+    try:
+        admin.select_option('select[name="status"]', "Expired")
+        admin.fill('input[name="expirydate"]', "2028-01-01")
+        admin.fill('input[name="registrar"]', "namecheap")
+        admin.click('button[type="submit"]')
+        admin.wait_for_load_state("networkidle")
+
+        admin.goto(f"{BASE_URL}/admin/domains.php")
+        admin.click("table.table tbody tr:first-child td:nth-child(1) a")
+        admin.wait_for_load_state("networkidle")
+
+        assert admin.locator('select[name="status"]').input_value() == "Expired"
+        assert admin.locator('input[name="expirydate"]').input_value() == "2028-01-01"
+        assert admin.locator('input[name="registrar"]').input_value() == "namecheap"
+    finally:
+        admin.goto(f"{BASE_URL}/admin/domains.php")
+        admin.click("table.table tbody tr:first-child td:nth-child(1) a")
+        admin.wait_for_load_state("networkidle")
+
+        admin.select_option('select[name="status"]', original_status)
+        admin.fill('input[name="expirydate"]', original_expiry)
+        admin.fill('input[name="registrar"]', original_registrar)
+        admin.click('button[type="submit"]')
+        admin.wait_for_load_state("networkidle")
