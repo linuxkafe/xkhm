@@ -1,0 +1,23 @@
+{
+    "name": "xkhm/xkhm-wp",
+    "description": "xkhm plugin for WordPress",
+    "type": "wordpress-plugin",
+    "license": "GPL-3.0-or-later",
+    "require": {
+        "php": ">=8.2",
+        "xkhm/core": "@dev"
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../../"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Xkhm\\WordPress\\": "includes/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

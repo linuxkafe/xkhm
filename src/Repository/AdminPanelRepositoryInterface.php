@@ -81,6 +81,13 @@ interface AdminPanelRepositoryInterface
     public function clientServices(int $clientId): array;
 
     /**
+     * Billing totals for a client.
+     *
+     * @return array{total: float, year: float}
+     */
+    public function clientBillingTotals(int $clientId): array;
+
+    /**
      * @return array<string, mixed>|null
      */
     public function findService(int $id): ?array;

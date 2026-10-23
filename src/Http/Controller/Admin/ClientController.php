@@ -395,12 +395,174 @@ class ClientController extends AdminController
             return $this->notFound($response, 'O cliente', $admin);
         }
 
+        // Billing totals
+        $billing = $this->repository->clientBillingTotals($id);
+
+        // Gather data for each tab
+        $tabs = [];
+
+        // Services (always first)
+        $services = $this->repository->clientServices($id);
+        if ($services !== []) {
+            $tabs['services'] = [
+                'label' => 'Serviços',
+                'content' => $this->servicesSection($services),
+            ];
+        }
+
+        // Domains
+        $domainRows = [];
+        foreach ($this->repository->clientDomains($id) as $domain) {
+            $domainRows[] = [
+                'domain' => $this->e($domain['domain']),
+                'registrar' => $this->e($domain['registrar'] ?? ''),
+                'expiry' => $this->date($domain['expirydate'] ?? null),
+                'status' => $this->badge((string)$domain['status']),
+                'actions' => sprintf(
+                    '<a class="btn btn-sm" href="/admin/domains.php?id=%d">Editar</a>',
+                    (int)$domain['id']
+                ),
+            ];
+        }
+        if ($domainRows !== []) {
+            $tabs['domains'] = [
+                'label' => 'Domínios',
+                'content' => $this->table(
+                    [
+                        ['label' => 'Domínio', 'value' => 'domain'],
+                        ['label' => 'Registar', 'value' => 'registrar'],
+                        ['label' => 'Expira', 'value' => 'expiry'],
+                        ['label' => 'Estado', 'value' => 'status'],
+                        ['label' => 'Ações', 'value' => 'actions'],
+                    ],
+                    $domainRows,
+                    'Este cliente não tem domínios.'
+                ),
+            ];
+        }
+
+        // Invoices
+        $invoiceRows = [];
+        foreach ($this->repository->clientInvoices($id) as $invoice) {
+            $invoiceRows[] = [
+                'number' => sprintf(
+                    '<a href="/admin/invoices.php?id=%d">%s</a>',
+                    (int)$invoice['id'],
+                    $this->e($invoice['invoicenum'])
+                ),
+                'date' => $this->date($invoice['datecreated'] ?? null),
+                'total' => $this->money($invoice['total']),
+                'status' => $this->badge((string)$invoice['status']),
+            ];
+        }
+        if ($invoiceRows !== []) {
+            $tabs['invoices'] = [
+                'label' => 'Faturas',
+                'content' => $this->table(
+                    [
+                        ['label' => 'Fatura', 'value' => 'number'],
+                        ['label' => 'Data', 'value' => 'date'],
+                        ['label' => 'Total', 'value' => 'total', 'numeric' => true],
+                        ['label' => 'Estado', 'value' => 'status'],
+                    ],
+                    $invoiceRows,
+                    'Este cliente não tem faturas.'
+                ),
+            ];
+        }
+
+        // Orders
+        $orderRows = [];
+        foreach ($this->repository->clientOrders($id) as $order) {
+            $orderRows[] = [
+                'number' => sprintf(
+                    '<a href="/admin/orders.php?id=%d">%s</a>',
+                    (int)$order['id'],
+                    $this->e($order['ordernum'])
+                ),
+                'date' => $this->datetime($order['date'] ?? null),
+                'total' => $this->money($order['total']),
+                'status' => $this->badge((string)$order['status']),
+            ];
+        }
+        if ($orderRows !== []) {
+            $tabs['orders'] = [
+                'label' => 'Pedidos',
+                'content' => $this->table(
+                    [
+                        ['label' => 'Pedido', 'value' => 'number'],
+                        ['label' => 'Data', 'value' => 'date'],
+                        ['label' => 'Total', 'value' => 'total', 'numeric' => true],
+                        ['label' => 'Estado', 'value' => 'status'],
+                    ],
+                    $orderRows,
+                    'Este cliente não tem pedidos.'
+                ),
+            ];
+        }
+
+        // Tickets
+        $ticketRows = [];
+        foreach ($this->repository->clientTickets($id) as $ticket) {
+            $ticketRows[] = [
+                'subject' => sprintf(
+                    '<a href="/admin/tickets.php?id=%d">%s</a>',
+                    (int)$ticket['id'],
+                    $this->e($ticket['subject'])
+                ),
+                'date' => $this->datetime($ticket['date'] ?? null),
+                'status' => $this->badge((string)$ticket['status']),
+            ];
+        }
+        if ($ticketRows !== []) {
+            $tabs['tickets'] = [
+                'label' => 'Tickets',
+                'content' => $this->table(
+                    [
+                        ['label' => 'Assunto', 'value' => 'subject'],
+                        ['label' => 'Aberto', 'value' => 'date'],
+                        ['label' => 'Estado', 'value' => 'status'],
+                    ],
+                    $ticketRows,
+                    'Este cliente não tem tickets.'
+                ),
+            ];
+        }
+
+        // Transactions
+        $txRows = [];
+        foreach ($this->repository->clientTransactions($id) as $transaction) {
+            $txRows[] = [
+                'date' => $this->date($transaction['date'] ?? null),
+                'description' => $this->e($transaction['description'] ?? ''),
+                'gateway' => $this->e($transaction['gateway'] ?? ''),
+                'in' => $this->money($transaction['amountin'] ?? 0),
+                'out' => $this->money($transaction['amountout'] ?? 0),
+            ];
+        }
+        if ($txRows !== []) {
+            $tabs['transactions'] = [
+                'label' => 'Transações',
+                'content' => $this->table(
+                    [
+                        ['label' => 'Data', 'value' => 'date'],
+                        ['label' => 'Descrição', 'value' => 'description'],
+                        ['label' => 'Via', 'value' => 'gateway'],
+                        ['label' => 'Entrada', 'value' => 'in', 'numeric' => true],
+                        ['label' => 'Saída', 'value' => 'out', 'numeric' => true],
+                    ],
+                    $txRows,
+                    'Este cliente não tem transações.'
+                ),
+            ];
+        }
+
         $body = AdminLayout::header(
             sprintf('%s %s', $client['firstname'], $client['lastname']),
             ['Clientes' => '/admin/clients.php']
         );
 
-        // ── Os dados ──
+        // Client header details + billing summary
         $fields = [
             'Email' => $this->e($client['email']),
             'Empresa' => $this->e($client['companyname'] ?? ''),
@@ -426,146 +588,44 @@ class ClientController extends AdminController
         }
         $body .= '</dl></div></section>';
 
-        // ── As faturas ──
-        $rows = [];
-        foreach ($this->repository->clientInvoices($id) as $invoice) {
-            $rows[] = [
-                'number' => sprintf(
-                    '<a href="/admin/invoices.php?id=%d">%s</a>',
-                    (int)$invoice['id'],
-                    $this->e($invoice['invoicenum'])
-                ),
-                'date' => $this->date($invoice['datecreated'] ?? null),
-                'total' => $this->money($invoice['total']),
-                'status' => $this->badge((string)$invoice['status']),
-            ];
+        // Billing summary panel (right side style via CSS grid)
+        $body .= '<section class="panel"><div class="panel-heading">Faturação</div><div class="panel-body">';
+        $body .= '<dl class="admin-details">';
+        $body .= '<div><dt>Total histórico</dt><dd>' . $this->money($billing['total']) . '</dd></div>';
+        $body .= '<div><dt>Total ' . date('Y') . '</dt><dd>' . $this->money($billing['year']) . '</dd></div>';
+        $body .= '</dl></div></section>';
+
+        // Tabs markup
+        if ($tabs !== []) {
+            $body .= '<div class="admin-tabs">';
+            foreach ($tabs as $key => $tab) {
+                $active = $key === array_key_first($tabs) ? ' active' : '';
+                $body .= sprintf(
+                    '<button class="admin-tab-btn%s" data-tab="%s">%s</button>',
+                    $active,
+                    $key,
+                    $this->e($tab['label'])
+                );
+            }
+            $body .= '</div>';
+
+            foreach ($tabs as $key => $tab) {
+                $active = $key === array_key_first($tabs) ? ' active' : '';
+                $body .= sprintf(
+                    '<div class="admin-tab-panel%s" data-tab="%s">%s</div>',
+                    $active,
+                    $key,
+                    $tab['content']
+                );
+            }
         }
 
-        $body .= '<section class="panel"><div class="panel-heading">Faturas</div><div class="panel-body">'
-            . $this->table(
-                [
-                    ['label' => 'Fatura', 'value' => 'number'],
-                    ['label' => 'Data', 'value' => 'date'],
-                    ['label' => 'Total', 'value' => 'total', 'numeric' => true],
-                    ['label' => 'Estado', 'value' => 'status'],
-                ],
-                $rows,
-                'Este cliente não tem faturas.'
-            )
-            . '</div></section>';
-
-        // ── Os pedidos ──
-        $rows = [];
-        foreach ($this->repository->clientOrders($id) as $order) {
-            $rows[] = [
-                'number' => sprintf(
-                    '<a href="/admin/orders.php?id=%d">%s</a>',
-                    (int)$order['id'],
-                    $this->e($order['ordernum'])
-                ),
-                'date' => $this->datetime($order['date'] ?? null),
-                'total' => $this->money($order['total']),
-                'status' => $this->badge((string)$order['status']),
-            ];
-        }
-
-        $body .= '<section class="panel"><div class="panel-heading">Pedidos</div><div class="panel-body">'
-            . $this->table(
-                [
-                    ['label' => 'Pedido', 'value' => 'number'],
-                    ['label' => 'Data', 'value' => 'date'],
-                    ['label' => 'Total', 'value' => 'total', 'numeric' => true],
-                    ['label' => 'Estado', 'value' => 'status'],
-                ],
-                $rows,
-                'Este cliente não tem pedidos.'
-            )
-            . '</div></section>';
-
-        // ── Os dominios ──
-        $rows = [];
-        foreach ($this->repository->clientDomains($id) as $domain) {
-            $rows[] = [
-                'domain' => $this->e($domain['domain']),
-                'registrar' => $this->e($domain['registrar'] ?? ''),
-                'expiry' => $this->date($domain['expirydate'] ?? null),
-                'status' => $this->badge((string)$domain['status']),
-            ];
-        }
-
-        $body .= '<section class="panel"><div class="panel-heading">Domínios</div><div class="panel-body">'
-            . $this->table(
-                [
-                    ['label' => 'Domínio', 'value' => 'domain'],
-                    ['label' => 'Registar', 'value' => 'registrar'],
-                    ['label' => 'Expira', 'value' => 'expiry'],
-                    ['label' => 'Estado', 'value' => 'status'],
-                ],
-                $rows,
-                'Este cliente não tem domínios.'
-            )
-            . '</div></section>';
-
-        // ── Os tickets ──
-        $rows = [];
-        foreach ($this->repository->clientTickets($id) as $ticket) {
-            $rows[] = [
-                'subject' => sprintf(
-                    '<a href="/admin/tickets.php?id=%d">%s</a>',
-                    (int)$ticket['id'],
-                    $this->e($ticket['subject'])
-                ),
-                'date' => $this->datetime($ticket['date'] ?? null),
-                'status' => $this->badge((string)$ticket['status']),
-            ];
-        }
-
-        $body .= '<section class="panel"><div class="panel-heading">Tickets</div><div class="panel-body">'
-            . $this->table(
-                [
-                    ['label' => 'Assunto', 'value' => 'subject'],
-                    ['label' => 'Aberto', 'value' => 'date'],
-                    ['label' => 'Estado', 'value' => 'status'],
-                ],
-                $rows,
-                'Este cliente não tem tickets.'
-            )
-            . '</div></section>';
-
-        // ── As transacoes ──
-        $rows = [];
-        foreach ($this->repository->clientTransactions($id) as $transaction) {
-            $rows[] = [
-                'date' => $this->date($transaction['date'] ?? null),
-                'description' => $this->e($transaction['description'] ?? ''),
-                'gateway' => $this->e($transaction['gateway'] ?? ''),
-                'in' => $this->money($transaction['amountin'] ?? 0),
-                'out' => $this->money($transaction['amountout'] ?? 0),
-            ];
-        }
-
-        $body .= '<section class="panel"><div class="panel-heading">Transações</div><div class="panel-body">'
-            . $this->table(
-                [
-                    ['label' => 'Data', 'value' => 'date'],
-                    ['label' => 'Descrição', 'value' => 'description'],
-                    ['label' => 'Via', 'value' => 'gateway'],
-                    ['label' => 'Entrada', 'value' => 'in', 'numeric' => true],
-                    ['label' => 'Saída', 'value' => 'out', 'numeric' => true],
-                ],
-                $rows,
-                'Este cliente não tem transações.'
-            )
-            . '</div></section>';
-
-        // ── Os servicos ──
+        // Success message after adding service
         if (isset($request->getQueryParams()['added'])) {
             $body .= '<div class="alert alert-success">O serviço foi associado ao cliente.</div>';
         }
 
-        $body .= $this->servicesSection($this->repository->clientServices($id));
-
-        // E a accao de associar.
+        // Associate service action
         $body .= '<div class="admin-actions">'
             . '<a class="btn btn-primary" href="/admin/clients.php?id=' . $id . '&action=addservice">Associar um serviço</a>'
             . '</div>';

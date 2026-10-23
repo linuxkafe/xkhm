@@ -183,6 +183,22 @@ if (langToggle) {
         window.location.href = url.toString();
     });
 }
+
+// Tabs simples para painéis de detalhe de cliente
+document.querySelectorAll('.admin-tabs').forEach(function(tabContainer){
+    const buttons = tabContainer.querySelectorAll('.admin-tab-btn');
+    const panels = tabContainer.querySelectorAll('.admin-tab-panel');
+    buttons.forEach(function(btn){
+        btn.addEventListener('click', function(){
+            const target = btn.dataset.tab;
+            buttons.forEach(b=>b.classList.remove('active'));
+            panels.forEach(p=>p.classList.remove('active'));
+            btn.classList.add('active');
+            const panel = tabContainer.querySelector('.admin-tab-panel[data-tab="'+target+'"]');
+            if(panel) panel.classList.add('active');
+        });
+    });
+});
 </script>
 </body>
 </html>

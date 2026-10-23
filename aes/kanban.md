@@ -79,7 +79,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T054 | Hamburger menu, tabela full width, sem faturas no associar | high | done |
 | T055 | Edição do domínio (estado, expiração, registar/interligação) | high | done |
 | T056 | Detalhe do cliente: tabs, billing, domínio editável, search/pagination | high | pending |
-| T057 | Conversão para plugin WordPress + importação WHMCS | high | pending |
+| T057 | Conversão para plugin WordPress + importação WHMCS | high | in-progress |
 
 > **Note on numbering.** T020 was originally reserved for "Performance & load
 > testing". The Flutter conversion was planned as **T022** and the Playwright
