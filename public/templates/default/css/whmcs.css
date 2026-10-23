@@ -9,6 +9,12 @@
  * Run `make tokens` after editing the token source.
  */
 
+/* ─── Tema manual (dark/light) ─────────────────────────────────────────────── */
+
+/* O design system segue o sistema por omissão. O botão do painel
+   permite ao operador escolher, e a escolha fica no localStorage.
+   As cores vêm do tokens.css (gerado), não daqui. */
+
 /* ─── Base ─────────────────────────────────────────────────────────────────── */
 
 * {
@@ -675,22 +681,41 @@ footer {
     opacity: 0.8;
 }
 
-/* ── A navegação ─────────────────────────────────────────────────────────── */
+/* ── A barra lateral ─────────────────────────────────────────────────────── */
+
+.admin-shell {
+    display: flex;
+    min-height: 100vh;
+}
+
+.admin-sidebar {
+    width: 220px;
+    background: var(--color-header);
+    color: var(--color-on-header);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--color-border);
+}
+
+.admin-sidebar nav {
+    flex: 1;
+    overflow-y: auto;
+}
 
 .admin-nav {
-    background: var(--color-header);
-    border-top: 1px solid var(--color-border);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    background: transparent;
+    border: none;
+    overflow: visible;
 }
 
 .admin-nav ul {
     display: flex;
-    gap: 2px;
+    flex-direction: column;
+    gap: 0;
     list-style: none;
-    margin: 0 auto;
-    max-width: var(--width-max);
-    padding: 0 8px;
+    margin: 0;
+    padding: 8px;
 }
 
 .admin-nav li {
@@ -698,7 +723,7 @@ footer {
 }
 
 .admin-nav a {
-    border-bottom: 3px solid transparent;
+    border-left: 3px solid transparent;
     color: var(--color-on-header);
     display: block;
     font-size: 14px;
@@ -710,11 +735,52 @@ footer {
 
 .admin-nav a:hover {
     opacity: 1;
+    background: var(--color-shadow);
 }
 
 .admin-nav a.active {
-    border-bottom-color: var(--color-primary);
+    border-left-color: var(--color-primary);
     opacity: 1;
+    background: var(--color-shadow);
+}
+
+/* Mobile: drawer */
+@media (max-width: 768px) {
+    .admin-sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 1000;
+        transform: translateX(-100%);
+        transition: transform 0.2s ease;
+    }
+
+    .admin-sidebar.open {
+        transform: translateX(0);
+    }
+
+    .admin-nav-toggle {
+        display: block;
+    }
+
+    .admin-logout {
+        display: none;
+    }
+
+    .admin-nav-footer {
+        display: block;
+    }
+}
+
+@media (min-width: 769px) {
+    .admin-nav-toggle {
+        display: none;
+    }
+
+    .admin-nav-footer {
+        display: none;
+    }
 }
 
 /* ── O conteúdo ──────────────────────────────────────────────────────────── */

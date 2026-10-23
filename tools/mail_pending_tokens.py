@@ -379,12 +379,14 @@ def build_notice_message(fields: dict[str, str]) -> EmailMessage:
 
     body = (
         "Olá,\n\n"
-        "Segue em anexo o aviso de pagamento"
-        + (f' da fatura {token}' if token else '')
-        + ".\n\n"
-        "O aviso diz o que se deve, até quando e como pagar.\n\n"
-        "O documento não é uma fatura: é um aviso de pagamento. A fatura "
-        "certificada é emitida separadamente.\n"
+        "Segue em anexo o aviso de pagamento referente à fatura " + token + ".\n\n"
+        "Neste documento pode consultar o montante em dívida, a data limite e as "
+        "opções de pagamento disponíveis.\n\n"
+        "Nota: Este documento é um aviso de pagamento e não substitui a fatura. "
+        "A fatura certificada será emitida separadamente.\n\n"
+        "Com os melhores cumprimentos,\n"
+        + (fields.get("signature", "") or "LINUXKAFE")
+        + "\n"
     )
 
     if client:
@@ -410,16 +412,10 @@ def build_notice_message(fields: dict[str, str]) -> EmailMessage:
 <body style="margin:0;padding:24px;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#18181b;">
   <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;border:1px solid #e4e4e7;">
     <div style="background:#ffffff;padding:16px;border-radius:8px 8px 0 0;margin:-32px -32px 24px;border-bottom:1px solid #e4e4e7;">
-      <img src="https://www.linuxkafe.com/wp-content/uploads/2026/01/linuxkafe.svg" alt="LINUXKAFE" height="28" style="display:block;height:28px;width:auto;">
+      <img src="https://www.linuxkafe.com/wp-content/uploads/2026/01/linuxkafe.svg" alt="LINUXKAFE" height="40" style="display:block;height:40px;width:auto;">
     </div>
     <h1 style="margin:0 0 16px;font-size:20px;line-height:1.3;color:#212121;">{subject}</h1>
     <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#555555;">{body.replace(chr(10), '<br>')}</p>
-    <div style="margin:24px 0;padding:16px;background:#fff3cd;border:1px solid #fbb202;border-radius:8px;">
-      <p style="margin:0;font-size:13px;line-height:1.6;color:#856404;">
-        O documento não é uma fatura: é um aviso de pagamento. A fatura
-        certificada é emitida separadamente.
-      </p>
-    </div>
     <p style="margin:24px 0 0;font-size:12px;line-height:1.6;color:#71717a;">
       Este e-mail foi gerado automaticamente pelo sistema xkhm.
     </p>

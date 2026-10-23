@@ -153,8 +153,9 @@ def test_the_notice_can_be_resent(client):
     assert fields["client"] == CLIENT_USER
     # O assunto marca o aviso como "para validar": a instalacao ainda
     # nao esta validada, e o aviso nao vai para o cliente.
-    assert fields["subject"].startswith("[Não enviar ao cliente]")
     assert "Aviso de pagamento" in fields["subject"]
+    # O assunto inclui o cliente, para o operador saber de quem e'.
+    assert "xkhm-test@example.com" in fields["subject"]
     assert fields["attachment"].startswith("notice-pdfs/")
 
 

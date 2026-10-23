@@ -54,11 +54,12 @@ final class AdminLayout
         $nav = '';
         foreach (self::SECTIONS as $item) {
             $active = $item['key'] === $section ? ' class="active"' : '';
+            $label = \Xkhm\Service\Lang::t($item['key']);
             $nav .= sprintf(
                 '<li><a href="%s"%s>%s</a></li>' . "\n",
                 htmlspecialchars($item['href'], ENT_QUOTES),
                 $active,
-                htmlspecialchars($item['label'], ENT_QUOTES)
+                htmlspecialchars($label, ENT_QUOTES)
             );
         }
 
@@ -72,7 +73,19 @@ final class AdminLayout
         }
 
         $titleEsc = htmlspecialchars($title, ENT_QUOTES);
+        // The language, from the query or the cookie.
+        if (isset($_GET['lang'])) {
+            \Xkhm\Service\Lang::set((string)$_GET['lang']);
+        }
+
         $adminEsc = htmlspecialchars($adminName, ENT_QUOTES);
+
+        $langCode = isset($_GET['lang']) ? (string)$_GET['lang'] : 'pt';
+        $langCode = in_array($langCode, ['pt', 'en'], true) ? $langCode : 'pt';
+        \Xkhm\Service\Lang::set($langCode);
+        $langCodeUpper = strtoupper($langCode);
+        $langAdmin = htmlspecialchars(\Xkhm\Service\Lang::t('admin'), ENT_QUOTES);
+        $langLogout = htmlspecialchars(\Xkhm\Service\Lang::t('logout'), ENT_QUOTES);
 
         $head = '<link href="/templates/default/css/tokens.css" rel="stylesheet">' . "\n"
             . '<link href="/templates/default/css/whmcs.css" rel="stylesheet">' . "\n";
@@ -93,14 +106,14 @@ final class AdminLayout
 <header class="admin-header">
     <div class="admin-header-inner">
         <a class="admin-brand" href="/admin">
-            <img src="/templates/default/images/linuxkafe.svg" alt="LINUXKAFE" height="24" width="83">
+            <img src="/templates/default/images/linuxkafe.svg" alt="LINUXKAFE" height="32" width="110">
         </a>
-        <span class="admin-header-title">Administração</span>
+        <span class="admin-header-title">{$langAdmin}</span>
         <div class="admin-header-right">
         <button id="admin-theme-toggle" class="admin-nav-toggle" aria-label="Tema" title="Tema">◐</button>
-        <button id="admin-lang-toggle" class="admin-nav-toggle" aria-label="Idioma" title="Idioma">PT</button>
+        <button id="admin-lang-toggle" class="admin-nav-toggle" aria-label="Idioma" title="Idioma">{$langCodeUpper}</button>
         <span class="admin-user">{$adminEsc}</span>
-        <a class="btn btn-sm admin-logout" href="/admin/logout.php">Terminar sessão</a>
+        <a class="btn btn-sm admin-logout" href="/admin/logout.php">{$langLogout}</a>
         <button id="admin-nav-toggle" class="admin-nav-toggle" aria-label="Menu">☰</button>
     </div>
     </div>
@@ -108,13 +121,24 @@ final class AdminLayout
         <ul>
 {$nav}        </ul>
         <div class="admin-nav-footer">
-            <a class="btn btn-sm" href="/admin/logout.php">Terminar sessão</a>
+            <a class="btn btn-sm" href="/admin/logout.php"><?php echo \Xkhm\Service\Lang::t('logout'); ?></a>
         </div>
     </nav>
 </header>
-<main class="admin-main">
+<div class="admin-shell">
+    <aside id="admin-nav" class="admin-sidebar" aria-label="Secções da administração">
+        <nav>
+            <ul>
+{$nav}            </ul>
+        </nav>
+        <div class="admin-nav-footer">
+            <a class="btn btn-sm" href="/admin/logout.php">{$langLogout}</a>
+        </div>
+    </aside>
+    <main class="admin-main">
 {$body}
-</main>
+    </main>
+</div>
 <script>
 (function(){
   // Pesquisa automatica: os campos de pesquisa submetem o formulario
@@ -154,19 +178,17 @@ if (themeToggle) {
     });
 }
 
-// Idioma: alternancia PT/EN (placeholder).
+// Idioma: alternancia PT/EN.
 const langToggle = document.getElementById('admin-lang-toggle');
 if (langToggle) {
     langToggle.addEventListener('click', function(){
-        const current = localStorage.getItem('lang') || 'pt';
+        const current = document.documentElement.lang || 'pt';
         const next = current === 'pt' ? 'en' : 'pt';
-        localStorage.setItem('lang', next);
-        langToggle.textContent = next.toUpperCase();
-        // Recarrega a pagina para aplicar (quando houver i18n).
-        window.location.reload();
+        // Recarrega com o parametro de idioma.
+        const url = new URL(window.location.href);
+        url.searchParams.set('lang', next);
+        window.location.href = url.toString();
     });
-    const lang = localStorage.getItem('lang') || 'pt';
-    langToggle.textContent = lang.toUpperCase();
 }
 </script>
 </body>

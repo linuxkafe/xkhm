@@ -108,6 +108,7 @@ class PaymentNoticePdf
         <body>
             <header class="head">
                 <div class="issuer">
+                    <img src="templates/default/images/linuxkafe.png" alt="LINUXKAFE" style="height: 40px; margin-bottom: 8px;">
                     <h1>{$this->e($issuer['name'] ?? '')}</h1>
                     <p>{$this->e($issuer['address'] ?? '')}</p>
                     <p>{$this->e($issuer['email'] ?? '')}</p>

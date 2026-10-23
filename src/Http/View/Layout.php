@@ -70,7 +70,7 @@ final class Layout
 <header class="site-header">
     <div class="header-container">
         <a class="site-brand" href="/">
-            <img src="/templates/default/images/linuxkafe.svg" alt="LINUXKAFE" height="30" width="103">
+            <img src="/templates/default/images/linuxkafe.svg" alt="LINUXKAFE" height="40" width="138">
         </a>
         <nav class="main-navigation">
             <ul>

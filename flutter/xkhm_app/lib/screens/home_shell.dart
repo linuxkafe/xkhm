@@ -232,7 +232,7 @@ class _HomeShellState extends State<HomeShell> {
                   Theme.of(context).brightness == Brightness.dark
                       ? 'assets/images/linuxkafe.png'
                       : 'assets/images/linuxkafe-claro.png',
-                  height: 26,
+                  height: 32,
                   semanticLabel: 'LINUXKAFE',
                 ),
               ),
@@ -309,7 +309,7 @@ class _HomeShellState extends State<HomeShell> {
                     ),
                     child: Image.asset(
                       'assets/images/linuxkafe-claro.png',
-                      height: 26,
+                      height: 40,
                       semanticLabel: 'LINUXKAFE',
                     ),
                   ),

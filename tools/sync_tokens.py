@@ -190,9 +190,13 @@ def _css_block(tokens: dict, *, dark: bool) -> str:
     )
 
     if dark:
-        return f"@media (prefers-color-scheme: dark) {{\n  :root {{\n{rendered}  }}\n}}\n"
+        # O modo escuro segue o sistema **e** o botão manual.
+        return (
+            f"@media (prefers-color-scheme: dark) {{\n  :root {{\n{rendered}  }}\n}}\n"
+            f"html[data-theme=\"dark\"] {{\n  :root {{\n{rendered}  }}\n}}\n"
+        )
 
-    return f":root {{\n{rendered}}}\n"
+    return f":root {{\n{rendered}}}\nhtml[data-theme=\"light\"] {{\n  :root {{\n{rendered}  }}\n}}\n"
 
 
 def _font_faces(tokens: dict) -> str:
