@@ -656,7 +656,7 @@ footer {
 
 .admin-brand img {
     display: block;
-    height: 22px;
+    height: 32px;
     width: auto;
     background-color: var(--color-logo-plate);
     padding: 4px 7px;
@@ -696,6 +696,10 @@ footer {
     display: flex;
     flex-direction: column;
     border-right: 1px solid var(--color-border);
+    height: calc(100vh - 72px);
+    position: sticky;
+    top: 72px;
+    overflow-y: auto;
 }
 
 .admin-sidebar nav {
@@ -751,6 +755,7 @@ footer {
         left: 0;
         top: 0;
         bottom: 0;
+        height: auto;
         z-index: 1000;
         transform: translateX(-100%);
         transition: transform 0.2s ease;
@@ -786,8 +791,8 @@ footer {
 /* ── O conteúdo ──────────────────────────────────────────────────────────── */
 
 .admin-main {
-    margin: 0 auto;
-    max-width: var(--width-max);
+    flex: 1;
+    min-width: 0;
     padding: 20px 16px 60px;
 }
 
