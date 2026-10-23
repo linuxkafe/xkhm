@@ -13,6 +13,9 @@
 
 defined('ABSPATH') || exit;
 
+// Indica que o plugin está activo para outras partes da aplicação (ex.: public/index.php)
+defined('XKHM_WP_PLUGIN_ACTIVE') || define('XKHM_WP_PLUGIN_ACTIVE', true);
+
 // Constantes de caminho
 define('XKHM_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('XKHM_PLUGIN_URL', plugin_dir_url(__FILE__));

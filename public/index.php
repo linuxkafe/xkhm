@@ -171,6 +171,12 @@ $apiController = new ApiController($billingService, $ticketService, $domainServi
 
 $adminAuthMiddleware = new AdminAuthMiddleware($app->getResponseFactory());
 
+// Middleware extra: se o plugin WordPress estiver activo, exige utilizador WP admin
+$wpAdminMiddleware = null;
+if (class_exists('WpAdminAuthMiddleware')) {
+    $wpAdminMiddleware = new WpAdminAuthMiddleware();
+}
+
 // ── Recuperação de credenciais ────────────────────────────────────────────────
 //
 // O token do cliente vive nas colunas `pwresetkey`/`pwresetexpiry` que o
@@ -498,6 +504,15 @@ if (is_file($flutterIndex)) {
 // It is registered here (after every route) to keep the execution order
 // explicit: Slim runs the middleware in reverse order of registration.
 $app->add(new \Xkhm\Http\Controller\Api\CorsMiddleware());
+
+// Protecção do backoffice via WordPress admin (se plugin activo)
+if (defined('XKHM_WP_PLUGIN_ACTIVE') && XKHM_WP_PLUGIN_ACTIVE) {
+    $middlewareFile = __DIR__ . '/../wordpress-plugin/includes/wp-admin-middleware.php';
+    if (is_file($middlewareFile)) {
+        require_once $middlewareFile;
+        $app->add(new WpAdminAuthMiddleware());
+    }
+}
 
 // Run the app
 $app->run();
