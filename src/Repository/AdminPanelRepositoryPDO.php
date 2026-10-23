@@ -484,6 +484,17 @@ class AdminPanelRepositoryPDO implements AdminPanelRepositoryInterface
         return $this->rows($sql, $search, self::DOMAINS, ['domain', 'registrar']);
     }
 
+    /**
+     * Distinct registrars for the dropdown.
+     *
+     * @return list<string>
+     */
+    public function getRegistrars(): array
+    {
+        $rows = $this->all("SELECT DISTINCT registrar FROM tbldomains WHERE registrar <> '' ORDER BY registrar");
+        return array_map(fn (array $r): string => (string)$r['registrar'], $rows);
+    }
+
     public function findDomain(int $id): ?array
     {
         $stmt = $this->pdo->prepare('SELECT * FROM tbldomains WHERE id = ?');
@@ -755,5 +766,44 @@ class AdminPanelRepositoryPDO implements AdminPanelRepositoryInterface
     private function int(int $value): int
     {
         return max(0, $value);
+    /**
+     * Billing totals for a client.
+     *
+     * @return array{total: float, year: float}
+     */
+    public function clientBillingTotals(int $clientId): array
+    {
+        $yearStart = date('Y-01-01');
+        $total = (float)$this->scalar(
+            "SELECT COALESCE(SUM(total),0) FROM tblinvoices WHERE userid = ? AND status = 'Paid'",
+            [$clientId]
+        );
+        $year = (float)$this->scalar(
+            "SELECT COALESCE(SUM(total),0) FROM tblinvoices WHERE userid = ? AND status = 'Paid' AND date >= ?",
+            [$clientId, $yearStart]
+        );
+        return ['total' => $total, 'year' => $year];
     }
+
+}
+
+    /**
+     * Billing totals for a client.
+     *
+     * @return array{total: float, year: float}
+     */
+    public function clientBillingTotals(int $clientId): array
+    {
+        $yearStart = date('Y-01-01');
+        $total = (float)$this->scalar(
+            "SELECT COALESCE(SUM(total),0) FROM tblinvoices WHERE userid = ? AND status = 'Paid'",
+            [$clientId]
+        );
+        $year = (float)$this->scalar(
+            "SELECT COALESCE(SUM(total),0) FROM tblinvoices WHERE userid = ? AND status = 'Paid' AND date >= ?",
+            [$clientId, $yearStart]
+        );
+        return ['total' => $total, 'year' => $year];
+    }
+
 }
