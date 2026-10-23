@@ -101,8 +101,9 @@ class NoticeQueue
      */
     private function subject(InvoiceNotice $notice): string
     {
+        // O aviso de pagamento não é uma fatura: o assunto diz-o.
         return sprintf(
-            'Aviso de pagamento — fatura %s',
+            'Aviso de pagamento %s',
             $notice->number
         );
     }
