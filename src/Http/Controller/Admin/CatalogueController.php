@@ -406,8 +406,8 @@ class CatalogueController extends AdminController
 
         return '<section class="panel"><div class="panel-heading">Grupos de produtos</div>'
             . '<div class="panel-body">'
-            . '<table class="table table-striped"><thead><tr><th>Grupo</th>'
-            . '<th>Produtos</th></tr></thead><tbody>' . $rows . '</tbody></table>'
+            . '<div class="table-scroll"><table class="table table-striped"><thead><tr><th>Grupo</th>'
+            . '<th>Produtos</th></tr></thead><tbody>' . $rows . '</tbody></table></div>'
             . '<form method="post" action="/admin/products.php" class="admin-form">'
             . '<input type="hidden" name="action" value="group">'
             . '<div class="form-group"><label for="group-name">Nome do grupo</label>'

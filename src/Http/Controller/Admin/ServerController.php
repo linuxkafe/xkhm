@@ -284,8 +284,8 @@ class ServerController extends AdminController
 
         return '<section class="panel"><div class="panel-heading">Grupos de servidores</div>'
             . '<div class="panel-body">'
-            . '<table class="table table-striped"><thead><tr><th>Grupo</th>'
-            . '<th>Servidores</th></tr></thead><tbody>' . $rows . '</tbody></table>'
+            . '<div class="table-scroll"><table class="table table-striped"><thead><tr><th>Grupo</th>'
+            . '<th>Servidores</th></tr></thead><tbody>' . $rows . '</tbody></table></div>'
             . '<form method="post" action="/admin/servers.php" class="admin-form">'
             . '<input type="hidden" name="action" value="group">'
             . '<div class="form-group"><label for="servergroup-name">Nome do grupo</label>'
@@ -363,8 +363,8 @@ class ServerController extends AdminController
         }
 
         return '<section class="panel"><div class="panel-heading">Grupos</div><div class="panel-body">'
-            . '<table class="table table-striped"><thead><tr><th>Grupo</th><th></th></tr></thead>'
-            . '<tbody>' . $rows . '</tbody></table>'
+            . '<div class="table-scroll"><table class="table table-striped"><thead><tr><th>Grupo</th><th></th></tr></thead>'
+            . '<tbody>' . $rows . '</tbody></table></div>'
             . '<form method="post" action="/admin/servers.php" class="admin-form">'
             . '<input type="hidden" name="action" value="group">'
             . '<div class="form-group"><label for="servergroup-name">Nome do grupo</label>'

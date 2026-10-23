@@ -179,7 +179,7 @@ class SettingsController extends AdminController
             . $this->e($group['label']) . '</div><div class="panel-body">'
             . '<form method="post" action="/admin/config.php">'
             . '<input type="hidden" name="section" value="' . $this->e($section) . '">'
-            . '<table class="table table-striped"><tbody>' . $rows . '</tbody></table>'
+            . '<div class="table-scroll"><table class="table table-striped"><tbody>' . $rows . '</tbody></table></div>'
             . '<div class="admin-actions">'
             . '<button type="submit" class="btn btn-primary">Guardar</button>'
             . '</div>'

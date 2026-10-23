@@ -39,6 +39,13 @@ mkdir -p /var/www/html/public/uploads 2>/dev/null || true
 chown www-data:www-data /var/www/html/public/uploads 2>/dev/null || true
 chmod 777 /var/www/html/public/uploads 2>/dev/null || true
 
+# Wait for MySQL to be ready before starting Apache
+echo "Aguardando MySQL em mysql:3306..."
+until php -r 'fsockopen("mysql",3306);' 2>/dev/null; do
+    sleep 1
+done
+echo "MySQL disponível – iniciando Apache"
+
 # The official PHP image has its own entrypoint, which prepares the
 # Apache/PHP configuration. Chain to it instead of replacing it.
 if [ -x /usr/local/bin/docker-php-entrypoint ]; then

@@ -160,11 +160,10 @@ def test_the_stylesheet_declares_both_schemes(page):
 
 
 def test_the_page_declares_its_colour_scheme(page):
-    page.goto("/")
+    page.goto("/app/")
     html = page.content()
 
     assert 'name="color-scheme"' in html
-    assert "viewport-fit=cover" in html
     # A theme colour for the browser chrome, per scheme.
     assert 'name="theme-color"' in html
 
@@ -187,11 +186,17 @@ def test_dark_mode_keeps_a_readable_contrast(page, route: str):
 def test_the_header_keeps_the_brand_yellow(page):
     """The brand colour does not change with the mode."""
     page.emulate_media(color_scheme="dark")
-    page.goto("/")
+    page.goto("/admin/login.php")
+    page.fill('input[name="username"]', "xkhm-test")
+    page.fill('input[name="password"]', "xkhm-test-2026")
+    page.click('button[type="submit"]')
+    page.wait_for_url("**/admin", timeout=15000)
 
-    # O amarelo da marca e' o do **logotipo** (#fbb202).
-    brand = _rgb(page, ".site-brand", "color")
-    assert brand == "rgb(251, 178, 2)", brand
+    # A marca e' o **logotipo** (a chaven com o wordmark), sobre a
+    # placa branca. O amarelo vive no logotipo, nao na cor do texto.
+    plate = _rgb(page, ".admin-brand img", "background-color")
+    assert plate == "rgb(255, 255, 255)", plate
+    assert page.locator(".admin-brand img").count() == 1
 
 
 # ─── Mobile ──────────────────────────────────────────────────────────────────

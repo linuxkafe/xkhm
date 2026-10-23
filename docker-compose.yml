@@ -6,32 +6,15 @@ services:
     ports:
       - "8083:80"
     environment:
-      # 'development' makes the credential-recovery flow show the token in the
-      # response, so it can be exercised without a mail server. In production
-      # the answer is generic and the token goes out by e-mail.
       - APP_ENV=development
       - DB_HOST=mysql
       - DB_NAME=linuxkonect
       - DB_USER=linuxkonect
-      # The local database's own password. configuration.php keeps the
-      # production one for the production deployment; the environment
-      # variable overrides it here.
-      # There is NO default. A password in the repository is a password
-      # in the git history; the value comes from the `.env`, which is
-      # not versioned. If it is missing, `docker compose` refuses to
-      # start rather than inventing one.
       - DB_PASSWORD=${XKHM_DB_PASSWORD:?defina XKHM_DB_PASSWORD no .env (make db-env)}
-      # The shared WHMCS encryption hash. It must be the SAME value the
-      # WHMCS uses, or the encrypted data in the database is unreadable.
       - CC_ENCRYPTION_HASH=${CC_ENCRYPTION_HASH:?defina CC_ENCRYPTION_HASH no .env (make db-env)}
     volumes:
       - ./public/uploads:/var/www/html/public/uploads
-      # The credential-recovery tokens (there is no SMTP in this deployment).
       - ./storage:/var/www/html/storage
-      # The Flutter web build IS the client area. It is mounted at the
-      # document root, next to the API, so the browser manages the session
-      # cookie natively (no CORS) and the whole product is one origin.
-      # Build it first with `make flutter-build`.
       - ./flutter/xkhm_app/build/web:/var/www/html/public/app:ro
     depends_on:
       mysql:
@@ -43,56 +26,21 @@ services:
   mysql:
     image: mysql:8.0
     environment:
-      # The local database has its OWN credentials. They must never be the
-      # production ones: the production password is in configuration.php and
-      # in the git history, and a database published on 0.0.0.0 with a known
-      # password is an invitation (see aes/tickets/T027.md).
       - MYSQL_ROOT_PASSWORD=${XKHM_DB_ROOT_PASSWORD:?defina XKHM_DB_ROOT_PASSWORD no .env (make db-env)}
       - MYSQL_DATABASE=linuxkonect
       - MYSQL_USER=linuxkonect
       - MYSQL_PASSWORD=${XKHM_DB_PASSWORD:?defina XKHM_DB_PASSWORD no .env (make db-env)}
-      # The init script is UTF-8 (pt-BR content). Without this the client
-      # charset defaults to latin1 and every accented character is mangled.
       - MYSQL_INITDB_SKIP_TZINFO=1
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
-      # O `sql_mode` tem de ser o **da produção**, e não o do MySQL
-      # moderno.
-      #
-      # Os dados importados do WHMCS de produção usam a data zero
-      # (`0000-00-00`) nas colunas `NOT NULL` — é a convenção do WHMCS
-      # para «ainda não há data» (a fatura por pagar, com a data de
-      # pagamento vazia). O MySQL 8 recusa essa data com
-      # `NO_ZERO_DATE`, e o `NO_ZERO_DATE` também impede o
-      # `NULL` que o WHMCS escrevia.
-      #
-      # A produção tem de ter o mesmo modo: sem isto, o xkhm não
-      # escreve uma fatura por pagar da mesma maneira que o WHMCS.
       - --sql-mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      # Published on a **distinct** loopback port, and only so that the
-      # test suite on the host can reach the database.
-      #
-      # It is deliberately NOT 3306: this host already runs a MySQL server
-      # of its own on 127.0.0.1:3306 (the Plex database), and two services
-      # fighting for the same port is a conflict waiting to break one of
-      # them. The application itself reaches the database over the Docker
-      # network and needs no published port at all.
       - "127.0.0.1:13306:3306"
     healthcheck:
-      # This one **authenticates**.
-      #
-      # `mysqladmin ping` returns success even when the password is
-      # wrong — the server answered, and that is all it checks. It said
-      # "healthy" through a whole wrong password, which is a healthcheck
-      # that means nothing. `mysql -e "SELECT 1"` really does log in.
-      #
-      # `MYSQL_PWD` keeps the password out of the command line, where it
-      # would be visible to every `ps` on the host.
       test:
         - CMD-SHELL
         - MYSQL_PWD="$$MYSQL_PASSWORD" mysql -h 127.0.0.1 -u "$$MYSQL_USER" -e "SELECT 1" >/dev/null 2>&1

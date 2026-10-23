@@ -101,7 +101,8 @@ final class AdminLayout
             <a class="btn btn-sm" href="/admin/logout.php">Terminar sessão</a>
         </div>
     </div>
-    <nav class="admin-nav" aria-label="Secções da administração">
+    <button id="admin-nav-toggle" class="admin-nav-toggle" aria-label="Menu">☰</button>
+    <nav id="admin-nav" class="admin-nav" aria-label="Secções da administração">
         <ul>
 {$nav}        </ul>
     </nav>
@@ -109,6 +110,30 @@ final class AdminLayout
 <main class="admin-main">
 {$body}
 </main>
+<script>
+(function(){
+  // Pesquisa automatica: os campos de pesquisa submetem o formulario
+  // 300 ms depois de a tecla ser solta, sem precisar de Enter.
+  const inputs = document.querySelectorAll('input[name="q"], input[name="search"]');
+  inputs.forEach(function(input){
+    let timer;
+    input.addEventListener('input', function(){
+      clearTimeout(timer);
+      timer = setTimeout(function(){
+        const form = input.closest('form');
+        if (form) form.submit();
+      }, 300);
+    });
+  });
+})();
+const toggle = document.getElementById('admin-nav-toggle');
+const nav = document.getElementById('admin-nav');
+if (toggle && nav) {
+    toggle.addEventListener('click', function(){
+        nav.classList.toggle('open');
+    });
+}
+</script>
 </body>
 </html>
 HTML;

@@ -153,6 +153,10 @@ class ClientController extends AdminController
                     'amount' => $this->money($service['amount'] ?? 0),
                     'next' => $this->date($service['nextduedate'] ?? null),
                     'status' => $this->badge((string)($service['domainstatus'] ?? '')),
+                    'actions' => sprintf(
+                        '<a class="btn btn-sm" href="/admin/services.php?action=edit&id=%d">Editar</a>',
+                        (int)$service['id']
+                    ),
                 ];
             }
 
@@ -166,6 +170,7 @@ class ClientController extends AdminController
                         ['label' => 'Valor', 'value' => 'amount', 'numeric' => true],
                         ['label' => 'Próxima renovação', 'value' => 'next'],
                         ['label' => 'Estado', 'value' => 'status'],
+                        ['label' => 'Ações', 'value' => 'actions'],
                     ],
                     $rows
                 )

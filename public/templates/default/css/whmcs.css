@@ -1106,3 +1106,47 @@ footer {
 .admin-missing li {
     margin-bottom: 4px;
 }
+
+/* ── Barra lateral colapsável (mobile) ─────────────────────────────────────── */
+
+.admin-nav-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--color-on-header);
+    font-size: 24px;
+    padding: 8px;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .admin-nav-toggle {
+        display: block;
+    }
+
+    .admin-nav {
+        display: none;
+        width: 100%;
+        background: var(--color-header);
+        border-top: 1px solid var(--color-border);
+    }
+
+    .admin-nav.open {
+        display: block;
+    }
+
+    .admin-nav ul {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .admin-nav li {
+        margin-right: 0;
+    }
+
+    .admin-nav li a {
+        border: none;
+        border-radius: 0;
+        border-bottom: 1px solid var(--color-border);
+    }
+}
