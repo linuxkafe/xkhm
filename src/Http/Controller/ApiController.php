@@ -120,6 +120,10 @@ class ApiController
 
     /**
      * GET /api.php?action=getdomaininfo&domain=example.com
+     *
+     * Supports both session authentication (client area) and WHMCS API
+     * authentication (username/password for external integrations like
+     * the WordPress bridge).
      */
     public function getDomainInfo(Request $request, Response $response): Response
     {
@@ -130,12 +134,53 @@ class ApiController
             return $this->errorResponse($response, 'domain required');
         }
 
+        // Check for WHMCS API authentication (username + password)
+        $apiUser = $queryParams['username'] ?? '';
+        $apiPass = $queryParams['password'] ?? '';
+        if ($apiUser !== '' && $apiPass !== '') {
+            if (!$this->validateApiCredentials($apiUser, $apiPass)) {
+                return $this->errorResponse($response, 'Authentication failed', 401);
+            }
+        } else {
+            // Fall back to session authentication
+            $session = $request->getAttribute('session');
+            if (!is_array($session) || !isset($session['client_id'])) {
+                return $this->errorResponse($response, 'Authentication required', 401);
+            }
+        }
+
         $available = !$this->domainService->isRegistered($domain);
 
         return $this->jsonResponse($response, [
             'domain' => $domain,
             'available' => $available,
         ]);
+    }
+
+    /**
+     * Validate WHMCS API credentials.
+     *
+     * The credentials are stored in tblconfiguration as APIUsername and
+     * APIPassword (md5 hash).
+     */
+    private function validateApiCredentials(string $username, string $password): bool
+    {
+        $config = new \Xkhm\Config();
+        $pdo = \Xkhm\Database\Connection::get($config->getDbConfig());
+
+        $stmt = $pdo->prepare('SELECT value FROM tblconfiguration WHERE setting = ?');
+        $stmt->execute(['APIUsername']);
+        $storedUser = $stmt->fetchColumn();
+
+        $stmt->execute(['APIPassword']);
+        $storedPassHash = $stmt->fetchColumn();
+
+        if ($storedUser === false || $storedPassHash === false) {
+            return false;
+        }
+
+        // WHMCS stores the API password as md5
+        return $username === $storedUser && md5($password) === $storedPassHash;
     }
 
     /**

@@ -474,6 +474,7 @@ if (is_file($flutterIndex)) {
         $html = (string) file_get_contents($flutterIndex);
 
         return $response
+            ->withHeader('X-Xkhm-Chrome', 'none')
             ->withHeader('Content-Type', 'text/html; charset=utf-8')
             ->withBody((new \Slim\Psr7\Factory\StreamFactory())->createStream($html));
     });
@@ -487,6 +488,7 @@ if (is_file($flutterIndex)) {
         $response->getBody()->write(Layout::render('Aplicação indisponível', $body));
 
         return $response
+            ->withHeader('X-Xkhm-Chrome', 'none')
             ->withHeader('Content-Type', 'text/html; charset=utf-8')
             ->withStatus(503);
     });
