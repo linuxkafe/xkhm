@@ -254,7 +254,7 @@ class ClientController extends AdminController
             . '<div class="form-group"><label for="service-price">Valor (€)</label>'
             . '<input type="text" id="service-price" name="amount" class="form-control" value="0.00" inputmode="decimal" required></div>'
             . '<div class="form-group"><label for="service-renewal">Próxima renovação</label>'
-            . '<input type="date" id="service-renewal" name="nextduedate" class="form-control" value="' . $this->e($today) . '" required></div>'
+            . '<input type="date" id="service-renewal" name="nextduedate" class="form-control" value="' . $this->e(self::renewalDefault('Annually')) . '" required></div>'
             . '<div class="form-group"><label for="service-domain">Domínio</label>'
             . '<input type="text" id="service-domain" name="domain" class="form-control"></div>'
             . '<button type="submit" class="btn btn-primary">Associar o serviço</button>'
@@ -295,8 +295,11 @@ class ClientController extends AdminController
             return $this->notFound($response, 'O produto', $admin);
         }
 
+        // O valor por omissão é **hoje + o ciclo** — assim o serviço
+        // recém-associado não é apanhado pelo ciclo de faturação (que
+        // gera a fatura de renovação) no mesmo dia.
         if ($renewal === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $renewal)) {
-            $renewal = date('Y-m-d', strtotime('+1 year'));
+            $renewal = self::renewalDefault($cycle);
         }
 
         $services = new \Xkhm\Repository\ServiceRepositoryPDO();
@@ -336,6 +339,29 @@ class ClientController extends AdminController
         return $response
             ->withHeader('Location', '/admin/clients.php?id=' . $id . '&added=1')
             ->withStatus(302);
+    }
+
+    /**
+     * The default renewal date for a cycle.
+     *
+     * The renewal of a newly associated service is, by default, one
+     * cycle away — so that the billing cycle (which raises the renewal
+     * invoice) does not pick it up on the same day.
+     */
+    private static function renewalDefault(string $cycle): string
+    {
+        $steps = [
+            'Monthly' => '+1 month',
+            'Quarterly' => '+3 months',
+            'Semi Annually' => '+6 months',
+            'Annually' => '+1 year',
+            'Biennially' => '+2 years',
+            'Triennially' => '+3 years',
+        ];
+
+        $step = $steps[$cycle] ?? '+1 year';
+
+        return date('Y-m-d', strtotime(date('Y-m-d') . ' ' . $step));
     }
 
     /**

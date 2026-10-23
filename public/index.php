@@ -438,6 +438,7 @@ $app->post('/admin/tickets.php', [$adminTickets, 'reply'])->add($adminAuthMiddle
 $app->get('/admin/services.php', [$adminServices, 'index'])->add($adminAuthMiddleware);
 $app->post('/admin/services/{id:[0-9]+}/terms', [$adminServices, 'terms'])->add($adminAuthMiddleware);
 $app->get('/admin/domains.php', [$adminDomains, 'index'])->add($adminAuthMiddleware);
+$app->post('/admin/domains.php', [$adminDomains, 'update'])->add($adminAuthMiddleware);
 $app->get('/admin/affiliates.php', [$adminDomains, 'affiliates'])->add($adminAuthMiddleware);
 $app->get('/admin/search.php', [$adminDashboard, 'search'])->add($adminAuthMiddleware);
 $app->get('/admin/products.php', [$adminCatalogue, 'index'])->add($adminAuthMiddleware);

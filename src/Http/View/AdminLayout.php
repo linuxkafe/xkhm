@@ -98,13 +98,16 @@ final class AdminLayout
         <span class="admin-header-title">Administração</span>
         <div class="admin-header-right">
             <span class="admin-user">{$adminEsc}</span>
-            <a class="btn btn-sm" href="/admin/logout.php">Terminar sessão</a>
+            <a class="btn btn-sm admin-logout" href="/admin/logout.php">Terminar sessão</a>
+            <button id="admin-nav-toggle" class="admin-nav-toggle" aria-label="Menu">☰</button>
         </div>
     </div>
-    <button id="admin-nav-toggle" class="admin-nav-toggle" aria-label="Menu">☰</button>
     <nav id="admin-nav" class="admin-nav" aria-label="Secções da administração">
         <ul>
 {$nav}        </ul>
+        <div class="admin-nav-footer">
+            <a class="btn btn-sm" href="/admin/logout.php">Terminar sessão</a>
+        </div>
     </nav>
 </header>
 <main class="admin-main">

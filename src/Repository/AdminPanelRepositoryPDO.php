@@ -420,6 +420,36 @@ class AdminPanelRepositoryPDO implements AdminPanelRepositoryInterface
         return $this->rows($sql, $search, self::DOMAINS, ['domain', 'registrar']);
     }
 
+    public function findDomain(int $id): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM tbldomains WHERE id = ?');
+        $stmt->execute([$id]);
+
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($row === false) {
+            return null;
+        }
+
+        return SchemaMap::toCanonical(self::DOMAINS, $row);
+    }
+
+    public function updateDomain(int $id, array $data): bool
+    {
+        $real = SchemaMap::toReal(self::DOMAINS, $data);
+
+        if ($real === []) {
+            return false;
+        }
+
+        $set = implode(', ', array_map(fn (string $c): string => "`$c` = :$c", array_keys($real)));
+        $real['id'] = $id;
+
+        $stmt = $this->pdo->prepare("UPDATE tbldomains SET $set WHERE id = :id");
+
+        return $stmt->execute($real);
+    }
+
     // ─── Affiliates ─────────────────────────────────────────────────────────
 
     public function countAffiliates(): int

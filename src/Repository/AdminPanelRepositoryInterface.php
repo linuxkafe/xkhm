@@ -186,6 +186,16 @@ interface AdminPanelRepositoryInterface
      */
     public function listDomains(?string $search, int $limit, int $offset): array;
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findDomain(int $id): ?array;
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function updateDomain(int $id, array $data): bool;
+
     // ─── Affiliates ─────────────────────────────────────────────────────────
 
     public function countAffiliates(): int;
