@@ -120,7 +120,7 @@ final class AdminLayout
 </header>
 <div class="admin-shell">
     <aside id="admin-nav" class="admin-sidebar" aria-label="Secções da administração">
-        <nav>
+        <nav class="admin-nav">
             <ul>
 {$nav}            </ul>
         </nav>
