@@ -118,7 +118,7 @@ class NoticeQueue
     private function operatorSubject(InvoiceNotice $notice, string $client): string
     {
         return sprintf(
-            '[Não enviar ao cliente] Aviso de pagamento — fatura %s — %s',
+            'Aviso de pagamento %s — %s',
             $notice->number,
             $client
         );
