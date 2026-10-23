@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../services/l10n.dart';
 import '../services/session.dart';
+import '../services/settings.dart';
 import '../theme/lk_theme.dart';
 import '../theme/tokens.dart';
 import '../widgets/lk_widgets.dart';
@@ -167,8 +169,30 @@ class _HomeShellState extends State<HomeShell> {
                   ),
                 ),
           actions: [
+            Consumer<LkSettings>(
+              builder: (context, settings, _) => IconButton(
+                tooltip: 'Tema',
+                icon: Icon(settings.themeMode == ThemeMode.dark
+                    ? Icons.light_mode_outlined
+                    : Icons.dark_mode_outlined),
+                onPressed: settings.toggleTheme,
+              ),
+            ),
+            Consumer<LkSettings>(
+              builder: (context, settings, _) => IconButton(
+                tooltip: 'Idioma',
+                icon: Text(
+                  settings.locale.languageCode.toUpperCase(),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                onPressed: settings.toggleLocale,
+              ),
+            ),
             IconButton(
-              tooltip: 'Terminar sessão',
+              tooltip: L10n.of(context).logout,
               icon: const Icon(Icons.logout),
               onPressed: () => context.read<LkSession>().logout(),
             ),

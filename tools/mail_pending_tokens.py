@@ -399,6 +399,36 @@ def build_notice_message(fields: dict[str, str]) -> EmailMessage:
     message["Subject"] = subject
     message.set_content(body)
 
+    # O corpo em HTML, com a formatacao do tema.
+    html = f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{subject}</title>
+</head>
+<body style="margin:0;padding:24px;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#18181b;">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;border:1px solid #e4e4e7;">
+    <div style="background:#2d2d2d;padding:16px;border-radius:8px 8px 0 0;margin:-32px -32px 24px;">
+      <img src="https://www.linuxkafe.com/wp-content/uploads/2026/01/linuxkafe.svg" alt="LINUXKAFE" height="28" style="display:block;height:28px;width:auto;">
+    </div>
+    <h1 style="margin:0 0 16px;font-size:20px;line-height:1.3;color:#212121;">{subject}</h1>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#555555;">{body.replace(chr(10), '<br>')}</p>
+    <div style="margin:24px 0;padding:16px;background:#fff3cd;border:1px solid #fbb202;border-radius:8px;">
+      <p style="margin:0;font-size:13px;line-height:1.6;color:#856404;">
+        O documento nao e uma fatura: e um aviso de pagamento. A fatura
+        certificada e emitida separadamente.
+      </p>
+    </div>
+    <p style="margin:24px 0 0;font-size:12px;line-height:1.6;color:#71717a;">
+      Este e-mail foi gerado automaticamente pelo sistema xkhm.
+    </p>
+  </div>
+</body>
+</html>
+"""
+    message.add_alternative(html, subtype="html")
+
     return message
 
 

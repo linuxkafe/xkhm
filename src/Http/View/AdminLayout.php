@@ -97,10 +97,12 @@ final class AdminLayout
         </a>
         <span class="admin-header-title">Administração</span>
         <div class="admin-header-right">
-            <span class="admin-user">{$adminEsc}</span>
-            <a class="btn btn-sm admin-logout" href="/admin/logout.php">Terminar sessão</a>
-            <button id="admin-nav-toggle" class="admin-nav-toggle" aria-label="Menu">☰</button>
-        </div>
+        <button id="admin-theme-toggle" class="admin-nav-toggle" aria-label="Tema" title="Tema">◐</button>
+        <button id="admin-lang-toggle" class="admin-nav-toggle" aria-label="Idioma" title="Idioma">PT</button>
+        <span class="admin-user">{$adminEsc}</span>
+        <a class="btn btn-sm admin-logout" href="/admin/logout.php">Terminar sessão</a>
+        <button id="admin-nav-toggle" class="admin-nav-toggle" aria-label="Menu">☰</button>
+    </div>
     </div>
     <nav id="admin-nav" class="admin-nav" aria-label="Secções da administração">
         <ul>
@@ -135,6 +137,36 @@ if (toggle && nav) {
     toggle.addEventListener('click', function(){
         nav.classList.toggle('open');
     });
+}
+
+// Tema: claro/escuro manual.
+const themeToggle = document.getElementById('admin-theme-toggle');
+if (themeToggle) {
+    const stored = localStorage.getItem('theme');
+    if (stored) {
+        document.documentElement.setAttribute('data-theme', stored);
+    }
+    themeToggle.addEventListener('click', function(){
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+    });
+}
+
+// Idioma: alternancia PT/EN (placeholder).
+const langToggle = document.getElementById('admin-lang-toggle');
+if (langToggle) {
+    langToggle.addEventListener('click', function(){
+        const current = localStorage.getItem('lang') || 'pt';
+        const next = current === 'pt' ? 'en' : 'pt';
+        localStorage.setItem('lang', next);
+        langToggle.textContent = next.toUpperCase();
+        // Recarrega a pagina para aplicar (quando houver i18n).
+        window.location.reload();
+    });
+    const lang = localStorage.getItem('lang') || 'pt';
+    langToggle.textContent = lang.toUpperCase();
 }
 </script>
 </body>

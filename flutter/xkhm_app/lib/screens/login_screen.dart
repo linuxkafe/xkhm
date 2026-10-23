@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../services/l10n.dart';
 import '../services/session.dart';
 import '../theme/lk_theme.dart';
 import '../widgets/lk_widgets.dart';
@@ -214,7 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
               builder: (_) => const PasswordResetScreen(),
             ),
           ),
-          child: const Text('Esqueci a senha?'),
+          child: Text(L10n.of(context).forgotPassword),
         ),
       ],
     );

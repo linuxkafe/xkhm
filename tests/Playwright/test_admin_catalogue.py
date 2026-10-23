@@ -416,7 +416,7 @@ def test_the_domains_are_listed_with_their_state(admin):
     body = admin.inner_text("body")
 
     assert admin.locator("table.table tbody tr").count() > 0
-    assert "Activo" in body or "Expirado" in body or "Cancelado" in body
+    assert "Active" in body or "Expired" in body or "Cancelled" in body
 
 
 def test_a_domain_can_be_opened_and_edited(admin):

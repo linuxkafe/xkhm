@@ -8,6 +8,7 @@ import 'screens/password_reset_screen.dart';
 import 'services/api_client.dart';
 import 'services/deep_link.dart';
 import 'services/session.dart';
+import 'services/settings.dart';
 import 'theme/lk_theme.dart';
 
 void main() {
@@ -25,17 +26,20 @@ class XkhmApp extends StatefulWidget {
 class _XkhmAppState extends State<XkhmApp> {
   final LkApiClient _api = LkApiClient();
   late final LkSession _session;
+  late final LkSettings _settings;
 
   @override
   void initState() {
     super.initState();
     _session = LkSession(_api);
+    _settings = LkSettings();
     _session.bootstrap();
   }
 
   @override
   void dispose() {
     _api.dispose();
+    _settings.dispose();
     super.dispose();
   }
 
@@ -45,23 +49,24 @@ class _XkhmAppState extends State<XkhmApp> {
       providers: [
         Provider<LkApiClient>.value(value: _api),
         ChangeNotifierProvider<LkSession>.value(value: _session),
+        ChangeNotifierProvider<LkSettings>.value(value: _settings),
       ],
-      child: MaterialApp(
-        title: 'LINUXKAFE',
-        debugShowCheckedModeBanner: false,
-        theme: LkTheme.light(),
-        darkTheme: LkTheme.dark(),
-        // The operating system decides: the application follows the system
-        // preference and repaints when it changes.
-        themeMode: ThemeMode.system,
-        locale: const Locale('pt', 'BR'),
-        supportedLocales: const [Locale('pt', 'BR')],
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        home: const _Root(),
+      child: Consumer<LkSettings>(
+        builder: (context, settings, _) => MaterialApp(
+          title: 'LINUXKAFE',
+          debugShowCheckedModeBanner: false,
+          theme: LkTheme.light(),
+          darkTheme: LkTheme.dark(),
+          themeMode: settings.themeMode,
+          locale: settings.locale,
+          supportedLocales: const [Locale('pt', 'BR'), Locale('en', 'US')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: const _Root(),
+        ),
       ),
     );
   }
