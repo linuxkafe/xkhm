@@ -117,13 +117,6 @@ final class AdminLayout
         <button id="admin-nav-toggle" class="admin-nav-toggle" aria-label="Menu">☰</button>
     </div>
     </div>
-    <nav id="admin-nav" class="admin-nav" aria-label="Secções da administração">
-        <ul>
-{$nav}        </ul>
-        <div class="admin-nav-footer">
-            <a class="btn btn-sm" href="/admin/logout.php"><?php echo \Xkhm\Service\Lang::t('logout'); ?></a>
-        </div>
-    </nav>
 </header>
 <div class="admin-shell">
     <aside id="admin-nav" class="admin-sidebar" aria-label="Secções da administração">

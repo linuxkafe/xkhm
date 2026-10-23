@@ -21,8 +21,18 @@ class NoticeQueue
 
     public function __construct(
         private InvoiceNoticeService $notices,
-        private PaymentNoticePdf $pdf
+        private PaymentNoticePdf $pdf,
+        private ?SettingsService $settings = null
     ) {
+    }
+
+    private function settings(): SettingsService
+    {
+        if ($this->settings === null) {
+            $this->settings = new SettingsService(new \Xkhm\Repository\SettingsRepositoryPDO());
+        }
+
+        return $this->settings;
     }
 
     /**
@@ -69,9 +79,11 @@ class NoticeQueue
 
         @chmod($path, 0644);
 
+        $signature = $this->settings()->get('Signature', 'LINUXKAFE');
+
         $payload = sprintf(
             "purpose: aviso\nrecipient: %s\nclient: %s\naccount: %d\ntoken: %d\n"
-            . "subject: %s\nattachment: %s\ncreated: %s\n",
+            . "subject: %s\nattachment: %s\nsignature: %s\ncreated: %s\n",
             $recipient,
             $client,
             $clientId,
@@ -83,6 +95,7 @@ class NoticeQueue
             // read by the host's mailer, and the host's path is not the
             // container's.
             'notice-pdfs/' . $file,
+            $signature,
             date('c')
         );
 
