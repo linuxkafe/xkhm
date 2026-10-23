@@ -293,7 +293,8 @@ class AdminPanelRepositoryPDO implements AdminPanelRepositoryInterface
 
     public function countInvoices(?string $status = null, ?string $search = null): int
     {
-        return $this->count(self::INVOICES, $search, ['invoicenum'], $status);
+        // Search by invoice number, client name, email, or company
+        return $this->countInvoicesWithClient($search, $status);
     }
 
     public function listInvoices(
@@ -302,13 +303,76 @@ class AdminPanelRepositoryPDO implements AdminPanelRepositoryInterface
         int $limit,
         int $offset
     ): array {
-        [$where] = $this->whereClause($search, ['invoicenum'], $status);
+        // Join with tblclients to get client name
+        $sql = 'SELECT i.*, c.firstname, c.lastname, c.companyname, c.email AS clientemail '
+            . 'FROM tblinvoices i '
+            . 'LEFT JOIN tblclients c ON c.id = i.userid ';
 
-        $sql = 'SELECT * FROM tblinvoices' . $where
-            . ' ORDER BY date DESC, id DESC LIMIT ' . $this->int($limit)
+        [$where, $parameters] = $this->whereClauseInvoices($search, $status);
+
+        $sql .= $where
+            . ' ORDER BY i.date DESC, i.id DESC LIMIT ' . $this->int($limit)
             . ' OFFSET ' . $this->int($offset);
 
-        return $this->rows($sql, $search, self::INVOICES, ['invoicenum'], $status);
+        $rows = $this->all($sql, $parameters);
+
+        return array_map(
+            fn (array $row): array => SchemaMap::toCanonical(self::INVOICES, $row),
+            $rows
+        );
+    }
+
+    /**
+     * Count invoices with client join for search.
+     */
+    private function countInvoicesWithClient(?string $search, ?string $status): int
+    {
+        $sql = 'SELECT COUNT(*) FROM tblinvoices i '
+            . 'LEFT JOIN tblclients c ON c.id = i.userid ';
+
+        [$where, $parameters] = $this->whereClauseInvoices($search, $status);
+
+        $sql .= $where;
+
+        return (int)$this->scalar($sql, $parameters);
+    }
+
+    /**
+     * WHERE clause for invoices with client join.
+     * Searches: invoice number, client firstname, lastname, email, companyname.
+     *
+     * @return array{0: string, 1: list<mixed>}
+     */
+    private function whereClauseInvoices(?string $search, ?string $status): array
+    {
+        $conditions = [];
+        $parameters = [];
+
+        $search = $search === null ? '' : trim($search);
+
+        if ($search !== '') {
+            $parts = [
+                'i.invoicenum LIKE ?',
+                'c.firstname LIKE ?',
+                'c.lastname LIKE ?',
+                'c.email LIKE ?',
+                'c.companyname LIKE ?',
+            ];
+            $conditions[] = '(' . implode(' OR ', $parts) . ')';
+            $like = '%' . $search . '%';
+            $parameters = array_merge($parameters, [$like, $like, $like, $like, $like]);
+        }
+
+        $status = $status === null ? '' : trim($status);
+
+        if ($status !== '') {
+            $conditions[] = 'i.status = ?';
+            $parameters[] = $status;
+        }
+
+        $clause = $conditions === [] ? '' : ' WHERE ' . implode(' AND ', $conditions);
+
+        return [$clause, $parameters];
     }
 
     public function findInvoice(int $id): ?array

@@ -73,6 +73,12 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T048 | O tipo de interligação do servidor | high | done |
 | T049 | A interface de 2026, ao estilo do design system | high | done |
 | T050 | Associar um serviço a um cliente | high | done |
+| T051 | O login no telefone | high | done |
+| T052 | Service worker off, CanvasKit | high | done |
+| T053 | Tabelas mobile, auto-search, sidebar colapsível | high | done |
+| T054 | Hamburger menu, tabela full width, sem faturas no associar | high | done |
+| T055 | Edição do domínio (estado, expiração, registar/interligação) | high | done |
+| T056 | Detalhe do cliente: tabs, billing, domínio editável, search/pagination | high | pending |
 
 > **Note on numbering.** T020 was originally reserved for "Performance & load
 > testing". The Flutter conversion was planned as **T022** and the Playwright

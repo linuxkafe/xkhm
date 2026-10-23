@@ -145,6 +145,16 @@ class InvoiceController extends AdminController
 
         $rows = [];
         foreach ($invoices as $invoice) {
+            $clientName = trim(sprintf(
+                '%s %s',
+                (string)($invoice['firstname'] ?? ''),
+                (string)($invoice['lastname'] ?? '')
+            ));
+            $clientDisplay = $clientName !== '' ? $this->e($clientName) : $this->e((string)($invoice['companyname'] ?? ''));
+            if ($clientDisplay === '') {
+                $clientDisplay = '#' . (int)$invoice['userid'];
+            }
+
             $rows[] = [
                 'number' => sprintf(
                     '<a href="/admin/invoices.php?id=%d">%s</a>',
@@ -152,9 +162,9 @@ class InvoiceController extends AdminController
                     $this->e($this->invoiceNumber($invoice))
                 ),
                 'client' => sprintf(
-                    '<a href="/admin/clients.php?id=%d">#%d</a>',
+                    '<a href="/admin/clients.php?id=%d">%s</a>',
                     (int)$invoice['userid'],
-                    (int)$invoice['userid']
+                    $clientDisplay
                 ),
                 'date' => $this->date($invoice['datecreated'] ?? null),
                 'due' => $this->date($invoice['duedate'] ?? null),
@@ -169,7 +179,7 @@ class InvoiceController extends AdminController
             . 'se deve e como pagar, e não são documentos fiscais. A fatura '
             . 'certificada é emitida separadamente.'
             . '</p>'
-            . $this->filters('/admin/invoices.php', $search, $status, self::STATUSES, 'Número do aviso')
+            . $this->filters('/admin/invoices.php', $search, $status, self::STATUSES, 'Aviso, cliente, email, empresa')
             . $this->table(
                 [
                     ['label' => 'Aviso', 'value' => 'number'],
