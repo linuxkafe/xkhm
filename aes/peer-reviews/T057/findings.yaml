@@ -1,0 +1,41 @@
+type: MAJOR
+title: Import credentials stored in unencrypted transient
+evidence: wordpress-plugin/includes/admin-menu.php lines 260-280 (set_transient with raw password)
+closure-condition: Transient stores only a reference ID; actual credentials kept in encrypted option or WP session and purged after import.
+rubric-criterion: Security
+---
+type: MAJOR
+title: Missing nonce verification on AJAX start_import step
+evidence: wordpress-plugin/includes/admin-menu.php line 340 (xkhm_ajax_start_import) does not call check_ajax_referer
+closure-condition: Add `check_ajax_referer('xkhm_import_wizard', 'nonce');` at start of function and ensure JS sends nonce.
+rubric-criterion: Security
+---
+type: MINOR
+title: ImportService::runImportJob uses register_shutdown_function which may not run in CLI context
+evidence: src/Service/ImportService.php line 115 (register_shutdown_function)
+closure-condition: Replace with explicit background process (e.g., `wp async-task` or separate PHP process) and document limitation.
+rubric-criterion: Architecture
+---
+type: MINOR
+title: Wizard step 2 (schema) does not surface extra tables to user
+evidence: wordpress-plugin/assets/js/import-wizard.js renderReport only parses 'importada' lines
+closure-condition: Show both missing and extra tables in schema validation UI with counts.
+rubric-criterion: UX / Wizard
+---
+type: MAJOR
+title: No integration test for full wizard flow (file upload + remote)
+evidence: tests/Integration/WordPressPluginTest.php only checks file existence; no Playwright test exercising wizard
+closure-condition: Add Playwright test `test_wordpress_plugin.py` that uploads a fixture .sql and completes import.
+rubric-criterion: Tests
+---
+type: MINOR
+title: README absent in wordpress-plugin/
+evidence: directory listing shows no README.md
+closure-condition: Create wordpress-plugin/README.md with install, wp-config constants, wizard usage, CLI examples.
+rubric-criterion: Documentation
+---
+type: MAJOR
+title: WpAdminAuthMiddleware redirects to wp-login.php but does not preserve original admin URL when behind reverse proxy
+evidence: wordpress-plugin/includes/wp-admin-middleware.php line 38 uses request URI directly
+closure-condition: Use `wp_login_url( home_url( $request->getUri()->getPath() ) )` and respect `X-Forwarded-Host`.
+rubric-criterion: Security

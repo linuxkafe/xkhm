@@ -209,7 +209,7 @@ final class ImportService
     /**
      * Lista das 94 tabelas WHMCS 5.3.9 (prefixo tbl).
      */
-    private function whmcs53Tables(): array
+    public function whmcs53Tables(): array
     {
         return [
             'tbladmins','tbladminperms','tblannouncements','tblautomation','tblbillableitems',

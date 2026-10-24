@@ -1,4 +1,4 @@
-.PHONY: setup test lint format check doctor clean index wake sleep install dev e2e e2e-install tokens tokens-check flutter-build flutter-test flutter-e2e
+.PHONY: setup test lint format check doctor clean index wake sleep install dev e2e e2e-install tokens tokens-check flutter-build flutter-test flutter-e2e wp-plugin-test
 
 PHP=php
 PHP_VERSION=$(shell php -r "echo PHP_VERSION;")
@@ -124,6 +124,16 @@ flutter-test: ## Run Flutter unit and widget tests
 
 flutter-e2e: ## Run the Playwright E2E suite against the Flutter web build
 	@cd tests/Playwright && python3 -m pytest test_flutter_app.py -v
+
+wp-plugin-test: ## Run WordPress plugin related tests (unit + integration)
+	@echo "Running WordPress plugin unit tests..."
+	@XKHM_DB_HOST=$${XKHM_DB_HOST:-127.0.0.1} \
+	 XKHM_DB_NAME=$${XKHM_DB_NAME:-linuxkonect} \
+	 XKHM_DB_USER=$${XKHM_DB_USER:-linuxkonect} \
+	 XKHM_DB_PASS=$${XKHM_DB_PASS:-$${XKHM_DB_PASSWORD:?defina XKHM_DB_PASSWORD no .env (make db-env)}} \
+	 XKHM_DB_PORT=$${XKHM_DB_PORT:-13306} \
+	 CC_ENCRYPTION_HASH="$${CC_ENCRYPTION_HASH:-$${XKHM_CC_ENCRYPTION_HASH:-}}" \
+	 ./vendor/bin/phpunit --filter 'WordPressPluginTest|ImportServiceTest'
 
 doctor: ## Check environment health
 	@echo "=== xkhm doctor ==="
