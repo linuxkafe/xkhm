@@ -48,3 +48,4 @@ storage/notice-pdfs/
 __pycache__/
 *.pyc
 build/
+storage/cron.log
