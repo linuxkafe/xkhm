@@ -115,7 +115,9 @@ final class ImportService
             // Conta linhas na origem
             $countRes = $mysqli->query("SELECT COUNT(*) FROM `$table`");
             $totalRows = $countRes ? (int)$countRes->fetch_row()[0] : 0;
-            $countRes?->free();
+            if ($countRes) {
+                $countRes->free();
+            }
 
             if ($totalRows === 0) {
                 $job['progress']['log'][] = "Tabela $table vazia – ignorada";
@@ -189,7 +191,7 @@ final class ImportService
         } else {
             // Ficheiro .sql – importação via LOAD DATA não suportada aqui; assume-se que o ficheiro já foi carregado na BD local.
             // Para simplicidade, conecta à BD local do xkhm.
-            $cfg = \Xkhm\Config::getDbConfig(); // assume Config acessível
+            $cfg = (new \Xkhm\Config())->getDbConfig(); // assume Config acessível
             $mysqli = new mysqli(
                 $cfg['host'],
                 $cfg['user'],
@@ -211,24 +213,8 @@ final class ImportService
      */
     public function whmcs53Tables(): array
     {
-        return [
-            'tbladmins','tbladminperms','tblannouncements','tblautomation','tblbillableitems',
-            'tblcalendar','tblcampaigndevices','tblcampaigns','tblclientgrouppermissions',
-            'tblclientgroups','tblclients','tblconfiguration','tblcontacts','tblcreditcards',
-            'tblcron','tblcustomfields','tblcustomfieldsvalues','tbldnssec','tbldomains',
-            'tbldomainsaddons','tbldomainshosting','tbldomainswhois','tblemailtemplates',
-            'tblemailverification','tblfailedlogins','tblfeaturelimits','tblfirewall','tblfraudprofiles',
-            'tblgatewaylog','tblhosting','tblhostingaddons','tblhostingconfigoptions',
-            'tblinvoices','tblinvoiceitems','tblipaddresses','tbllanguages','tbllangoverrides',
-            'tblloginattempts','tblnetworkissues','tblnotes','tblorders','tblorderitems',
-            'tblpasswordresets','tblpaymentgates','tblpaymentgatewayparams','tblpricing',
-            'tblproductconfiglinks','tblproductconfigoptions','tblproductconfigoptionssub',
-            'tblproducts','tblproductgroups','tblpromotions','tblregistrars','tblreportdata',
-            'tblroles','tblservergroups','tblservers','tblserversip','tblserviceproviders',
-            'tblservices','tblsetting','tblsetupfees','tblssl','tblsslproviders','tblstates',
-            'tbltax','tbltaxrates','tblticketdepartments','tblticketpredefinedcats',
-            'tblticketpredefinedreplies','tbltickets','tblticketreplies','tblticketstatuses',
-            'tbltodos','tblupdates','tblupgrades','tblwhmcsaddons','tblwhois'
+                return [
+            'tblaccounts', 'tblactivitylog', 'tbladdonmodules', 'tbladdons', 'tbladminlog', 'tbladminperms', 'tbladminroles', 'tbladmins', 'tbladminsecurityquestions', 'tblaffiliates', 'tblaffiliatesaccounts', 'tblaffiliateshistory', 'tblaffiliatespending', 'tblaffiliateswithdrawals', 'tblannouncements', 'tblbannedemails', 'tblbannedips', 'tblbillableitems', 'tblbrowserlinks', 'tblbundles', 'tblcalendar', 'tblcancelrequests', 'tblclientgroups', 'tblclients', 'tblclientsfiles', 'tblconfiguration', 'tblcontacts', 'tblcredit', 'tblcurrencies', 'tblcustomfields', 'tblcustomfieldsvalues', 'tbldomainpricing', 'tbldomainreminders', 'tbldomains', 'tbldomainsadditionalfields', 'tbldownloadcats', 'tbldownloads', 'tblemailmarketer', 'tblemails', 'tblemailtemplates', 'tblfraud', 'tblgatewaylog', 'tblhosting', 'tblhostingaddons', 'tblhostingconfigoptions', 'tblinvoiceitems', 'tblinvoices', 'tblknowledgebase', 'tblknowledgebasecats', 'tblknowledgebaselinks', 'tbllinks', 'tblmodulelog', 'tblnetworkissues', 'tblnotes', 'tblorders', 'tblorderstatuses', 'tblpaymentgateways', 'tblpricing', 'tblproductconfiggroups', 'tblproductconfiglinks', 'tblproductconfigoptions', 'tblproductconfigoptionssub', 'tblproductgroups', 'tblproducts', 'tblpromotions', 'tblquoteitems', 'tblquotes', 'tblregistrars', 'tblservergroups', 'tblservergroupsrel', 'tblservers', 'tblsslorders', 'tbltax', 'tblticketbreaklines', 'tblticketdepartments', 'tblticketescalations', 'tblticketfeedback', 'tblticketlog', 'tblticketmaillog', 'tblticketnotes', 'tblticketpredefinedcats', 'tblticketpredefinedreplies', 'tblticketreplies', 'tbltickets', 'tblticketspamfilters', 'tblticketstatuses', 'tbltickettags', 'tbltodolist', 'tbltransientdata', 'tblupgrades', 'tblwhoislog'
         ];
     }
 }

@@ -14,10 +14,16 @@ defined('XKHM_DB_PREFIX')   || define('XKHM_DB_PREFIX',   'tbl'); // prefixo WHM
 
 // Configuração partilhada (reutiliza Xkhm\Config)
 if (!class_exists('Xkhm\Config')) {
-    // Se o autoload do projeto principal não carregou, tentamos incluir manualmente
-    $cfgFile = dirname(XKHM_PLUGIN_DIR, 2) . '/src/Config.php';
-    if (file_exists($cfgFile)) {
-        require_once $cfgFile;
+    // Plugin autocontido: src/ dentro do próprio plugin
+    $candidates = [
+        XKHM_PLUGIN_DIR . 'src/Config.php',
+        dirname(XKHM_PLUGIN_DIR, 2) . '/src/Config.php',
+    ];
+    foreach ($candidates as $cfgFile) {
+        if (file_exists($cfgFile)) {
+            require_once $cfgFile;
+            break;
+        }
     }
 }
 
@@ -62,7 +68,7 @@ class Xkhm_Container
         return self::$instance;
     }
 
-    public function get(string $id, callable $factory)
+    public function make(string $id, callable $factory)
     {
         if (!isset($this->services[$id])) {
             $this->services[$id] = $factory($this);

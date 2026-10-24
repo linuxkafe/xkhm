@@ -194,6 +194,13 @@ interface AdminPanelRepositoryInterface
     public function listDomains(?string $search, int $limit, int $offset): array;
 
     /**
+     * Distinct registrars for the dropdown.
+     *
+     * @return list<string>
+     */
+    public function getRegistrars(): array;
+
+    /**
      * @return array<string, mixed>|null
      */
     public function findDomain(int $id): ?array;

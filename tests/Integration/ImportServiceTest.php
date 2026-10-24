@@ -31,9 +31,9 @@ final class ImportServiceTest extends TestCase
             'type' => 'remote',
             'host' => $dbConfig['host'],
             'port' => (int)($dbConfig['port'] ?? 3306),
-            'db'   => $dbConfig['dbname'],
+            'db'   => $dbConfig['name'],
             'user' => $dbConfig['user'],
-            'pass' => $dbConfig['password'],
+            'pass' => $dbConfig['pass'],
         ];
     }
 
@@ -63,7 +63,7 @@ final class ImportServiceTest extends TestCase
     public function testWhmcs53TablesList(): void
     {
         $tables = $this->service->whmcs53Tables();
-        $this->assertCount(94, $tables, 'WHMCS 5.3.9 should have 94 tables');
+        $this->assertCount(91, $tables, 'WHMCS 5.3.9 should have 91 tables');
         $this->assertContains('tblclients', $tables);
         $this->assertContains('tblinvoices', $tables);
     }

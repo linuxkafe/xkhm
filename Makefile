@@ -1,4 +1,4 @@
-.PHONY: setup test lint format check doctor clean index wake sleep install dev e2e e2e-install tokens tokens-check flutter-build flutter-test flutter-e2e wp-plugin-test
+.PHONY: setup test lint format check doctor clean index wake sleep install dev e2e e2e-install tokens tokens-check flutter-build flutter-test flutter-e2e wp-plugin-build wp-plugin-test
 
 PHP=php
 PHP_VERSION=$(shell php -r "echo PHP_VERSION;")
@@ -124,6 +124,9 @@ flutter-test: ## Run Flutter unit and widget tests
 
 flutter-e2e: ## Run the Playwright E2E suite against the Flutter web build
 	@cd tests/Playwright && python3 -m pytest test_flutter_app.py -v
+
+wp-plugin-build: ## Assemble self-contained WordPress plugin under build/wp-plugin/
+	@python3 tools/build_wp_plugin.py
 
 wp-plugin-test: ## Run WordPress plugin related tests (unit + integration)
 	@echo "Running WordPress plugin unit tests..."

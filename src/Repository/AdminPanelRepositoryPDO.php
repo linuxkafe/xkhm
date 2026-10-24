@@ -197,6 +197,25 @@ class AdminPanelRepositoryPDO implements AdminPanelRepositoryInterface
         return $this->services('WHERE h.userid = ?', [$clientId]);
     }
 
+    /**
+     * Billing totals for a client.
+     *
+     * @return array{total: float, year: float}
+     */
+    public function clientBillingTotals(int $clientId): array
+    {
+        $yearStart = date('Y-01-01');
+        $total = (float)$this->scalar(
+            "SELECT COALESCE(SUM(total),0) FROM tblinvoices WHERE userid = ? AND status = 'Paid'",
+            [$clientId]
+        );
+        $year = (float)$this->scalar(
+            "SELECT COALESCE(SUM(total),0) FROM tblinvoices WHERE userid = ? AND status = 'Paid' AND date >= ?",
+            [$clientId, $yearStart]
+        );
+        return ['total' => $total, 'year' => $year];
+    }
+
     public function findService(int $id): ?array
     {
         $services = $this->services('WHERE h.id = ?', [$id]);
@@ -257,3 +276,514 @@ class AdminPanelRepositoryPDO implements AdminPanelRepositoryInterface
 
         return $stmt->execute([$clientId, $adminId, $now, $now, $note]);
     }
+
+    /**
+     * The services, with the product and the group they belong to.
+     *
+     * The **group** is the label the WHMCS shows the client
+     * («Web Hosting», «Backup», «Servidores Virtuais»); the raw `type`
+     * is `hostingaccount`, `other` or `server`, which is what the
+     * machine understands. Both travel, and the interface decides.
+     *
+     * @param list<mixed> $parameters
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function services(string $where, array $parameters): array
+    {
+        $sql = 'SELECT h.*, '
+            . 'p.name AS productname, p.type AS producttype, '
+            . 'g.name AS groupname, g.id AS groupid '
+            . 'FROM tblhosting h '
+            . 'LEFT JOIN tblproducts p ON p.id = h.packageid '
+            . 'LEFT JOIN tblproductgroups g ON g.id = p.gid '
+            . $where
+            . ' ORDER BY h.id DESC';
+
+        $rows = $this->all($sql, $parameters);
+
+        return array_map(
+            fn (array $row): array => SchemaMap::toCanonical(self::HOSTING, $row),
+            $rows
+        );
+    }
+
+    // ─── Invoices ───────────────────────────────────────────────────────────
+
+    public function countInvoices(?string $status = null, ?string $search = null): int
+    {
+        // Search by invoice number, client name, email, or company
+        return $this->countInvoicesWithClient($search, $status);
+    }
+
+    public function listInvoices(
+        ?string $status,
+        ?string $search,
+        int $limit,
+        int $offset
+    ): array {
+        // Join with tblclients to get client name
+        $sql = 'SELECT i.*, c.firstname, c.lastname, c.companyname, c.email AS clientemail '
+            . 'FROM tblinvoices i '
+            . 'LEFT JOIN tblclients c ON c.id = i.userid ';
+
+        [$where, $parameters] = $this->whereClauseInvoices($search, $status);
+
+        $sql .= $where
+            . ' ORDER BY i.date DESC, i.id DESC LIMIT ' . $this->int($limit)
+            . ' OFFSET ' . $this->int($offset);
+
+        $rows = $this->all($sql, $parameters);
+
+        return array_map(
+            fn (array $row): array => SchemaMap::toCanonical(self::INVOICES, $row),
+            $rows
+        );
+    }
+
+    /**
+     * Count invoices with client join for search.
+     */
+    private function countInvoicesWithClient(?string $search, ?string $status): int
+    {
+        $sql = 'SELECT COUNT(*) FROM tblinvoices i '
+            . 'LEFT JOIN tblclients c ON c.id = i.userid ';
+
+        [$where, $parameters] = $this->whereClauseInvoices($search, $status);
+
+        $sql .= $where;
+
+        return (int)$this->scalar($sql, $parameters);
+    }
+
+    /**
+     * WHERE clause for invoices with client join.
+     * Searches: invoice number, client firstname, lastname, email, companyname.
+     *
+     * @return array{0: string, 1: list<mixed>}
+     */
+    private function whereClauseInvoices(?string $search, ?string $status): array
+    {
+        $conditions = [];
+        $parameters = [];
+
+        $search = $search === null ? '' : trim($search);
+
+        if ($search !== '') {
+            $parts = [
+                'i.invoicenum LIKE ?',
+                'c.firstname LIKE ?',
+                'c.lastname LIKE ?',
+                'c.email LIKE ?',
+                'c.companyname LIKE ?',
+            ];
+            $conditions[] = '(' . implode(' OR ', $parts) . ')';
+            $like = '%' . $search . '%';
+            $parameters = array_merge($parameters, [$like, $like, $like, $like, $like]);
+        }
+
+        $status = $status === null ? '' : trim($status);
+
+        if ($status !== '') {
+            $conditions[] = 'i.status = ?';
+            $parameters[] = $status;
+        }
+
+        $clause = $conditions === [] ? '' : ' WHERE ' . implode(' AND ', $conditions);
+
+        return [$clause, $parameters];
+    }
+
+    public function findInvoice(int $id): ?array
+    {
+        $row = $this->one('SELECT * FROM tblinvoices WHERE id = ?', [$id]);
+
+        return $row ? SchemaMap::toCanonical(self::INVOICES, $row) : null;
+    }
+
+    public function invoiceItems(int $invoiceId): array
+    {
+        $rows = $this->all(
+            'SELECT * FROM tblinvoiceitems WHERE invoiceid = ? ORDER BY id',
+            [$invoiceId]
+        );
+
+        return array_map(
+            fn (array $row): array => SchemaMap::toCanonical(self::INVOICE_ITEMS, $row),
+            $rows
+        );
+    }
+
+    // ─── Orders ─────────────────────────────────────────────────────────────
+
+    public function countOrders(?string $status = null, ?string $search = null): int
+    {
+        return $this->count(self::ORDERS, $search, ['ordernum'], $status);
+    }
+
+    public function listOrders(
+        ?string $status,
+        ?string $search,
+        int $limit,
+        int $offset
+    ): array {
+        [$where] = $this->whereClause($search, ['ordernum'], $status);
+
+        $sql = 'SELECT * FROM tblorders' . $where
+            . ' ORDER BY id DESC LIMIT ' . $this->int($limit)
+            . ' OFFSET ' . $this->int($offset);
+
+        return $this->rows($sql, $search, self::ORDERS, ['ordernum'], $status);
+    }
+
+    public function findOrder(int $id): ?array
+    {
+        $row = $this->one('SELECT * FROM tblorders WHERE id = ?', [$id]);
+
+        return $row ? SchemaMap::toCanonical(self::ORDERS, $row) : null;
+    }
+
+    // ─── Tickets ────────────────────────────────────────────────────────────
+
+    public function countTickets(?string $status = null, ?string $search = null): int
+    {
+        return $this->count(self::TICKETS, $search, ['title', 'tid', 'name', 'email'], $status);
+    }
+
+    public function listTickets(
+        ?string $status,
+        ?string $search,
+        int $limit,
+        int $offset
+    ): array {
+        [$where] = $this->whereClause($search, ['title', 'tid', 'name', 'email'], $status);
+
+        $sql = 'SELECT * FROM tbltickets' . $where
+            . ' ORDER BY id DESC LIMIT ' . $this->int($limit)
+            . ' OFFSET ' . $this->int($offset);
+
+        return $this->rows($sql, $search, self::TICKETS, ['title', 'tid', 'name', 'email'], $status);
+    }
+
+    public function findTicket(int $id): ?array
+    {
+        $row = $this->one('SELECT * FROM tbltickets WHERE id = ?', [$id]);
+
+        return $row ? SchemaMap::toCanonical(self::TICKETS, $row) : null;
+    }
+
+    public function ticketReplies(int $ticketId): array
+    {
+        $rows = $this->all(
+            'SELECT * FROM tblticketreplies WHERE tid = ? ORDER BY date, id',
+            [$ticketId]
+        );
+
+        return array_map(
+            fn (array $row): array => SchemaMap::toCanonical(self::TICKET_REPLIES, $row),
+            $rows
+        );
+    }
+
+    // ─── Domains ────────────────────────────────────────────────────────────
+
+    public function countDomains(?string $search = null): int
+    {
+        return $this->count(self::DOMAINS, $search, ['domain', 'registrar']);
+    }
+
+    public function listDomains(?string $search, int $limit, int $offset): array
+    {
+        [$where] = $this->whereClause($search, ['domain', 'registrar'], null);
+
+        $sql = 'SELECT * FROM tbldomains' . $where
+            . ' ORDER BY id DESC LIMIT ' . $this->int($limit)
+            . ' OFFSET ' . $this->int($offset);
+
+        return $this->rows($sql, $search, self::DOMAINS, ['domain', 'registrar']);
+    }
+
+    /**
+     * Distinct registrars for the dropdown.
+     *
+     * @return list<string>
+     */
+    public function getRegistrars(): array
+    {
+        $rows = $this->all("SELECT DISTINCT registrar FROM tbldomains WHERE registrar <> '' ORDER BY registrar");
+        return array_map(fn (array $r): string => (string)$r['registrar'], $rows);
+    }
+
+    public function findDomain(int $id): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM tbldomains WHERE id = ?');
+        $stmt->execute([$id]);
+
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($row === false) {
+            return null;
+        }
+
+        return SchemaMap::toCanonical(self::DOMAINS, $row);
+    }
+
+    public function updateDomain(int $id, array $data): bool
+    {
+        $real = SchemaMap::toReal(self::DOMAINS, $data);
+
+        if ($real === []) {
+            return false;
+        }
+
+        $set = implode(', ', array_map(fn (string $c): string => "`$c` = :$c", array_keys($real)));
+        $real['id'] = $id;
+
+        $stmt = $this->pdo->prepare("UPDATE tbldomains SET $set WHERE id = :id");
+
+        return $stmt->execute($real);
+    }
+
+    // ─── Affiliates ─────────────────────────────────────────────────────────
+
+    public function countAffiliates(): int
+    {
+        return (int)$this->scalar('SELECT COUNT(*) FROM tblaffiliates');
+    }
+
+    public function listAffiliates(int $limit, int $offset): array
+    {
+        // The affiliate's name and e-mail live in the client row: in
+        // WHMCS 5.3.9 the affiliate table has only the link.
+        $rows = $this->all(
+            'SELECT a.*, c.firstname, c.lastname, c.email AS clientemail '
+            . 'FROM tblaffiliates a LEFT JOIN tblclients c ON c.id = a.clientid '
+            . 'ORDER BY a.id DESC LIMIT ' . $this->int($limit)
+            . ' OFFSET ' . $this->int($offset)
+        );
+
+        return array_map(
+            fn (array $row): array => SchemaMap::toCanonical(self::AFFILIATES, $row),
+            $rows
+        );
+    }
+
+    // ─── The global search ──────────────────────────────────────────────────
+
+    public function globalSearch(string $term, int $limit = 10): array
+    {
+        $term = trim($term);
+
+        if ($term === '') {
+            return ['clients' => [], 'invoices' => [], 'tickets' => [], 'domains' => [], 'orders' => []];
+        }
+
+        $like = '%' . $term . '%';
+        $limit = $this->int($limit);
+
+        $clients = $this->all(
+            'SELECT * FROM tblclients WHERE firstname LIKE ? OR lastname LIKE ? '
+            . 'OR email LIKE ? OR companyname LIKE ? ORDER BY id DESC LIMIT ' . $limit,
+            [$like, $like, $like, $like]
+        );
+
+        $invoices = $this->all(
+            'SELECT * FROM tblinvoices WHERE invoicenum LIKE ? ORDER BY id DESC LIMIT ' . $limit,
+            [$like]
+        );
+
+        $tickets = $this->all(
+            'SELECT * FROM tbltickets WHERE title LIKE ? OR tid LIKE ? OR email LIKE ? '
+            . 'ORDER BY id DESC LIMIT ' . $limit,
+            [$like, $like, $like]
+        );
+
+        $domains = $this->all(
+            'SELECT * FROM tbldomains WHERE domain LIKE ? ORDER BY id DESC LIMIT ' . $limit,
+            [$like]
+        );
+
+        $orders = $this->all(
+            'SELECT * FROM tblorders WHERE ordernum LIKE ? ORDER BY id DESC LIMIT ' . $limit,
+            [$like]
+        );
+
+        return [
+            'clients' => array_map(
+                fn (array $row): array => SchemaMap::toCanonical(self::CLIENTS, $row),
+                $clients
+            ),
+            'invoices' => array_map(
+                fn (array $row): array => SchemaMap::toCanonical(self::INVOICES, $row),
+                $invoices
+            ),
+            'tickets' => array_map(
+                fn (array $row): array => SchemaMap::toCanonical(self::TICKETS, $row),
+                $tickets
+            ),
+            'domains' => array_map(
+                fn (array $row): array => SchemaMap::toCanonical(self::DOMAINS, $row),
+                $domains
+            ),
+            'orders' => array_map(
+                fn (array $row): array => SchemaMap::toCanonical(self::ORDERS, $row),
+                $orders
+            ),
+        ];
+    }
+
+    // ─── The configuration ──────────────────────────────────────────────────
+
+    public function configuration(string $prefix = ''): array
+    {
+        $sql = 'SELECT setting, value FROM tblconfiguration';
+
+        $parameters = [];
+        if ($prefix !== '') {
+            $sql .= ' WHERE setting LIKE ?';
+            $parameters[] = $prefix . '%';
+        }
+
+        $sql .= ' ORDER BY setting';
+
+        $rows = $this->all($sql, $parameters);
+
+        return array_map(
+            fn (array $row): array => [
+                'setting' => (string)$row['setting'],
+                'value' => (string)$row['value'],
+            ],
+            $rows
+        );
+    }
+
+    public function configurationValue(string $setting): ?string
+    {
+        $row = $this->one('SELECT value FROM tblconfiguration WHERE setting = ?', [$setting]);
+
+        return $row === null ? null : (string)$row['value'];
+    }
+
+    // ─── The plumbing ───────────────────────────────────────────────────────
+
+    /**
+     * The `WHERE` of a list: the search **and** the status filter.
+     *
+     * The two are composed into one clause, because a filter without a
+     * search has to produce a `WHERE` of its own — an `AND` without a
+     * `WHERE` is a syntax error.
+     *
+     * The term is never concatenated: it is a bound parameter, and the
+     * columns are a constant list from this class.
+     *
+     * @param list<string> $columns
+     *
+     * @return array{0: string, 1: list<string>} the clause and its parameters
+     */
+    private function whereClause(?string $search, array $columns, ?string $status): array
+    {
+        $conditions = [];
+        $parameters = [];
+
+        $search = $search === null ? '' : trim($search);
+
+        if ($search !== '') {
+            $parts = [];
+            foreach ($columns as $column) {
+                $parts[] = sprintf('%s LIKE ?', $column);
+                $parameters[] = '%' . $search . '%';
+            }
+
+            $conditions[] = '(' . implode(' OR ', $parts) . ')';
+        }
+
+        $status = $status === null ? '' : trim($status);
+
+        if ($status !== '') {
+            $conditions[] = 'status = ?';
+            $parameters[] = $status;
+        }
+
+        $clause = $conditions === [] ? '' : ' WHERE ' . implode(' AND ', $conditions);
+
+        return [$clause, $parameters];
+    }
+
+    /**
+     * The number of rows that match.
+     */
+    private function count(string $table, ?string $search, array $columns, ?string $status = null): int
+    {
+        [$where, $parameters] = $this->whereClause($search, $columns, $status);
+
+        return (int)$this->scalar('SELECT COUNT(*) FROM ' . $table . $where, $parameters);
+    }
+
+    /**
+     * The rows, in the canonical shape.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function rows(
+        string $sql,
+        ?string $search,
+        string $table,
+        array $columns,
+        ?string $status = null
+    ): array {
+        [, $parameters] = $this->whereClause($search, $columns, $status);
+
+        $rows = $this->all($sql, $parameters);
+
+        return array_map(
+            fn (array $row): array => SchemaMap::toCanonical($table, $row),
+            $rows
+        );
+    }
+
+    /**
+     * @param list<mixed> $parameters
+     */
+    private function all(string $sql, array $parameters = []): array
+    {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($parameters);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * @param list<mixed> $parameters
+     * @return array<string, mixed>|null
+     */
+    private function one(string $sql, array $parameters = []): ?array
+    {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($parameters);
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * @param list<mixed> $parameters
+     */
+    private function scalar(string $sql, array $parameters = []): int|string|null
+    {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($parameters);
+
+        $value = $stmt->fetchColumn();
+
+        return $value === false ? null : $value;
+    }
+
+    /**
+     * An integer, for the `LIMIT` and the `OFFSET`.
+     */
+    private function int(int $value): int
+    {
+        return max(0, $value);
+    }
+}
