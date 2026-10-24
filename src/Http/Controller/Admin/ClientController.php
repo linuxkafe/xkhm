@@ -630,6 +630,30 @@ class ClientController extends AdminController
             . '<a class="btn btn-primary" href="/admin/clients.php?id=' . $id . '&action=addservice">Associar um serviço</a>'
             . '</div>';
 
+        // Client-side search for sections with more than 5 rows.
+        $body .= '<script>
+        (function () {
+            document.querySelectorAll(".admin-tab-panel").forEach(function (panel) {
+                var table = panel.querySelector("table");
+                if (!table) return;
+                var rows = table.querySelectorAll("tbody tr");
+                if (rows.length <= 5) return;
+                var input = document.createElement("input");
+                input.type = "search";
+                input.placeholder = "Pesquisar nesta secção…";
+                input.className = "form-control";
+                input.style.marginBottom = "0.5rem";
+                table.parentNode.insertBefore(input, table);
+                input.addEventListener("input", function () {
+                    var q = input.value.toLowerCase();
+                    rows.forEach(function (row) {
+                        row.style.display = row.textContent.toLowerCase().indexOf(q) !== -1 ? "" : "none";
+                    });
+                });
+            });
+        })();
+        </script>';
+
         return $this->render(
             $response,
             sprintf('%s %s', $client['firstname'], $client['lastname']),

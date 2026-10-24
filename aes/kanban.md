@@ -78,7 +78,7 @@ xkhm is a **fresh reimplementation**, not a continuation of the reconstruction. 
 | T053 | Tabelas mobile, auto-search, sidebar colapsível | high | done |
 | T054 | Hamburger menu, tabela full width, sem faturas no associar | high | done |
 | T055 | Edição do domínio (estado, expiração, registar/interligação) | high | done |
-| T056 | Detalhe do cliente: tabs, billing, domínio editável, search/pagination | high | pending |
+| T056 | Detalhe do cliente: tabs, billing, domínio editável, search/pagination | high | done | [T056-verify.md](aes/tickets/T056-verify.md) |
 | T057 | Conversão para plugin WordPress + importação WHMCS | high | done | [T057-verify.md](aes/tickets/T057-verify.md) |
 
 > **Note on numbering.** T020 was originally reserved for "Performance & load
