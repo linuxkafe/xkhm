@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       XKHM – WHMCS Reimplementation
  * Plugin URI:        https://linuxkafe.com/xkhm
- * Description:       Substitui a área de cliente WHMCS pela interface Flutter xkhm e expõe APIs compatíveis.
+ * Description:       XKHM - Hosting Manager Plugin based on WHMCS features. Independent reimplementation of WHMCS.
  * Version:           0.1.0
  * Requires at least: 6.0
  * Requires PHP:      8.2
