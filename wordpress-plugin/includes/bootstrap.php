@@ -5,11 +5,11 @@
  */
 defined('ABSPATH') || exit;
 
-// Constantes de BD – podem ser sobrescritas em wp-config.php (opcional)
-defined('XKHM_DB_HOST')     || define('XKHM_DB_HOST',     getenv('XKHM_DB_HOST')     ?: 'localhost');
-defined('XKHM_DB_NAME')     || define('XKHM_DB_NAME',     getenv('XKHM_DB_NAME')     ?: 'linuxkonect');
-defined('XKHM_DB_USER')     || define('XKHM_DB_USER',     getenv('XKHM_DB_USER')     ?: 'linuxkonect');
-defined('XKHM_DB_PASSWORD') || define('XKHM_DB_PASSWORD', getenv('XKHM_DB_PASSWORD') ?: '');
+// Constantes de BD – por defeito usa a BD do WordPress
+defined('XKHM_DB_HOST')     || define('XKHM_DB_HOST',     defined('DB_HOST') ? DB_HOST : (getenv('XKHM_DB_HOST') ?: 'localhost'));
+defined('XKHM_DB_NAME')     || define('XKHM_DB_NAME',     defined('DB_NAME') ? DB_NAME : (getenv('XKHM_DB_NAME') ?: 'wordpress'));
+defined('XKHM_DB_USER')     || define('XKHM_DB_USER',     defined('DB_USER') ? DB_USER : (getenv('XKHM_DB_USER') ?: 'root'));
+defined('XKHM_DB_PASSWORD') || define('XKHM_DB_PASSWORD', defined('DB_PASSWORD') ? DB_PASSWORD : (getenv('XKHM_DB_PASSWORD') ?: ''));
 defined('XKHM_DB_PREFIX')   || define('XKHM_DB_PREFIX',   'tbl'); // prefixo WHMCS
 
 // Configuração partilhada (reutiliza Xkhm\Config)

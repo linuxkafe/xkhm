@@ -1,8 +1,6 @@
 <?php
 /**
  * Integra o painel de administração xkhm no wp-admin.
- *
- * Inclui a aplicação Slim em modo de captura para obter o HTML.
  */
 defined('ABSPATH') || exit;
 
@@ -23,7 +21,6 @@ function xkhm_render_xkhm_panel(): void
     $_SESSION['admin_name'] = $wpUser->display_name ?: $wpUser->user_login;
     $_SESSION['admin_email'] = $wpUser->user_email;
 
-    // Determina o path
     $section = isset($_GET['section']) ? sanitize_text_field($_GET['section']) : '';
     if ($section !== '' && $section !== 'dashboard') {
         $path = '/admin/' . $section . '.php';
@@ -40,7 +37,7 @@ function xkhm_render_xkhm_panel(): void
     $_SERVER['REQUEST_URI'] = $path;
     $_SERVER['REQUEST_METHOD'] = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-    // Propaga credenciais de BD
+    // Propaga credenciais de BD (usa a BD do WordPress por defeito)
     if (function_exists('xkhm_db_config')) {
         $cfg = xkhm_db_config();
         $pw = $cfg['password'] ?? '';
@@ -66,7 +63,6 @@ function xkhm_render_xkhm_panel(): void
         return;
     }
 
-    // Inclui o Slim app
     include $publicIndex;
 
     if (!isset($app) || !($app instanceof \Slim\App)) {
@@ -74,44 +70,18 @@ function xkhm_render_xkhm_panel(): void
         return;
     }
 
-    // Cria request PSR-7
     $factory = new \Nyholm\Psr7\Factory\Psr17Factory();
     $creator = new \Nyholm\Psr7Server\ServerRequestCreator($factory, $factory, $factory, $factory);
     $request = $creator->fromGlobals();
     $uri = $factory->createUri($_SERVER['REQUEST_URI'] ?? '/admin');
     $request = $request->withUri($uri);
 
-    // Executa o handler
     try {
         $response = $app->handle($request);
+        $body = (string)$response->getBody();
     } catch (\Throwable $e) {
         echo '<div class="wrap"><h1>xkhm</h1><p>Erro: ' . esc_html($e->getMessage()) . '</p></div>';
         return;
-    }
-
-    $status = $response->getStatusCode();
-    $body = (string)$response->getBody();
-
-    // Segue redirects internamente
-    if ($status >= 300 && $status < 400) {
-        $location = $response->getHeaderLine('Location');
-        if ($location !== '') {
-            // Resolve relative URL
-            if (strpos($location, 'http') !== 0) {
-                $location = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . $location;
-            }
-            // Fetch the redirected page
-            $_SERVER['REQUEST_URI'] = parse_url($location, PHP_URL_PATH) ?: '/admin';
-            $uri = $factory->createUri($_SERVER['REQUEST_URI']);
-            $request = $request->withUri($uri);
-            try {
-                $response = $app->handle($request);
-                $body = (string)$response->getBody();
-            } catch (\Throwable $e) {
-                echo '<div class="wrap"><h1>xkhm</h1><p>Erro: ' . esc_html($e->getMessage()) . '</p></div>';
-                return;
-            }
-        }
     }
 
     if (trim($body) === '') {
@@ -142,6 +112,18 @@ function xkhm_render_xkhm_panel(): void
 }
 
 add_action('admin_menu', function () {
+    $sections = [
+        'dashboard' => 'Painel',
+        'clients'   => 'Clientes',
+        'invoices'  => 'Faturas',
+        'orders'    => 'Pedidos',
+        'tickets'   => 'Tickets',
+        'domains'   => 'Domínios',
+        'services'  => 'Serviços',
+        'catalogue' => 'Catálogo',
+        'servers'   => 'Servidores',
+    ];
+
     add_menu_page(
         'xkhm',
         'xkhm',
@@ -150,5 +132,36 @@ add_action('admin_menu', function () {
         'xkhm_render_xkhm_panel',
         'dashicons-admin-generic',
         30
+    );
+
+    foreach ($sections as $slug => $label) {
+        add_submenu_page(
+            'xkhm-panel',
+            $label,
+            $label,
+            'manage_options',
+            'xkhm-panel&section=' . $slug,
+            'xkhm_render_xkhm_panel'
+        );
+    }
+
+    // Definições
+    add_submenu_page(
+        'xkhm-panel',
+        'Definições',
+        'Definições',
+        'manage_options',
+        'xkhm-settings',
+        'xkhm_settings_page'
+    );
+
+    // Importação WHMCS
+    add_submenu_page(
+        'xkhm-panel',
+        'Importar WHMCS',
+        'Importar WHMCS',
+        'manage_options',
+        'xkhm-import-whmcs',
+        'xkhm_render_import_wizard_page'
     );
 }, 9);
