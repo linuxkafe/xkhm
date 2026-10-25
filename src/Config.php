@@ -127,11 +127,26 @@ class Config
     private function env(string $name): ?string
     {
         $value = getenv($name);
+
+        // WordPress plugin context: fall back to WP constants.
+        if ($value === false || $value === '') {
+            $constMap = [
+                'XKHM_DB_HOST' => 'XKHM_DB_HOST',
+                'XKHM_DB_NAME' => 'XKHM_DB_NAME',
+                'XKHM_DB_USER' => 'XKHM_DB_USER',
+                'XKHM_DB_PASS' => 'XKHM_DB_PASSWORD',
+                'XKHM_DB_PORT' => 'XKHM_DB_PORT',
+            ];
+            if (isset($constMap[$name]) && defined($constMap[$name])) {
+                $value = (string) constant($constMap[$name]);
+            }
+        }
+
         if ($value === false || $value === '') {
             return null;
         }
 
-        return $value;
+        return (string)$value;
     }
 
     public function getCcEncryptionHash(): string

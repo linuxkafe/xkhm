@@ -29,11 +29,14 @@ use Xkhm\Service\AuthService;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
+// Start session if not already started (skip if headers already sent, e.g. in WP admin context)
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_only_cookies', 1);
     session_start();
+} elseif (session_status() === PHP_SESSION_NONE) {
+    // Headers already sent (WP context): session must have been started by WP or manually
+    @session_start();
 }
 
 // Load configuration
@@ -514,5 +517,7 @@ if (defined('XKHM_WP_PLUGIN_ACTIVE') && XKHM_WP_PLUGIN_ACTIVE) {
     }
 }
 
-// Run the app
-$app->run();
+// Run the app (skip if in capture mode for WP admin embedding)
+if (!defined('XKHM_NO_RUN')) {
+    $app->run();
+}

@@ -45,6 +45,9 @@ require_once XKHM_PLUGIN_DIR . 'includes/rewrite.php';
 // Menu de admin + wizard
 require_once XKHM_PLUGIN_DIR . 'includes/admin-menu.php';
 
+// Painel de administração xkhm no wp-admin
+require_once XKHM_PLUGIN_DIR . 'includes/admin-panel.php';
+
 // Comando WP-CLI (carregado apenas se WP_CLI)
 if (defined('WP_CLI') && WP_CLI) {
     require_once XKHM_PLUGIN_DIR . 'includes/cli-import.php';

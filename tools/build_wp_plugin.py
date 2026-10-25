@@ -45,6 +45,9 @@ def main():
     copytree(ROOT / "src", out / "src")
     copytree(ROOT / "public", out / "public")
     copytree(ROOT / "resources", out / "resources")
+    # configuration.php (necessário para Config)
+    if (ROOT / "configuration.php").exists():
+        shutil.copy2(ROOT / "configuration.php", out / "configuration.php")
 
     # 3. vendor (if present)
     vendor = ROOT / "vendor"
