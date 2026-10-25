@@ -89,3 +89,27 @@ function xkhm_container(): Xkhm_Container
 {
     return Xkhm_Container::get();
 }
+
+/**
+ * Cria a ligação PDO partilhada para o painel.
+ */
+function xkhm_admin_pdo(): ?PDO
+{
+    static $pdo = null;
+    if ($pdo !== null) {
+        return $pdo;
+    }
+    $cfg = xkhm_db_config();
+    try {
+        $pdo = new PDO(
+            sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', $cfg['host'], $cfg['port'], $cfg['dbname'], $cfg['charset']),
+            $cfg['user'],
+            $cfg['password'],
+            $cfg['options'] ?? []
+        );
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (\Throwable $e) {
+        return null;
+    }
+    return $pdo;
+}
