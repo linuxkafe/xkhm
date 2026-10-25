@@ -84,6 +84,20 @@ function xkhm_render_xkhm_panel(): void
         return;
     }
 
+    // Segue redirects (302) do Slim app
+    $status = $response->getStatusCode();
+    if ($status >= 300 && $status < 400) {
+        $location = $response->getHeaderLine('Location');
+        if ($location !== '') {
+            $location = preg_replace('/^\\/admin\\/([a-z]+)\\.php(?:\\?(.*))?$/', 'admin.php?page=xkhm-panel&section=$1&$2', $location);
+            if (strpos($location, 'admin.php') === false) {
+                $location = 'admin.php?page=xkhm-panel&section=dashboard';
+            }
+            echo '<script>window.location.href="' . esc_js($location) . '";</script>';
+            return;
+        }
+    }
+
     if (trim($body) === '') {
         echo '<div class="wrap"><h1>xkhm</h1><p>O painel não produziu saída.</p></div>';
         return;
@@ -91,15 +105,16 @@ function xkhm_render_xkhm_panel(): void
 
     // Reescreve links /admin/xxx.php para o WP admin
     $body = preg_replace_callback(
-        '/href="\/admin\/([a-z]+)\.php(?:\?([^"]*))?"/',
+        '/(href|action)="\/admin\/([a-z]+)\.php(?:\?([^"]*))?"/',
         function ($m) {
-            $section = $m[1];
-            $qs = isset($m[2]) ? $m[2] : '';
+            $attr = $m[1];
+            $section = $m[2];
+            $qs = isset($m[3]) ? $m[3] : '';
             $url = 'admin.php?page=xkhm-panel&section=' . $section;
             if ($qs !== '') {
                 $url .= '&' . $qs;
             }
-            return 'href="' . $url . '"';
+            return $attr . '="' . $url . '"';
         },
         $body
     );
