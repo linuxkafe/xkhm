@@ -216,6 +216,18 @@ final class ImportService
      */
     public function createSchema(): void
     {
+        if (function_exists('xkhm_db_config')) {
+            $cfg = xkhm_db_config();
+            $mysqli = new \mysqli($cfg['host'], $cfg['user'], $cfg['password'], $cfg['dbname'], (int)$cfg['port']);
+            if ($mysqli->connect_error) {
+                throw new \RuntimeException('DB connection failed: ' . $mysqli->connect_error);
+            }
+            foreach ($this->whmcs53Tables() as $table) {
+                $mysqli->query("CREATE TABLE IF NOT EXISTS `{$table}` (id INT AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            }
+            $mysqli->close();
+            return;
+        }
         $pdo = $this->getPdo();
         foreach ($this->whmcs53Tables() as $table) {
             $pdo->exec("CREATE TABLE IF NOT EXISTS `{$table}` (id INT AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
@@ -227,6 +239,18 @@ final class ImportService
      */
     public function seedDemoData(): void
     {
+        if (function_exists('xkhm_db_config')) {
+            $cfg = xkhm_db_config();
+            $mysqli = new \mysqli($cfg['host'], $cfg['user'], $cfg['password'], $cfg['dbname'], (int)$cfg['port']);
+            if ($mysqli->connect_error) {
+                return;
+            }
+            $mysqli->query("INSERT IGNORE INTO tblclients (id, firstname, lastname, email, password, status, datecreated) VALUES (1, 'Demo', 'Cliente', 'demo@example.com', MD5('demo'), 'Active', CURDATE())");
+            $mysqli->query("INSERT IGNORE INTO tbladmins (id, username, password, fullname, email) VALUES (1, 'admin', MD5('admin'), 'Administrador', 'admin@example.com')");
+            $mysqli->query("INSERT IGNORE INTO tblconfiguration (setting, value) VALUES ('CompanyName', 'Demo Company')");
+            $mysqli->close();
+            return;
+        }
         $pdo = $this->getPdo();
         $pdo->exec("INSERT IGNORE INTO tblclients (id, firstname, lastname, email, password, status, datecreated) VALUES (1, 'Demo', 'Cliente', 'demo@example.com', MD5('demo'), 'Active', CURDATE())");
         $pdo->exec("INSERT IGNORE INTO tbladmins (id, username, password, fullname, email) VALUES (1, 'admin', MD5('admin'), 'Administrador', 'admin@example.com')");
@@ -235,6 +259,18 @@ final class ImportService
 
     private function getPdo(): \PDO
     {
+        if (function_exists('xkhm_db_config')) {
+            $cfg = xkhm_db_config();
+            $dbConfig = [
+                'host'     => $cfg['host'],
+                'port'     => $cfg['port'],
+                'name'     => $cfg['dbname'],
+                'user'     => $cfg['user'],
+                'pass'     => $cfg['password'],
+                'charset'  => $cfg['charset'] ?? 'utf8mb4',
+            ];
+            return \Xkhm\Database\Connection::get($dbConfig);
+        }
         $config = new \Xkhm\Config();
         return \Xkhm\Database\Connection::get($config->getDbConfig());
     }

@@ -23,12 +23,18 @@ final class Connection
                 $config['charset']
             );
 
-            self::$connection = new PDO($dsn, $config['user'], $config['pass'], [
+            $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
-                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES {$config['charset']}",
-            ]);
+            ];
+            if (extension_loaded('pdo_mysql')) {
+                $constName = 'PDO::MYSQL_ATTR_INIT_COMMAND';
+                if (defined($constName)) {
+                    $options[constant($constName)] = "SET NAMES {$config['charset']}";
+                }
+            }
+            self::$connection = new PDO($dsn, $config['user'], $config['pass'], $options);
         }
 
         return self::$connection;

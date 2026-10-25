@@ -55,9 +55,19 @@ if (defined('WP_CLI') && WP_CLI) {
 }
 
 /**
- * Ativação: flush rewrite rules.
+ * Ativação: cria o esquema da BD e flush rewrite rules.
  */
 register_activation_hook(__FILE__, function () {
+    // Cria o esquema (91 tabelas tbl*) se não existirem
+    if (class_exists('Xkhm\\Service\\ImportService')) {
+        try {
+            $service = new \Xkhm\Service\ImportService();
+            $service->createSchema();
+        } catch (\Throwable $e) {
+            // Regista o erro mas não impede a activação
+            error_log('XKHM activation: erro ao criar esquema: ' . $e->getMessage());
+        }
+    }
     flush_rewrite_rules();
 });
 
