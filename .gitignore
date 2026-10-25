@@ -49,3 +49,7 @@ __pycache__/
 *.pyc
 build/
 storage/cron.log
+
+# AES project management
+.aes/
+aes/
