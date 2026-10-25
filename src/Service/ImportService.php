@@ -216,21 +216,54 @@ final class ImportService
      */
     public function createSchema(): void
     {
+        // Procura o ficheiro de esquema
+        $schemaFile = null;
+        $candidates = [
+            (defined('XKHM_PLUGIN_DIR') ? XKHM_PLUGIN_DIR . 'resources/schema/whmcs-schema.sql' : null),
+            dirname(__DIR__, 2) . '/resources/schema/whmcs-schema.sql',
+            __DIR__ . '/../../resources/schema/whmcs-schema.sql',
+        ];
+        foreach ($candidates as $c) {
+            if ($c && file_exists($c)) {
+                $schemaFile = $c;
+                break;
+            }
+        }
+
         if (function_exists('xkhm_db_config')) {
             $cfg = xkhm_db_config();
             $mysqli = new \mysqli($cfg['host'], $cfg['user'], $cfg['password'], $cfg['dbname'], (int)$cfg['port']);
             if ($mysqli->connect_error) {
                 throw new \RuntimeException('DB connection failed: ' . $mysqli->connect_error);
             }
-            foreach ($this->whmcs53Tables() as $table) {
-                $mysqli->query("CREATE TABLE IF NOT EXISTS `{$table}` (id INT AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            if ($schemaFile) {
+                $sql = file_get_contents($schemaFile);
+                // Remove CREATE DATABASE / USE statements
+                $sql = preg_replace('/CREATE DATABASE.*?;/is', '', $sql);
+                $sql = preg_replace('/USE .*?;/is', '', $sql);
+                $mysqli->multi_query($sql);
+                while ($mysqli->more_results() && $mysqli->next_result()) {
+                    // consume
+                }
+            } else {
+                foreach ($this->whmcs53Tables() as $table) {
+                    $mysqli->query("CREATE TABLE IF NOT EXISTS `{$table}` (id INT AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+                }
             }
             $mysqli->close();
             return;
         }
+
         $pdo = $this->getPdo();
-        foreach ($this->whmcs53Tables() as $table) {
-            $pdo->exec("CREATE TABLE IF NOT EXISTS `{$table}` (id INT AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        if ($schemaFile) {
+            $sql = file_get_contents($schemaFile);
+            $sql = preg_replace('/CREATE DATABASE.*?;/is', '', $sql);
+            $sql = preg_replace('/USE .*?;/is', '', $sql);
+            $pdo->exec($sql);
+        } else {
+            foreach ($this->whmcs53Tables() as $table) {
+                $pdo->exec("CREATE TABLE IF NOT EXISTS `{$table}` (id INT AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            }
         }
     }
 
