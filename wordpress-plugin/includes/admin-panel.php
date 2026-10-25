@@ -2,8 +2,7 @@
 /**
  * Integra o painel de administração xkhm no wp-admin.
  *
- * Inclui a aplicação Slim em modo de captura (XKHM_NO_RUN) para
- * obter o HTML do painel sem enviar headers.
+ * Inclui a aplicação Slim em modo de captura para obter o HTML.
  */
 defined('ABSPATH') || exit;
 
@@ -24,6 +23,7 @@ function xkhm_render_xkhm_panel(): void
     $_SESSION['admin_name'] = $wpUser->display_name ?: $wpUser->user_login;
     $_SESSION['admin_email'] = $wpUser->user_email;
 
+    // Determina o path
     $section = isset($_GET['section']) ? sanitize_text_field($_GET['section']) : '';
     if ($section !== '' && $section !== 'dashboard') {
         $path = '/admin/' . $section . '.php';
@@ -66,7 +66,7 @@ function xkhm_render_xkhm_panel(): void
         return;
     }
 
-    // Inclui o Slim app (não executa $app->run() devido a XKHM_NO_RUN)
+    // Inclui o Slim app
     include $publicIndex;
 
     if (!isset($app) || !($app instanceof \Slim\App)) {
@@ -81,19 +81,62 @@ function xkhm_render_xkhm_panel(): void
     $uri = $factory->createUri($_SERVER['REQUEST_URI'] ?? '/admin');
     $request = $request->withUri($uri);
 
-    // Executa o handler e obtém a resposta
+    // Executa o handler
     try {
         $response = $app->handle($request);
-        $body = (string)$response->getBody();
     } catch (\Throwable $e) {
         echo '<div class="wrap"><h1>xkhm</h1><p>Erro: ' . esc_html($e->getMessage()) . '</p></div>';
         return;
+    }
+
+    $status = $response->getStatusCode();
+    $body = (string)$response->getBody();
+
+    // Segue redirects internamente
+    if ($status >= 300 && $status < 400) {
+        $location = $response->getHeaderLine('Location');
+        if ($location !== '') {
+            // Resolve relative URL
+            if (strpos($location, 'http') !== 0) {
+                $location = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . $location;
+            }
+            // Fetch the redirected page
+            $_SERVER['REQUEST_URI'] = parse_url($location, PHP_URL_PATH) ?: '/admin';
+            $uri = $factory->createUri($_SERVER['REQUEST_URI']);
+            $request = $request->withUri($uri);
+            try {
+                $response = $app->handle($request);
+                $body = (string)$response->getBody();
+            } catch (\Throwable $e) {
+                echo '<div class="wrap"><h1>xkhm</h1><p>Erro: ' . esc_html($e->getMessage()) . '</p></div>';
+                return;
+            }
+        }
     }
 
     if (trim($body) === '') {
         echo '<div class="wrap"><h1>xkhm</h1><p>O painel não produziu saída.</p></div>';
         return;
     }
+
+    // Reescreve links /admin/xxx.php para o WP admin
+    $body = preg_replace_callback(
+        '/href="\/admin\/([a-z]+)\.php(?:\?([^"]*))?"/',
+        function ($m) {
+            $section = $m[1];
+            $qs = isset($m[2]) ? $m[2] : '';
+            $url = 'admin.php?page=xkhm-panel&section=' . $section;
+            if ($qs !== '') {
+                $url .= '&' . $qs;
+            }
+            return 'href="' . $url . '"';
+        },
+        $body
+    );
+
+    // Enqueue CSS do xkhm
+    echo '<link rel="stylesheet" href="' . esc_url(XKHM_PLUGIN_URL . 'public/templates/default/css/whmcs.css') . '" />';
+    echo '<link rel="stylesheet" href="' . esc_url(XKHM_PLUGIN_URL . 'public/templates/default/css/tokens.css') . '" />';
 
     echo $body;
 }

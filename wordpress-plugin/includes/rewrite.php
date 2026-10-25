@@ -29,6 +29,17 @@ add_action('init', function () {
         'index.php?xkhm_api_legacy=1',
         'top'
     );
+    // /xkhm-admin e /xkhm-admin/* (painel xkhm)
+    add_rewrite_rule(
+        '^xkhm-admin/?(.*)$',
+        'index.php?xkhm_admin=$matches[1]',
+        'top'
+    );
+});
+
+add_filter('query_vars', function ($vars) {
+    $vars[] = 'xkhm_admin';
+    return $vars;
 });
 
 /**
@@ -45,6 +56,17 @@ add_action('template_redirect', function () {
     // API legada
     if (get_query_var('xkhm_api_legacy')) {
         xkhm_dispatch_api_legacy();
+        exit;
+    }
+
+    // Painel admin xkhm
+    if (get_query_var('xkhm_admin') !== false && get_query_var('xkhm_admin') !== '') {
+        xkhm_dispatch_admin(get_query_var('xkhm_admin'));
+        exit;
+    }
+    // Handle /admin (empty path)
+    if (isset($_GET['xkhm_admin'])) {
+        xkhm_dispatch_admin('');
         exit;
     }
 });
@@ -138,6 +160,97 @@ function xkhm_dispatch_api_legacy(): void
             header("{$name}: {$value}", false, $response->getStatusCode());
         }
     }
+    echo $response->getBody();
+}
+
+/**
+ * Despacha o painel de administração xkhm.
+ */
+function xkhm_dispatch_admin(string $path): void
+{
+    // Define XKHM_WP_PLUGIN_ACTIVE para o WpAdminAuthMiddleware
+    if (!defined('XKHM_WP_PLUGIN_ACTIVE')) {
+        define('XKHM_WP_PLUGIN_ACTIVE', true);
+    }
+
+    // Define XKHM_NO_RUN para não executar $app->run()
+    if (!defined('XKHM_NO_RUN')) {
+        define('XKHM_NO_RUN', true);
+    }
+
+    // Propaga credenciais de BD
+    if (function_exists('xkhm_db_config')) {
+        $cfg = xkhm_db_config();
+        $pw = $cfg['password'] ?? '';
+        putenv('DB_PASSWORD=' . $pw);
+        putenv('XKHM_DB_PASS=' . $pw);
+        $_ENV['DB_PASSWORD'] = $pw;
+        $_ENV['XKHM_DB_PASS'] = $pw;
+        $_SERVER['DB_PASSWORD'] = $pw;
+        $_SERVER['XKHM_DB_PASS'] = $pw;
+    }
+
+    // Ajusta REQUEST_URI
+    $adminPath = '/admin';
+    if ($path !== '' && $path !== null) {
+        $adminPath = '/admin/' . ltrim($path, '/');
+    }
+    if (!empty($_GET) && !isset($_GET['xkhm_admin'])) {
+        $adminPath .= '?' . http_build_query($_GET);
+    }
+    $_SERVER['REQUEST_URI'] = $adminPath;
+    $_SERVER['REQUEST_METHOD'] = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+    // Sessão
+    if (!isset($_SESSION)) {
+        @session_start();
+    }
+    if (function_exists('wp_get_current_user')) {
+        $wpUser = wp_get_current_user();
+        $_SESSION['admin_id'] = $wpUser->ID;
+        $_SESSION['admin_name'] = $wpUser->display_name ?: $wpUser->user_login;
+        $_SESSION['admin_email'] = $wpUser->user_email;
+    }
+
+    $publicIndex = XKHM_PLUGIN_DIR . 'public/index.php';
+    if (!file_exists($publicIndex)) {
+        http_response_code(500);
+        echo 'public/index.php não encontrado';
+        return;
+    }
+
+    include $publicIndex;
+
+    if (!isset($app) || !($app instanceof \Slim\App)) {
+        http_response_code(500);
+        echo 'App Slim não inicializada';
+        return;
+    }
+
+    // Cria request PSR-7
+    $factory = new \Nyholm\Psr7\Factory\Psr17Factory();
+    $creator = new \Nyholm\Psr7Server\ServerRequestCreator($factory, $factory, $factory, $factory);
+    $request = $creator->fromGlobals();
+    $uri = $factory->createUri($_SERVER['REQUEST_URI']);
+    $request = $request->withUri($uri);
+
+    // Executa o handler
+    try {
+        $response = $app->handle($request);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo 'Erro: ' . $e->getMessage();
+        return;
+    }
+
+    // Envia headers
+    http_response_code($response->getStatusCode());
+    foreach ($response->getHeaders() as $name => $values) {
+        foreach ($values as $value) {
+            header("{$name}: {$value}", false);
+        }
+    }
+
     echo $response->getBody();
 }
 
