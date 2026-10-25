@@ -22,8 +22,14 @@ function xkhm_render_xkhm_panel(): void
     $_SESSION['admin_email'] = $wpUser->user_email;
 
     $section = isset($_GET['section']) ? sanitize_text_field($_GET['section']) : '';
+    // Mapeia secções do menu para rotas do Slim
+    $routeMap = [
+        'catalogue' => 'products',
+        'dashboard' => '',
+    ];
     if ($section !== '' && $section !== 'dashboard') {
-        $path = '/admin/' . $section . '.php';
+        $routeName = $routeMap[$section] ?? $section;
+        $path = '/admin/' . $routeName . '.php';
     } else {
         $path = '/admin';
     }
