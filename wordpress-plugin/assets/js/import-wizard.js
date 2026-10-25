@@ -50,6 +50,43 @@
         const type = $('input[name="source_type"]:checked').val();
         const data = { source_type: type };
 
+        if (type === 'file') {
+            const fileInput = $('input[name="sql_file"]')[0];
+            if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                alert('Seleccione um ficheiro .sql ou .gz');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('action', 'xkhm_upload_sql');
+            formData.append('nonce', nonce);
+            formData.append('sql_file', fileInput.files[0]);
+
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+            }).done(function (resp) {
+                if (resp.success) {
+                    ajax('validate_source', data, function (r) {
+                        if (r.next_step === 'schema') {
+                            showStep('schema');
+                            ajax('validate_schema', {}, function (sr) {
+                                $('#schema-result').html(sr.schema_html);
+                                $('.xkhm-wizard-next[data-next="import"]').prop('disabled', !sr.can_continue);
+                            });
+                        }
+                    });
+                } else {
+                    alert(resp.error || 'Erro no upload');
+                }
+            }).fail(function () {
+                alert('Erro de comunicação com o servidor');
+            });
+            return;
+        }
+
         if (type === 'remote') {
             data.remote_host = $('#remote_host').val();
             data.remote_port = $('#remote_port').val();
@@ -61,7 +98,6 @@
         ajax('validate_source', data, function (resp) {
             if (resp.next_step === 'schema') {
                 showStep('schema');
-                // Dispara validação de esquema automaticamente
                 ajax('validate_schema', {}, function (r) {
                     $('#schema-result').html(r.schema_html);
                     $('.xkhm-wizard-next[data-next="import"]').prop('disabled', !r.can_continue);

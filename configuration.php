@@ -32,7 +32,7 @@ $cfg['cc_encryption_hash'] = (string)(getenv('CC_ENCRYPTION_HASH') ?: '');
 $cfg['templates_compiledir'] = 'templates_c/';
 $cfg['customadminpath'] = 'admin';
 $cfg['license'] = '';
-$cfg['display_errors'] = false;
+$cfg['display_errors'] = true;
 
 $cfg['session_name'] = 'XKHM';
 $cfg['session_lifetime'] = 120;

@@ -9,7 +9,7 @@ defined('ABSPATH') || exit;
  */
 add_action('admin_menu', function () {
     add_management_page(
-        'Importar WHMCS – xkhm',
+        'Importar WHMCS – XKHM',
         'Importar WHMCS',
         'manage_options',
         'xkhm-import-whmcs',
@@ -139,6 +139,35 @@ function xkhm_render_import_wizard_page(): void
 /**
  * AJAX handlers para cada passo.
  */
+add_action('wp_ajax_xkhm_upload_sql', 'xkhm_ajax_upload_sql');
+function xkhm_ajax_upload_sql(): void
+{
+    check_ajax_referer('xkhm_import_wizard', 'nonce');
+
+    if (!isset($_FILES['sql_file']) || $_FILES['sql_file']['error'] !== UPLOAD_ERR_OK) {
+        wp_send_json(['success' => false, 'error' => __('Erro no upload do ficheiro', 'xkhm')]);
+        return;
+    }
+
+    $file = $_FILES['sql_file'];
+    $allowed = ['sql', 'gz'];
+    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowed, true)) {
+        wp_send_json(['success' => false, 'error' => __('Apenas ficheiros .sql ou .gz', 'xkhm')]);
+        return;
+    }
+
+    $uploadDir = wp_upload_dir();
+    $tmpPath = $uploadDir['basedir'] . '/xkhm-import-' . wp_generate_password(12, false) . '.' . $ext;
+    if (!move_uploaded_file($file['tmp_name'], $tmpPath)) {
+        wp_send_json(['success' => false, 'error' => __('Não foi possível guardar o ficheiro', 'xkhm')]);
+        return;
+    }
+
+    set_transient('xkhm_import_sql_tmp', $tmpPath, HOUR_IN_SECONDS);
+    wp_send_json(['success' => true]);
+}
+
 add_action('wp_ajax_xkhm_import_step', 'xkhm_ajax_import_step');
 function xkhm_ajax_import_step(): void
 {

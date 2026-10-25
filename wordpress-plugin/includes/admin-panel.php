@@ -125,8 +125,8 @@ add_action('admin_menu', function () {
     ];
 
     add_menu_page(
-        'xkhm',
-        'xkhm',
+        'XKHM',
+        'XKHM',
         'manage_options',
         'xkhm-panel',
         'xkhm_render_xkhm_panel',
