@@ -130,6 +130,49 @@ add_filter('manage_product_posts_columns', function ($columns) {
     return $columns;
 });
 
+/**
+ * Página de sincronização XKHM ↔ WooCommerce no wp-admin.
+ */
+add_action('admin_menu', function () {
+    add_submenu_page(
+        'xkhm-panel',
+        'Sincronizar WooCommerce',
+        'Sincronizar WC',
+        'manage_options',
+        'xkhm-sync-wc',
+        'xkhm_sync_wc_page'
+    );
+});
+
+function xkhm_sync_wc_page(): void
+{
+    if (isset($_POST['xkhm_sync_nonce']) && wp_verify_nonce($_POST['xkhm_sync_nonce'], 'xkhm_sync')) {
+        $pdo = xkhm_admin_pdo();
+        if ($pdo !== null) {
+            $repo = new \Xkhm\Repository\AdminPanelRepositoryPDO($pdo);
+            $catalogue = new \Xkhm\Repository\CatalogueRepositoryPDO();
+            $clientRepo = new \Xkhm\Repository\ClientRepositoryPDO($pdo);
+            $sync = new \Xkhm\Service\WooCommerceSync($catalogue, $clientRepo, $repo);
+
+            $products = $sync->syncAllProducts();
+            $clients = $sync->syncAllClients();
+
+            echo '<div class="notice notice-success"><p>Sincronização concluída: ' . $products . ' produtos, ' . $clients . ' clientes.</p></div>';
+        }
+    }
+
+    ?>
+    <div class="wrap">
+        <h1>Sincronizar XKHM ↔ WooCommerce</h1>
+        <p>Sincroniza produtos e clientes do XKHM para o WooCommerce.</p>
+        <form method="post">
+            <?php wp_nonce_field('xkhm_sync', 'xkhm_sync_nonce'); ?>
+            <?php submit_button('Sincronizar tudo'); ?>
+        </form>
+    </div>
+    <?php
+}
+
 add_action('manage_product_posts_custom_column', function ($column, $postId) {
     if ($column === 'xkhm_product') {
         $xkhmId = (int)get_post_meta($postId, '_xkhm_product_id', true);
