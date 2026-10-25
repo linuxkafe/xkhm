@@ -211,6 +211,34 @@ final class ImportService
     /**
      * Lista das 94 tabelas WHMCS 5.3.9 (prefixo tbl).
      */
+    /**
+     * Cria o esquema (91 tabelas) na BD actual, sem dados.
+     */
+    public function createSchema(): void
+    {
+        $pdo = $this->getPdo();
+        foreach ($this->whmcs53Tables() as $table) {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `{$table}` (id INT AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        }
+    }
+
+    /**
+     * Popula a BD com dados de demonstração mínimos.
+     */
+    public function seedDemoData(): void
+    {
+        $pdo = $this->getPdo();
+        $pdo->exec("INSERT IGNORE INTO tblclients (id, firstname, lastname, email, password, status, datecreated) VALUES (1, 'Demo', 'Cliente', 'demo@example.com', MD5('demo'), 'Active', CURDATE())");
+        $pdo->exec("INSERT IGNORE INTO tbladmins (id, username, password, fullname, email) VALUES (1, 'admin', MD5('admin'), 'Administrador', 'admin@example.com')");
+        $pdo->exec("INSERT IGNORE INTO tblconfiguration (setting, value) VALUES ('CompanyName', 'Demo Company')");
+    }
+
+    private function getPdo(): \PDO
+    {
+        $config = new \Xkhm\Config();
+        return \Xkhm\Database\Connection::get($config->getDbConfig());
+    }
+
     public function whmcs53Tables(): array
     {
                 return [
