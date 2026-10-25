@@ -28,35 +28,15 @@ if (!class_exists('Xkhm\Config')) {
 
 /**
  * Retorna array de configuração PDO para o xkhm.
- * Lê das opções do WP (definições), constantes ou env.
+ * Usa a base de dados do WordPress (DB_HOST, DB_NAME, etc.).
  */
 function xkhm_db_config(): array
 {
-    $host = '';
-    $port = 0;
-    $name = '';
-    $user = '';
-    $pass = '';
-
-    if (function_exists('get_option')) {
-        $host = get_option('xkhm_db_host', '');
-        $port = (int)get_option('xkhm_db_port', 0);
-        $name = get_option('xkhm_db_name', '');
-        $user = get_option('xkhm_db_user', '');
-        $pass = get_option('xkhm_db_password', '');
-    }
-
-    if ($host === '' && defined('XKHM_DB_HOST')) $host = XKHM_DB_HOST;
-    if ($port === 0 && defined('XKHM_DB_PORT')) $port = (int)XKHM_DB_PORT;
-    if ($name === '' && defined('XKHM_DB_NAME')) $name = XKHM_DB_NAME;
-    if ($user === '' && defined('XKHM_DB_USER')) $user = XKHM_DB_USER;
-    if ($pass === '' && defined('XKHM_DB_PASSWORD')) $pass = XKHM_DB_PASSWORD;
-
-    if ($host === '') $host = getenv('XKHM_DB_HOST') ?: 'localhost';
-    if ($port === 0) $port = (int)(getenv('XKHM_DB_PORT') ?: 3306);
-    if ($name === '') $name = getenv('XKHM_DB_NAME') ?: 'linuxkonect';
-    if ($user === '') $user = getenv('XKHM_DB_USER') ?: 'linuxkonect';
-    if ($pass === '') $pass = getenv('XKHM_DB_PASS') ?: getenv('XKHM_DB_PASSWORD') ?: '';
+    $host = defined('DB_HOST') ? DB_HOST : (getenv('XKHM_DB_HOST') ?: (defined('XKHM_DB_HOST') ? XKHM_DB_HOST : 'localhost'));
+    $name = defined('DB_NAME') ? DB_NAME : (getenv('XKHM_DB_NAME') ?: (defined('XKHM_DB_NAME') ? XKHM_DB_NAME : 'wordpress'));
+    $user = defined('DB_USER') ? DB_USER : (getenv('XKHM_DB_USER') ?: (defined('XKHM_DB_USER') ? XKHM_DB_USER : 'root'));
+    $pass = defined('DB_PASSWORD') ? DB_PASSWORD : (getenv('XKHM_DB_PASSWORD') ?: (defined('XKHM_DB_PASSWORD') ? XKHM_DB_PASSWORD : ''));
+    $port = (int)(getenv('XKHM_DB_PORT') ?: (defined('XKHM_DB_PORT') ? XKHM_DB_PORT : 3306));
 
     return [
         'host'     => $host,

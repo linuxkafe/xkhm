@@ -145,17 +145,7 @@ add_action('admin_menu', function () {
         );
     }
 
-    // Definições
-    add_submenu_page(
-        'xkhm-panel',
-        'Definições',
-        'Definições',
-        'manage_options',
-        'xkhm-settings',
-        'xkhm_settings_page'
-    );
-
-    // Importação WHMCS
+    // Importação WHMCS (da BD original)
     add_submenu_page(
         'xkhm-panel',
         'Importar WHMCS',
