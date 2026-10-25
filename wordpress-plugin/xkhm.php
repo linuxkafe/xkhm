@@ -45,6 +45,9 @@ require_once XKHM_PLUGIN_DIR . 'includes/rewrite.php';
 // Menu de admin + wizard
 require_once XKHM_PLUGIN_DIR . 'includes/admin-menu.php';
 
+// Definições (configuração da BD)
+require_once XKHM_PLUGIN_DIR . 'includes/settings.php';
+
 // Painel de administração xkhm no wp-admin
 require_once XKHM_PLUGIN_DIR . 'includes/admin-panel.php';
 

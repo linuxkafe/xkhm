@@ -108,4 +108,4 @@ add_action('admin_menu', function () {
         'dashicons-admin-generic',
         30
     );
-});
+}, 9);
