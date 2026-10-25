@@ -90,19 +90,13 @@ final class AdminLayout
         $head = '<link href="/templates/default/css/tokens.css" rel="stylesheet">' . "\n"
             . '<link href="/templates/default/css/whmcs.css" rel="stylesheet">' . "\n";
 
-        return <<<HTML
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141414">
-<meta name="color-scheme" content="light dark">
-<meta name="robots" content="noindex, nofollow">
-<title>{$titleEsc} - Administração LINUXKAFE</title>
-{$head}</head>
-<body class="admin-body">
+        // Quando embutido no wp-admin, o cabecalho (logo, idioma) e a
+        // barra lateral do xkhm nao sao necessarios — o WP ja tem os seus.
+        $inWp = defined('XKHM_WP_PLUGIN_ACTIVE');
+
+        $xkhmHeader = '';
+        if (!$inWp) {
+            $xkhmHeader = <<<HDR
 <header class="admin-header">
     <div class="admin-header-inner">
         <a class="admin-brand" href="/admin">
@@ -118,8 +112,14 @@ final class AdminLayout
     </div>
     </div>
 </header>
+HDR;
+        }
+
+        $xkhmSidebar = '';
+        if (!$inWp) {
+            $xkhmSidebar = <<<SID
 <div class="admin-shell">
-    <aside id="admin-nav" class="admin-sidebar" aria-label="Secções da administração">
+    <aside id="admin-nav" class="admin-sidebar" aria-label="Secoes da administracao">
         <nav class="admin-nav">
             <ul>
 {$nav}            </ul>
@@ -129,6 +129,26 @@ final class AdminLayout
         </div>
     </aside>
     <main class="admin-main">
+SID;
+        } else {
+            $xkhmSidebar = '<div class="admin-shell"><main class="admin-main">';
+        }
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141414">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex, nofollow">
+<title>{$titleEsc} - Administração LINUXKAFE</title>
+{$head}</head>
+<body class="admin-body">
+{$xkhmHeader}
+{$xkhmSidebar}
 {$body}
     </main>
 </div>
